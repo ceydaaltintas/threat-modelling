@@ -79,6 +79,7 @@ rules:
       component_type: [api, gateway, service]
       internet_facing: true
     stride: D
+    confidence: confirmed
     base: { likelihood: 3, impact: 3 }
     description: >-
       Hız sınırı veya kota olmayan uçlar, otomatik taleplerle hizmeti

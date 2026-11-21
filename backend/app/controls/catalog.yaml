@@ -1,0 +1,848 @@
+# Önlem kataloğu.
+# Her önlem, ISO/IEC 27001:2022 Ek A, NIST SP 800-53 ve OWASP ASVS
+# kimliklerine eşlenir. ISO eşlemeleri 'doğrulanacak' olarak işaretlidir:
+# standardın metni telifli olduğu için madde numarası kurumun kendi
+# nüshasından teyit edilmelidir (docs/PROMPT.md, 1. bölüm, 7. kural).
+mitigations:
+  - id: M-AUTHZ-OBJECT
+    title: "Nesne düzeyi yetki kontrolü"
+    area: yetki
+    effort: "orta"
+    text: >-
+      Her istekte, erişilmek istenen nesnenin istek sahibine ait olduğu sunucu
+      tarafında doğrulanmalıdır. Kontrol tek bir ortak katmanda uygulanmalı,
+      her uçta tekrar yazılmamalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.15", verification: needed }
+      - { framework: "ISO 27001:2022", id: "A.8.3", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-3" }
+      - { framework: "NIST SP 800-53", id: "AC-6" }
+      - { framework: "OWASP ASVS", id: "ASVS-V4" }
+  - id: M-AUTHZ-FUNCTION
+    title: "Fonksiyon düzeyi yetkilendirme"
+    area: yetki
+    effort: "orta"
+    text: >-
+      Yönetim ve ayrıcalıklı işlevler için rol kontrolü sunucuda zorunlu
+      kılınmalı; arayüzde gizlemek yeterli sayılmamalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.15", verification: needed }
+      - { framework: "ISO 27001:2022", id: "A.8.2", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-3" }
+      - { framework: "OWASP ASVS", id: "ASVS-V4" }
+  - id: M-LEAST-PRIVILEGE
+    title: "En az yetki ilkesi"
+    area: yetki
+    effort: "orta"
+    text: >-
+      Kullanıcı ve servislere yalnızca işlerini yapmaya yetecek yetki
+      verilmeli; geniş okuma yetkileri daraltılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.3", verification: needed }
+      - { framework: "ISO 27001:2022", id: "A.5.18", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-6" }
+      - { framework: "OWASP ASVS", id: "ASVS-V4" }
+  - id: M-ACCESS-REVIEW
+    title: "Erişim haklarının düzenli gözden geçirilmesi"
+    area: yetki
+    effort: "düşük"
+    text: >-
+      Erişim listeleri belirli aralıklarla gözden geçirilmeli, görev değişim
+      ive ayrılışta yetkiler kaldırılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.18", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-2" }
+  - id: M-PRIVILEGED-ACCESS
+    title: "Ayrıcalıklı erişim yönetimi"
+    area: yetki
+    effort: "yüksek"
+    text: >-
+      Yönetici hesapları ayrı tutulmalı, oturumları kaydedilmeli ve erişim
+      süreli verilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.2", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-6" }
+      - { framework: "NIST SP 800-53", id: "AU-2" }
+  - id: M-INDIVIDUAL-ACCOUNTS
+    title: "Kişiye özel hesaplar"
+    area: yetki
+    effort: "orta"
+    text: >-
+      Ortak hesap kullanımı kaldırılmalı; her işlem bir gerçek kişiye
+      bağlanabilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.16", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-2" }
+  - id: M-FOUR-EYES
+    title: "Çift onay (dört göz) kuralı"
+    area: surec
+    effort: "orta"
+    text: >-
+      Limit, kural ve yetki değişiklikleri ikinci bir kişinin onayı
+      olmadancanlıya çıkmamalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.32", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-6" }
+  - id: M-CHANGE-MANAGEMENT
+    title: "Değişiklik yönetimi"
+    area: surec
+    effort: "orta"
+    text: >-
+      Üretime çıkan her değişiklik kaydedilmeli, onaylanmalı ve geri
+      alınabilir olmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.32", verification: needed }
+      - { framework: "NIST SP 800-53", id: "CM-6" }
+  - id: M-MINIMISE-SCOPE
+    title: "Yetki kapsamının daraltılması"
+    area: yetki
+    effort: "orta"
+    text: >-
+      Rıza ve yetkilendirme ekranlarında varsayılan geniş kapsam kaldırılmalı;
+      kullanıcı hangi hesabı ve hangi yetkiyi verdiğini tek tek seçmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.15", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-6" }
+      - { framework: "OWASP ASVS", id: "ASVS-V4" }
+  - id: M-EXPLICIT-CONSENT
+    title: "Açık ve anlaşılır rıza"
+    area: gizlilik
+    effort: "düşük"
+    text: >-
+      Rıza metni sade olmalı, kapsam ve süre açıkça gösterilmeli,
+      varsayılanonay kutusu kullanılmamalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.34", verification: needed }
+  - id: M-STRONG-MFA
+    title: "Güçlü çok faktörlü doğrulama"
+    area: kimlik
+    effort: "yüksek"
+    text: >-
+      Kritik işlemlerde ve ayrıcalıklı arayüzlerde SMS yerine uygulama içi
+      onay veya FIDO tabanlı ikinci faktör kullanılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.5", verification: needed }
+      - { framework: "NIST SP 800-53", id: "IA-2" }
+      - { framework: "OWASP ASVS", id: "ASVS-V2" }
+  - id: M-OTP-ATTEMPT-LIMIT
+    title: "OTP deneme ve süre sınırı"
+    area: kimlik
+    effort: "düşük"
+    text: >-
+      Tek kullanımlık kodlar için deneme sayısı, kod ömrü ve istek sıklığı
+      sınırlanmalı; sınır aşıldığında kanal geçici olarak kilitlenmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.5", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-7" }
+      - { framework: "OWASP ASVS", id: "ASVS-V2" }
+  - id: M-DEVICE-BINDING
+    title: "Oturumun cihaza bağlanması"
+    area: kimlik
+    effort: "orta"
+    text: >-
+      Oturum anahtarı cihaz kimliğiyle ilişkilendirilmeli; başka cihazdan
+      kullanıldığında yeniden doğrulama istenmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.5", verification: needed }
+      - { framework: "NIST SP 800-53", id: "IA-5" }
+      - { framework: "OWASP ASVS", id: "ASVS-V3" }
+  - id: M-TOKEN-LIFETIME
+    title: "Token ömrünün kısaltılması"
+    area: kimlik
+    effort: "orta"
+    text: >-
+      Erişim token'ı kısa ömürlü olmalı, yenileme token'ı sınırlı süre geçerli
+      olmalı ve merkezi olarak iptal edilebilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.5", verification: needed }
+      - { framework: "NIST SP 800-53", id: "IA-5" }
+      - { framework: "OWASP ASVS", id: "ASVS-V3" }
+  - id: M-TOKEN-ROTATION
+    title: "Yenileme token'ı rotasyonu"
+    area: kimlik
+    effort: "orta"
+    text: >-
+      Yenileme token'ı her kullanımda değiştirilmeli; eski token tekrar
+      kullanılırsa oturum zinciri iptal edilmeli ve alarm üretilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.5", verification: needed }
+      - { framework: "NIST SP 800-53", id: "IA-5" }
+      - { framework: "OWASP ASVS", id: "ASVS-V3" }
+  - id: M-EXACT-REDIRECT
+    title: "Yönlendirme adresinin tam eşleşmeyle doğrulanması"
+    area: kimlik
+    effort: "düşük"
+    text: >-
+      redirect_uri değeri kayıtlı adresle tam olarak eşleşmelidir; ön ek vey
+      ajoker eşleşme kabul edilmemelidir.
+    controls:
+      - { framework: "OWASP ASVS", id: "ASVS-V2" }
+  - id: M-PKCE
+    title: "PKCE kullanımı"
+    area: kimlik
+    effort: "düşük"
+    text: >-
+      Yetkilendirme kodu akışında PKCE zorunlu kılınmalı, böylece çalınan ko
+      dbaşka bir istemci tarafından kullanılamamalıdır.
+    controls:
+      - { framework: "OWASP ASVS", id: "ASVS-V2" }
+  - id: M-ONE-TIME-LINK
+    title: "Tek kullanımlık ve kısa ömürlü bağlantı"
+    area: kimlik
+    effort: "düşük"
+    text: >-
+      Kampanya ve sıfırlama bağlantıları tek kullanımlık olmalı, kısa
+      süredegeçersiz kalmalı ve kişiye bağlanmalıdır.
+    controls:
+      - { framework: "NIST SP 800-53", id: "IA-5" }
+      - { framework: "OWASP ASVS", id: "ASVS-V2" }
+  - id: M-SECRET-DELIVERY
+    title: "Sırların güvenli iletimi"
+    area: kimlik
+    effort: "orta"
+    text: >-
+      API anahtarı ve parolalar e-posta ile gönderilmemeli; tek seferlik
+      gösterim veya kurumsal sır kasası kullanılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.17", verification: needed }
+      - { framework: "NIST SP 800-53", id: "IA-5" }
+  - id: M-SECRET-ROTATION
+    title: "Sır rotasyonu"
+    area: kimlik
+    effort: "orta"
+    text: >-
+      Anahtar ve parolalar belirli aralıklarla ve sızıntı şüphesinde
+      derhâldeğiştirilebilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.17", verification: needed }
+      - { framework: "NIST SP 800-53", id: "IA-5" }
+  - id: M-SECRET-STORE
+    title: "Sır kasası kullanımı"
+    area: altyapi
+    effort: "orta"
+    text: >-
+      Sırlar ConfigMap veya yapılandırma dosyasında değil, erişimi denetlenen
+      bir sır kasasında tutulmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.24", verification: needed }
+      - { framework: "NIST SP 800-53", id: "IA-5" }
+      - { framework: "OWASP ASVS", id: "ASVS-V6" }
+  - id: M-KEY-MANAGEMENT
+    title: "Anahtar yönetimi"
+    area: altyapi
+    effort: "yüksek"
+    text: >-
+      Şifreleme anahtarları ayrı yönetilmeli, erişimi sınırlanmalı ve
+      yaşamdöngüsü tanımlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.24", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SC-13" }
+      - { framework: "OWASP ASVS", id: "ASVS-V6" }
+  - id: M-TLS-EVERYWHERE
+    title: "Uçtan uca TLS"
+    area: ag
+    effort: "orta"
+    text: >-
+      İç ağ dahil tüm servisler arası trafik TLS ile şifrelenmelidir; düz HTTP
+      kullanımı kaldırılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.20", verification: needed }
+      - { framework: "ISO 27001:2022", id: "A.8.24", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SC-8" }
+      - { framework: "OWASP ASVS", id: "ASVS-V9" }
+  - id: M-MTLS
+    title: "Karşılıklı TLS (mTLS)"
+    area: ag
+    effort: "yüksek"
+    text: >-
+      Servisler birbirini sertifikayla tanımalı; böylece hem trafik şifrelenir
+      hem de çağıranın kimliği doğrulanır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.20", verification: needed }
+      - { framework: "ISO 27001:2022", id: "A.8.21", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SC-8" }
+      - { framework: "NIST SP 800-53", id: "IA-2" }
+      - { framework: "OWASP ASVS", id: "ASVS-V9" }
+  - id: M-SERVICE-IDENTITY
+    title: "Servis kimliği doğrulaması"
+    area: ag
+    effort: "orta"
+    text: >-
+      İç servis çağrılarında çağıranın kimliği token veya sertifikayla
+      doğrulanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.5", verification: needed }
+      - { framework: "NIST SP 800-53", id: "IA-2" }
+      - { framework: "OWASP ASVS", id: "ASVS-V13" }
+  - id: M-NETWORK-SEGMENTATION
+    title: "Ağ bölümlendirmesi"
+    area: ag
+    effort: "yüksek"
+    text: >-
+      Bölgeler arası erişim yalnızca gerekli port ve yönlerde açılmalı; verive
+      çekirdek bölgelerine doğrudan erişim kısıtlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.20", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SC-7" }
+      - { framework: "NIST SP 800-53", id: "AC-4" }
+  - id: M-EGRESS-CONTROL
+    title: "Dışa giden trafiğin denetimi"
+    area: ag
+    effort: "orta"
+    text: >-
+      Servislerin dışarı ve iç ağa yapabileceği istekler izin listesiyle
+      sınırlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.20", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SC-7" }
+  - id: M-SSRF-ALLOWLIST
+    title: "Callback adresleri için izin listesi"
+    area: ag
+    effort: "orta"
+    text: >-
+      Kullanıcıdan veya üçüncü taraftan gelen adresler izin listesine göre
+      doğrulanmalı; özel ağ ve bulut meta veri adresleri engellenmelidir.
+    controls:
+      - { framework: "NIST SP 800-53", id: "SC-7" }
+      - { framework: "OWASP ASVS", id: "ASVS-V5" }
+  - id: M-CERT-PINNING
+    title: "Sertifika sabitleme"
+    area: mobil
+    effort: "orta"
+    text: >-
+      Mobil uygulama yalnızca bilinen sertifika veya ortak anahtarları
+      kabuletmeli; yedek anahtar ve güncelleme planı tanımlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.24", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SC-8" }
+      - { framework: "OWASP ASVS", id: "ASVS-V9" }
+  - id: M-QUEUE-ACL
+    title: "Kuyruk erişim denetimi"
+    area: altyapi
+    effort: "orta"
+    text: >-
+      Kuyruğa yazma ve okuma yetkileri servis bazında sınırlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.20", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-3" }
+  - id: M-MESSAGE-SIGNING
+    title: "Mesaj imzalama"
+    area: altyapi
+    effort: "orta"
+    text: >-
+      Kuyruk ve entegrasyon mesajları imzalanmalı; alıcı imzayı
+      doğrulamadanişlememelidir.
+    controls:
+      - { framework: "NIST SP 800-53", id: "SI-7" }
+  - id: M-CACHE-AUTH
+    title: "Önbellek erişim denetimi"
+    area: altyapi
+    effort: "düşük"
+    text: >-
+      Redis benzeri depolar kimlik doğrulamalı çalışmalı ve yalnızca
+      ilgiliservislerin ağından erişilebilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.20", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-3" }
+  - id: M-MASKING
+    title: "Hassas alanların maskelenmesi"
+    area: veri
+    effort: "orta"
+    text: >-
+      Panellerde ve raporlarda TCKN, IBAN ve gelir gibi alanlar kısmi
+      gösterilmeli; tam değer yalnızca iş gereği olanlara açılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.11", verification: needed }
+      - { framework: "ISO 27001:2022", id: "A.8.3", verification: needed }
+      - { framework: "OWASP ASVS", id: "ASVS-V8" }
+  - id: M-FIELD-FILTER
+    title: "Yanıt alanlarının filtrelenmesi"
+    area: veri
+    effort: "orta"
+    text: >-
+      API yanıtları yalnızca istemcinin ihtiyacı olan alanları dönmeli; iç
+      alanlar sunucuda ayıklanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.3", verification: needed }
+      - { framework: "OWASP ASVS", id: "ASVS-V8" }
+  - id: M-MINIMISE-DATA
+    title: "Veri minimizasyonu"
+    area: gizlilik
+    effort: "orta"
+    text: >-
+      Toplanan, taşınan ve bildirimlerde gösterilen veri asgariye
+      indirilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.34", verification: needed }
+      - { framework: "OWASP ASVS", id: "ASVS-V8" }
+  - id: M-RETENTION-POLICY
+    title: "Saklama süresi politikası"
+    area: gizlilik
+    effort: "orta"
+    text: >-
+      Her veri türü için saklama süresi tanımlanmalı ve sistemde
+      uygulanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.10", verification: needed }
+      - { framework: "OWASP ASVS", id: "ASVS-V8" }
+  - id: M-DATA-DELETION
+    title: "Güvenli silme"
+    area: gizlilik
+    effort: "orta"
+    text: >-
+      Süresi dolan veri, yedekler dahil, geri getirilemeyecek biçimde
+      silinmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.10", verification: needed }
+  - id: M-DATA-RESIDENCY
+    title: "Veri konumu denetimi"
+    area: gizlilik
+    effort: "yüksek"
+    text: >-
+      Kişisel veri işleyen hizmetlerin bölgesi belirlenmeli; yurt dışına
+      aktarım gerekiyorsa hukuki dayanağı belgelenmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.23", verification: needed }
+  - id: M-DPA
+    title: "Veri işleme sözleşmesi"
+    area: gizlilik
+    effort: "düşük"
+    text: >-
+      Üçüncü taraf sağlayıcılarla veri işleme ve güvenlik yükümlülükleri
+      sözleşmeye bağlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.19", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SR-3" }
+  - id: M-SYNTHETIC-DATA
+    title: "Test ortamlarında sentetik veri"
+    area: veri
+    effort: "orta"
+    text: >-
+      Sandbox ve test ortamlarında gerçek müşteri verisi yerine üretilmiş veya
+      anonimleştirilmiş veri kullanılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.31", verification: needed }
+  - id: M-ENV-SEPARATION
+    title: "Ortamların ayrılması"
+    area: altyapi
+    effort: "yüksek"
+    text: >-
+      Geliştirme, test ve üretim ortamları ağ, kimlik ve veri düzeyinde
+      ayrılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.31", verification: needed }
+      - { framework: "NIST SP 800-53", id: "CM-6" }
+  - id: M-DLP
+    title: "Veri sızıntısı önleme"
+    area: veri
+    effort: "yüksek"
+    text: >-
+      Toplu veri çıkışı izlenmeli ve eşik aşıldığında alarm üretilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.12", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SI-4" }
+  - id: M-BACKUP-ENCRYPTION
+    title: "Yedeklerin şifrelenmesi"
+    area: veri
+    effort: "orta"
+    text: >-
+      Yedekler şifrelenmeli, anahtarları ayrı yönetilmeli ve geri dönüş
+      testleri yapılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.13", verification: needed }
+      - { framework: "NIST SP 800-53", id: "CP-9" }
+      - { framework: "NIST SP 800-53", id: "SC-28" }
+  - id: M-SHORT-EXPIRY
+    title: "Kısa ömürlü erişim bağlantısı"
+    area: veri
+    effort: "düşük"
+    text: >-
+      İmzalı URL'ler dakikalar düzeyinde geçerli olmalı ve mümkünse tek
+      kullanımlık üretilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.3", verification: needed }
+  - id: M-SCOPED-ACCESS
+    title: "Kapsamı daraltılmış erişim"
+    area: veri
+    effort: "orta"
+    text: >-
+      Erişim yalnızca ilgili nesneye verilmeli; klasör veya kova düzeyinde
+      geniş izin verilmemelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.3", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-6" }
+  - id: M-SECURE-STORAGE
+    title: "Cihazda güvenli saklama"
+    area: mobil
+    effort: "orta"
+    text: >-
+      Mobil uygulamada hassas veri işletim sisteminin güvenli deposunda
+      tutulmalı, yedeklere ve ekran görüntülerine çıkmamalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.24", verification: needed }
+      - { framework: "OWASP ASVS", id: "ASVS-V6" }
+  - id: M-NOTIFICATION-REDACTION
+    title: "Bildirim içeriğinin daraltılması"
+    area: mobil
+    effort: "düşük"
+    text: >-
+      Bildirimlerde bakiye, tutar ve kod gibi bilgiler gösterilmemeli; ayrıntı
+      için uygulamaya yönlendirilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.11", verification: needed }
+  - id: M-OPAQUE-ID
+    title: "Tahmin edilemeyen kaynak kimliği"
+    area: api
+    effort: "düşük"
+    text: >-
+      Dışarıya açılan kaynak numaraları sıralı olmamalı; rastgele veya
+      opakkimlik kullanılmalıdır.
+    controls:
+      - { framework: "OWASP ASVS", id: "ASVS-V4" }
+  - id: M-RATE-LIMIT
+    title: "Hız sınırlama"
+    area: dayaniklilik
+    effort: "düşük"
+    text: >-
+      Uçlara kullanıcı, istemci ve IP bazında istek sınırı konmalı; sınır
+      aşımında anlaşılır hata dönülmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.6", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SC-5" }
+      - { framework: "OWASP ASVS", id: "ASVS-V13" }
+  - id: M-QUOTA
+    title: "Kota yönetimi"
+    area: dayaniklilik
+    effort: "orta"
+    text: >-
+      Pahalı veya üçüncü taraf maliyeti doğuran işlemler için günlük kota
+      tanımlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.6", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SC-5" }
+  - id: M-SERVER-SIDE-LIMIT
+    title: "Sunucu tarafında sınır ve doğrulama"
+    area: api
+    effort: "düşük"
+    text: >-
+      Sayfa boyutu, tutar ve limit gibi değerler istemciden alınsa bile
+      sunucuda üst sınıra bağlanmalı ve yeniden doğrulanmalıdır.
+    controls:
+      - { framework: "NIST SP 800-53", id: "SI-10" }
+      - { framework: "OWASP ASVS", id: "ASVS-V5" }
+  - id: M-INPUT-ALLOWLIST
+    title: "Girdi izin listesi"
+    area: api
+    effort: "düşük"
+    text: >-
+      İstek gövdesinden yalnızca beklenen alanlar alınmalı; diğerleri yok
+      sayılmalıdır.
+    controls:
+      - { framework: "NIST SP 800-53", id: "SI-10" }
+      - { framework: "OWASP ASVS", id: "ASVS-V5" }
+  - id: M-OUTPUT-ENCODING
+    title: "Çıktı kodlama"
+    area: web
+    effort: "düşük"
+    text: >-
+      Kullanıcı girdisi sayfaya yazılırken bağlama uygun biçimde
+      kaçışlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.28", verification: needed }
+      - { framework: "OWASP ASVS", id: "ASVS-V5" }
+  - id: M-CSP
+    title: "İçerik güvenlik politikası"
+    area: web
+    effort: "düşük"
+    text: >-
+      Content-Security-Policy başlığıyla betik kaynakları sınırlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.9", verification: needed }
+      - { framework: "NIST SP 800-53", id: "CM-6" }
+      - { framework: "OWASP ASVS", id: "ASVS-V14" }
+  - id: M-CIRCUIT-BREAKER
+    title: "Devre kesici"
+    area: dayaniklilik
+    effort: "orta"
+    text: >-
+      Yavaşlayan bağımlılıklar için devre kesici kullanılmalı; kesici
+      açıldığında davranış önceden tanımlanmış olmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.6", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SC-5" }
+  - id: M-FAIL-CLOSED
+    title: "Güvenlik kontrolünde fail-closed"
+    area: dayaniklilik
+    effort: "orta"
+    text: >-
+      Güvenlik kontrolü yanıt vermediğinde işlem durdurulmalı veya ek
+      doğrulamaya yönlendirilmeli; sessizce geçilmemelidir.
+    controls:
+      - { framework: "NIST SP 800-53", id: "SC-5" }
+      - { framework: "OWASP ASVS", id: "ASVS-V11" }
+  - id: M-FALLBACK
+    title: "Yedek sağlayıcı veya yol"
+    area: dayaniklilik
+    effort: "yüksek"
+    text: >-
+      Kritik dış bağımlılıklar için ikinci sağlayıcı veya elle devam yolu
+      tanımlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.19", verification: needed }
+  - id: M-ATOMIC-COUNTER
+    title: "Atomik sayaç güncellemesi"
+    area: odeme
+    effort: "orta"
+    text: >-
+      Limit sayaçları işlemle aynı atomik birimde güncellenmeli veya
+      dağıtıkkilit kullanılmalıdır.
+    controls:
+      - { framework: "OWASP ASVS", id: "ASVS-V11" }
+  - id: M-IDEMPOTENCY
+    title: "Tekrar önleme anahtarı"
+    area: odeme
+    effort: "orta"
+    text: >-
+      Her işlem isteği benzersiz bir anahtar taşımalı; aynı anahtarla
+      gelenikinci istek yeni işlem üretmemelidir.
+    controls:
+      - { framework: "OWASP ASVS", id: "ASVS-V11" }
+  - id: M-RECONCILIATION
+    title: "Mutabakat"
+    area: odeme
+    effort: "orta"
+    text: >-
+      Dış sistemlerle gün içi ve gün sonu mutabakat yapılmalı; tutarsızlıkla
+      ralarma bağlanmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.33", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AU-6" }
+  - id: M-TRANSACTION-SIGNING
+    title: "İşlem imzalama"
+    area: odeme
+    effort: "yüksek"
+    text: >-
+      Ödeme talimatları imzalanmalı ve imza saklanmalı; böylece içerik
+      değiştirilemez ve inkâr edilemez.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.24", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SI-7" }
+  - id: M-AUDIT-TRAIL
+    title: "Değiştirilemez denetim izi"
+    area: log
+    effort: "orta"
+    text: >-
+      Kim, ne zaman, neyi, hangi eski ve yeni değerle değiştirdi bilgisi
+      yalnızca eklenebilir bir kayda yazılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.33", verification: needed }
+      - { framework: "ISO 27001:2022", id: "A.8.15", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AU-2" }
+      - { framework: "NIST SP 800-53", id: "AU-9" }
+      - { framework: "OWASP ASVS", id: "ASVS-V7" }
+  - id: M-LOGGING-ACCESS
+    title: "Erişim kayıtları"
+    area: log
+    effort: "orta"
+    text: >-
+      Hassas veriye erişimler kaydedilmeli ve düzenli incelenmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.15", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AU-2" }
+      - { framework: "NIST SP 800-53", id: "AU-6" }
+      - { framework: "OWASP ASVS", id: "ASVS-V7" }
+  - id: M-LOG-MASKING
+    title: "Loglarda maskeleme"
+    area: log
+    effort: "düşük"
+    text: >-
+      Log yazımında IBAN, TCKN, token ve istek gövdeleri maskelenmeli veya hiç
+      yazılmamalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.15", verification: needed }
+      - { framework: "ISO 27001:2022", id: "A.8.11", verification: needed }
+      - { framework: "OWASP ASVS", id: "ASVS-V7" }
+  - id: M-LOG-LEVEL
+    title: "Üretimde log seviyesi"
+    area: log
+    effort: "düşük"
+    text: >-
+      Üretimde hata ayıklama seviyesi kapatılmalı; gerektiğinde süreli ve
+      onaylı açılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.9", verification: needed }
+      - { framework: "NIST SP 800-53", id: "CM-6" }
+  - id: M-MONITORING
+    title: "İzleme ve alarm"
+    area: log
+    effort: "orta"
+    text: >-
+      Anormal davranışlar için alarm kuralları tanımlanmalı ve bir ekibe
+      yönlendirilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.16", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SI-4" }
+  - id: M-ANOMALY-DETECTION
+    title: "Anomali tespiti"
+    area: log
+    effort: "yüksek"
+    text: >-
+      Hesap ve işlem davranışındaki sapmalar modellenmeli; eşik aşımında
+      ekdoğrulama istenmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.16", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SI-4" }
+  - id: M-DECISION-LOG
+    title: "Karar kaydı"
+    area: karar
+    effort: "orta"
+    text: >-
+      Otomatik kararın girdileri, kural sürümü ve gerekçesi saklanmalı;
+      müşteri itirazında gösterilebilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.33", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AU-2" }
+  - id: M-CONTENT-VALIDATION
+    title: "Dosya içerik doğrulaması"
+    area: belge
+    effort: "düşük"
+    text: >-
+      Yüklenen dosyanın gerçek türü içeriğinden doğrulanmalı; yalnızca
+      uzantıya güvenilmemelidir.
+    controls:
+      - { framework: "NIST SP 800-53", id: "SI-10" }
+      - { framework: "OWASP ASVS", id: "ASVS-V12" }
+  - id: M-MALWARE-SCAN
+    title: "Zararlı yazılım taraması"
+    area: belge
+    effort: "orta"
+    text: >-
+      Yüklenen dosyalar işlenmeden önce taranmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.7", verification: needed }
+      - { framework: "OWASP ASVS", id: "ASVS-V12" }
+  - id: M-SANDBOX-PROCESSING
+    title: "Dosyaların yalıtılmış ortamda işlenmesi"
+    area: belge
+    effort: "yüksek"
+    text: >-
+      Dönüştürme ve OCR gibi işlemler ağ erişimi kısıtlı, yalıtılmış bir
+      ortamda çalıştırılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.31", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SC-7" }
+  - id: M-WEBHOOK-SIGNATURE
+    title: "Webhook imza doğrulaması"
+    area: ucuncu-taraf
+    effort: "düşük"
+    text: >-
+      Gelen bildirimlerin imzası doğrulanmalı, zaman damgası kontrol edilmel
+      ive tekrar saldırısı engellenmelidir.
+    controls:
+      - { framework: "NIST SP 800-53", id: "SI-7" }
+      - { framework: "OWASP ASVS", id: "ASVS-V13" }
+  - id: M-REALTIME-REVOCATION
+    title: "Anlık iptal"
+    area: ucuncu-taraf
+    effort: "orta"
+    text: >-
+      Rıza veya sertifika iptali, bekleyen token ve oturumları gecikmeden
+      geçersiz kılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.5.19", verification: needed }
+      - { framework: "NIST SP 800-53", id: "AC-3" }
+      - { framework: "OWASP ASVS", id: "ASVS-V3" }
+  - id: M-API-INVENTORY
+    title: "API envanteri"
+    area: api
+    effort: "düşük"
+    text: >-
+      Tüm uçlar envanterde tutulmalı, sürümleri ve sahipleri bilinmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.9", verification: needed }
+      - { framework: "NIST SP 800-53", id: "CM-7" }
+  - id: M-DEPRECATION
+    title: "Eski sürümlerin kapatılması"
+    area: api
+    effort: "orta"
+    text: >-
+      Kullanımdan kalkan uçlar duyurulmalı ve belirli bir takvimle
+      kapatılmalıdır.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.9", verification: needed }
+      - { framework: "NIST SP 800-53", id: "CM-7" }
+  - id: M-ROOT-DETECTION
+    title: "Root/jailbreak tespiti"
+    area: mobil
+    effort: "orta"
+    text: >-
+      Kurcalanmış cihaz tespitinde işlem kısıtlanmalı veya ek doğrulama
+      istenmelidir; tek başına yeterli kabul edilmemelidir.
+    controls:
+      - { framework: "OWASP ASVS", id: "ASVS-V10" }
+  - id: M-OBFUSCATION
+    title: "Kod karartma"
+    area: mobil
+    effort: "düşük"
+    text: >-
+      Mobil uygulama kodu karartılmalı; iş kuralları ve anahtarlar
+      istemciyegömülmemelidir.
+    controls:
+      - { framework: "OWASP ASVS", id: "ASVS-V10" }
+  - id: M-MODEL-SIGNING
+    title: "Model dosyalarının imzalanması"
+    area: yapay-zeka
+    effort: "orta"
+    text: >-
+      Model ve kural dosyaları imzalanmalı; yükleme sırasında imza
+      doğrulanmadan kullanılmamalıdır.
+    controls:
+      - { framework: "NIST SP 800-53", id: "SI-7" }
+  - id: M-MODEL-VERSIONING
+    title: "Model sürüm yönetimi"
+    area: yapay-zeka
+    effort: "orta"
+    text: >-
+      Hangi sürümün ne zaman canlıda olduğu kayıt altında tutulmalı ve
+      geridönülebilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.32", verification: needed }
+      - { framework: "NIST SP 800-53", id: "CM-6" }
+  - id: M-PROMPT-ISOLATION
+    title: "İstem yalıtımı"
+    area: yapay-zeka
+    effort: "düşük"
+    text: >-
+      Güvenilmez metin modele talimat olarak değil, açıkça
+      sınırlandırılmışveri bloğu olarak verilmelidir.
+    controls:
+      - { framework: "OWASP ASVS", id: "ASVS-V5" }
+  - id: M-OUTPUT-SCHEMA
+    title: "Model çıktısının şemayla doğrulanması"
+    area: yapay-zeka
+    effort: "düşük"
+    text: >-
+      Model çıktısı şemaya göre doğrulanmalı; doğrulanmayan çıktı hiçbir
+      kararda kullanılmamalıdır.
+    controls:
+      - { framework: "NIST SP 800-53", id: "SI-10" }
+      - { framework: "OWASP ASVS", id: "ASVS-V5" }
+  - id: M-HUMAN-REVIEW
+    title: "İnsan incelemesi"
+    area: yapay-zeka
+    effort: "orta"
+    text: >-
+      Model çıktısı bir uzman tarafından kabul edilmeden nihai sayılmamalıdır.
+    controls:
+      - { framework: "OWASP ASVS", id: "ASVS-V1" }
+  - id: M-DOCUMENT-CONTROL
+    title: "Tasarım dokümanının tamamlanması"
+    area: surec
+    effort: "düşük"
+    text: >-
+      Dokümanda belirtilmemiş güvenlik kararları (şifreleme, limit,
+      saklamasüresi) yazılı hâle getirilmelidir.
+    controls:
+      - { framework: "ISO 27001:2022", id: "A.8.26", verification: needed }
+      - { framework: "NIST SP 800-53", id: "SA-11" }
+      - { framework: "OWASP ASVS", id: "ASVS-V1" }

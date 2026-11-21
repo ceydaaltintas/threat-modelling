@@ -33,6 +33,9 @@ from app.pipeline import (
     step2_system_model,
     step3_knowledge,
     step4_threats,
+    step5_validation,
+    step6_risk,
+    step7_mitigations,
 )
 from app.pipeline.context import RunContext, StepFailed
 from app.pipeline.steps import PIPELINE_STEPS, StepDefinition, step_by_no
@@ -49,6 +52,9 @@ REAL_STEPS: dict[int, StepRunner] = {
     2: step2_system_model.run,
     3: step3_knowledge.run,
     4: step4_threats.run,
+    5: step5_validation.run,
+    6: step6_risk.run,
+    7: step7_mitigations.run,
 }
 
 _resume_events: dict[str, asyncio.Event] = {}

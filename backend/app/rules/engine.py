@@ -77,6 +77,7 @@ class RuleThreat:
     evidence: list[dict]
     base_likelihood: int
     base_impact: int
+    confidence: str
     context: ContextFlags
     # Serialised rule context_adjust, used by the risk step in phase 3.
     context_adjust: dict
@@ -340,6 +341,7 @@ def _build(
         evidence=evidence or [],
         base_likelihood=rule.base.likelihood,
         base_impact=rule.base.impact,
+        confidence=rule.confidence,
         context=context,
         context_adjust=rule.context_adjust.model_dump(mode="json"),
     )

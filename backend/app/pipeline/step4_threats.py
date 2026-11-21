@@ -114,6 +114,7 @@ def _rule_threat_rows(threats: list[RuleThreat]) -> list[dict]:
             "rule_context": {
                 "base_likelihood": threat.base_likelihood,
                 "base_impact": threat.base_impact,
+                "confidence": threat.confidence,
                 "internet_facing": threat.context.internet_facing,
                 "sensitive_data": threat.context.sensitive_data,
                 "data_classes": threat.context.data_classes,

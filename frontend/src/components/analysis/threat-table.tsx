@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LEVELS, levelClasses, type Level } from "@/lib/levels";
 import { SOURCE_LABELS, STRIDE_SHORT, VALIDATION_LABELS } from "@/lib/threats";
 import type { DocumentOut, ThreatListResponse, ThreatRow } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ export function ThreatTable({
   const [stride, setStride] = React.useState<string>("");
   const [source, setSource] = React.useState<string>("");
   const [component, setComponent] = React.useState<string>("");
+  const [level, setLevel] = React.useState<string>("");
   const [selected, setSelected] = React.useState<ThreatRow | null>(null);
 
   const nameOf = React.useCallback(
@@ -103,21 +105,47 @@ export function ThreatTable({
       {
         accessorKey: "validation_status",
         header: "Doğrulama",
-        cell: ({ getValue }) => (
-          <span className="text-[11px] text-muted-foreground">
-            {VALIDATION_LABELS[getValue<string>()] ?? getValue<string>()}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const status = row.original.validation_status;
+          const errors = row.original.validation_notes.filter(
+            (note) => note.severity === "error",
+          ).length;
+          if (status === "flagged") {
+            return (
+              <Badge variant={errors > 0 ? "danger" : "warning"}>
+                İşaretli{errors > 0 ? ` (${errors})` : ""}
+              </Badge>
+            );
+          }
+          return (
+            <span className="text-[11px] text-muted-foreground">
+              {VALIDATION_LABELS[status] ?? status}
+            </span>
+          );
+        },
       },
       {
         id: "level",
         header: "Seviye",
+        accessorFn: (row) => row.system_calc?.score ?? -1,
         cell: ({ row }) =>
           row.original.system_calc ? (
-            <Badge variant="danger">{row.original.system_calc.level}</Badge>
+            <span className="flex items-center gap-1.5">
+              <Badge
+                className={cn(
+                  "border",
+                  levelClasses[row.original.system_calc.level as Level],
+                )}
+              >
+                {row.original.system_calc.level}
+              </Badge>
+              <span className="tabular-nums text-[11px] text-muted-foreground">
+                {row.original.system_calc.score}
+              </span>
+            </span>
           ) : (
             <span className="text-[11px] text-muted-foreground">
-              Aşama 3&apos;te
+              Hesaplanmadı
             </span>
           ),
       },
@@ -129,6 +157,7 @@ export function ThreatTable({
     () =>
       data.threats.filter((threat) => {
         if (stride && threat.stride !== stride) return false;
+        if (level && threat.system_calc?.level !== level) return false;
         if (source && threat.source !== source) return false;
         if (component && threat.component_ref !== component) return false;
         if (search.trim()) {
@@ -208,6 +237,19 @@ export function ThreatTable({
           ))}
         </select>
         <select
+          value={level}
+          onChange={(event) => setLevel(event.target.value)}
+          aria-label="Seviye filtresi"
+          className="h-8 rounded-md border border-input bg-surface px-2 text-xs"
+        >
+          <option value="">Tüm seviyeler</option>
+          {LEVELS.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+        <select
           value={source}
           onChange={(event) => setSource(event.target.value)}
           aria-label="Kaynak türü filtresi"
@@ -233,13 +275,14 @@ export function ThreatTable({
             </option>
           ))}
         </select>
-        {(search || stride || source || component) && (
+        {(search || stride || level || source || component) && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
               setSearch("");
               setStride("");
+              setLevel("");
               setSource("");
               setComponent("");
             }}
@@ -249,13 +292,25 @@ export function ThreatTable({
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        {filtered.length} / {data.total} tehdit ·{" "}
-        {data.summary.by_source.rule ?? 0} kuraldan,{" "}
-        {data.summary.by_source.llm ?? 0} LLM'den,{" "}
-        {data.summary.by_source.merged ?? 0} birleştirilmiş ·{" "}
-        {data.summary.assumptions} varsayım
-      </p>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span>
+          {filtered.length} / {data.total} tehdit ·{" "}
+          {data.summary.by_source.rule ?? 0} kuraldan,{" "}
+          {data.summary.by_source.llm ?? 0} LLM&apos;den,{" "}
+          {data.summary.by_source.merged ?? 0} birleştirilmiş ·{" "}
+          {data.summary.assumptions} varsayım
+        </span>
+        {data.summary.by_level
+          ? LEVELS.filter((value) => data.summary.by_level?.[value]).map((value) => (
+              <Badge key={value} className={cn("border", levelClasses[value])}>
+                {data.summary.by_level?.[value]} {value}
+              </Badge>
+            ))
+          : null}
+        {data.summary.flagged ? (
+          <Badge variant="warning">{data.summary.flagged} doğrulamada işaretli</Badge>
+        ) : null}
+      </div>
 
       <Card>
         <div className="overflow-x-auto">

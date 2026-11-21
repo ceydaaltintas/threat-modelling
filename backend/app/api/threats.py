@@ -55,6 +55,7 @@ async def list_threats(
     stride: str | None = Query(default=None),
     source: str | None = Query(default=None),
     component: str | None = Query(default=None),
+    level: str | None = Query(default=None),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     run = await session.get(AnalysisRun, run_id)
@@ -68,6 +69,8 @@ async def list_threats(
         stmt = stmt.where(Threat.source == source)
     if component:
         stmt = stmt.where(Threat.component_ref == component)
+    if level:
+        stmt = stmt.where(Threat.system_calc["level"].as_string() == level)
 
     rows = (await session.execute(stmt)).scalars().all()
 
@@ -96,13 +99,35 @@ async def list_threats(
             .where(Threat.run_id == run_id, Threat.is_assumption.is_(True))
         )
     ).scalar_one()
+    flagged = (
+        await session.execute(
+            select(func.count())
+            .select_from(Threat)
+            .where(Threat.run_id == run_id, Threat.validation_status == "flagged")
+        )
+    ).scalar_one()
+    # One shared expression so SELECT and GROUP BY render identically.
+    level = Threat.system_calc["level"].as_string().label("level")
+    by_level = {
+        name: count
+        for name, count in (
+            await session.execute(
+                select(level, func.count())
+                .where(Threat.run_id == run_id)
+                .group_by(level)
+            )
+        ).all()
+        if name
+    }
 
     return {
         "total": len(rows),
         "summary": {
             "by_source": by_source,
             "by_stride": by_stride,
+            "by_level": by_level,
             "assumptions": assumptions,
+            "flagged": flagged,
         },
         "threats": [_serialise(threat) for threat in rows],
     }

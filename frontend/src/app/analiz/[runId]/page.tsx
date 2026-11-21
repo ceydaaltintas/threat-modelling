@@ -7,6 +7,11 @@ import * as React from "react";
 import { DocumentPanel } from "@/components/analysis/document-panel";
 import { EventLog } from "@/components/analysis/event-log";
 import { RetrievalPanel } from "@/components/analysis/retrieval-panel";
+import {
+  MitigationSummary,
+  RiskSummary,
+  ValidationSummary,
+} from "@/components/analysis/step-summaries";
 import { ThreatTable } from "@/components/analysis/threat-table";
 import { RunTopStrip } from "@/components/analysis/run-topstrip";
 import { StepDetail } from "@/components/analysis/step-detail";
@@ -23,9 +28,12 @@ import { api } from "@/lib/api";
 import type { SystemModelData, SystemModelVersion } from "@/lib/system-model";
 import type {
   DocumentOut,
+  MitigationOutput,
   RetrievalOutput,
+  RiskOutput,
   ThreatGenOutput,
   ThreatListResponse,
+  ValidationOutput,
 } from "@/lib/types";
 
 export default function AnalysisPage() {
@@ -53,6 +61,8 @@ export default function AnalysisPage() {
   const step1Done = stepStatus(1) === "done";
   const step2Done = stepStatus(2) === "done";
   const step4Done = stepStatus(4) === "done";
+  // Steps 5-7 rewrite the threat rows, so reload when each finishes.
+  const laterSteps = [5, 6, 7].map(stepStatus).join(",");
 
   React.useEffect(() => {
     if (!runId || !step1Done) return;
@@ -73,7 +83,7 @@ export default function AnalysisPage() {
   React.useEffect(() => {
     if (!runId || !step4Done) return;
     api.threats(runId).then(setThreats).catch(() => setThreats(null));
-  }, [runId, step4Done]);
+  }, [runId, step4Done, laterSteps]);
 
   // Follow the active step until the user picks one.
   React.useEffect(() => {
@@ -195,6 +205,48 @@ export default function AnalysisPage() {
         />
       );
     }
+    if (stepNo === 5 && threats) {
+      const output = stepOutput(5) as ValidationOutput | null;
+      if (!output) return undefined;
+      return (
+        <div className="space-y-4">
+          <ValidationSummary output={output} />
+          <ThreatTable
+            data={threats}
+            documents={documents}
+            componentNames={componentNames}
+          />
+        </div>
+      );
+    }
+    if (stepNo === 6 && threats) {
+      const output = stepOutput(6) as RiskOutput | null;
+      if (!output) return undefined;
+      return (
+        <div className="space-y-4">
+          <RiskSummary output={output} />
+          <ThreatTable
+            data={threats}
+            documents={documents}
+            componentNames={componentNames}
+          />
+        </div>
+      );
+    }
+    if (stepNo === 7 && threats) {
+      const output = stepOutput(7) as MitigationOutput | null;
+      if (!output) return undefined;
+      return (
+        <div className="space-y-4">
+          <MitigationSummary output={output} />
+          <ThreatTable
+            data={threats}
+            documents={documents}
+            componentNames={componentNames}
+          />
+        </div>
+      );
+    }
     return undefined;
   };
 
@@ -224,8 +276,8 @@ export default function AnalysisPage() {
       {stream.placeholder ? (
         <div className="flex items-center gap-2 rounded-md border border-dashed border-border bg-surface px-3 py-2 text-xs text-muted-foreground">
           <Badge variant="warning">Örnek veri</Badge>
-          1. ve 2. adımlar gerçek dokümanı işler. 3–9. adımlar henüz örnek veri
-          üretir; gerçek çıktı sonraki aşamalarda gelecek.
+          1–7. adımlar gerçek dokümanı işler. 8. ve 9. adımlar henüz örnek
+          veri üretir; gerçek çıktı Aşama 4&apos;te gelecek.
         </div>
       ) : null}
 

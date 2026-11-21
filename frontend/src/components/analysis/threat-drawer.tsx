@@ -1,12 +1,15 @@
 "use client";
 
-import { ExternalLink, X } from "lucide-react";
+import { AlertCircle, ExternalLink, Info, ShieldCheck, X } from "lucide-react";
 import * as React from "react";
 
 import { EvidenceView } from "@/components/analysis/evidence-view";
+import { RiskBreakdown } from "@/components/analysis/risk-breakdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { levelClasses, type Level } from "@/lib/levels";
 import { STRIDE_LABELS, SOURCE_LABELS } from "@/lib/threats";
+import { cn } from "@/lib/utils";
 import type { DocumentOut, ThreatRow } from "@/lib/types";
 
 /** Right-hand drawer with everything known about one threat. */
@@ -46,6 +49,16 @@ export function ThreatDrawer({
         <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-surface px-5 py-4">
           <div className="min-w-0">
             <div className="mb-1 flex flex-wrap items-center gap-1.5">
+              {threat.system_calc ? (
+                <Badge
+                  className={cn(
+                    "border",
+                    levelClasses[threat.system_calc.level as Level],
+                  )}
+                >
+                  {threat.system_calc.level} · {threat.system_calc.score}
+                </Badge>
+              ) : null}
               <Badge variant="outline">{STRIDE_LABELS[threat.stride]}</Badge>
               <Badge variant={threat.source === "rule" ? "default" : "accent"}>
                 {SOURCE_LABELS[threat.source]}
@@ -104,6 +117,52 @@ export function ThreatDrawer({
             )}
           </Section>
 
+          <Section title="Doğrulama">
+            {threat.validation_notes.length === 0 ? (
+              <p className="flex items-center gap-1.5 text-xs text-level-low">
+                <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                Tüm doğrulama kontrollerinden geçti.
+              </p>
+            ) : (
+              <ul className="space-y-1.5">
+                {threat.validation_notes.map((note, index) => (
+                  <li
+                    key={index}
+                    className={cn(
+                      "flex items-start gap-2 rounded-md border p-2 text-xs",
+                      note.severity === "error"
+                        ? "border-level-critical/40 bg-level-critical/10"
+                        : note.severity === "warning"
+                          ? "border-level-high/40 bg-level-high/10"
+                          : "border-border bg-surface-muted",
+                    )}
+                  >
+                    {note.severity === "info" ? (
+                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                    ) : (
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                    )}
+                    <span className="min-w-0">
+                      <span className="font-medium">{note.label ?? note.code}</span>
+                      {note.detail ? (
+                        <span className="block break-words text-muted-foreground">
+                          {note.detail}
+                        </span>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              İşaretlenen tehditler listeden çıkarılmaz; kararı uzman verir.
+            </p>
+          </Section>
+
+          <Section title="Risk kırılımı (Sistem hesabı)">
+            <RiskBreakdown threat={threat} />
+          </Section>
+
           <Section title="Değerler">
             <div className="grid gap-3 sm:grid-cols-3">
               <ValueBox
@@ -120,12 +179,12 @@ export function ThreatDrawer({
                 value={
                   threat.system_calc
                     ? `${threat.system_calc.score} · ${threat.system_calc.level}`
-                    : "Aşama 3'te"
+                    : "Hesaplanmadı"
                 }
                 note={
                   threat.rule_context
                     ? `Taban: O${threat.rule_context.base_likelihood} × E${threat.rule_context.base_impact}`
-                    : undefined
+                    : "STRIDE varsayılan tabanı"
                 }
               />
               <ValueBox
@@ -133,42 +192,80 @@ export function ThreatDrawer({
                 value={threat.expert ? "Verildi" : "Aşama 4'te"}
               />
             </div>
-            {threat.rule_context ? (
-              <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                <li>
-                  İnternete açık:{" "}
-                  {threat.rule_context.internet_facing ? "Evet" : "Hayır"}
-                </li>
-                <li>
-                  Hassas veri:{" "}
-                  {threat.rule_context.sensitive_data ? "Evet" : "Hayır"}
-                  {threat.rule_context.data_classes.length > 0
-                    ? ` (${threat.rule_context.data_classes.join(", ")})`
-                    : ""}
-                </li>
-                {threat.rule_context.control_evidence ? (
-                  <li className="text-level-low">
-                    Dokümanda önleme işaret eden ifade bulundu: “
-                    {threat.rule_context.control_evidence}”
-                  </li>
-                ) : null}
-              </ul>
-            ) : null}
           </Section>
 
           <Section title="Önlemler">
             {threat.mitigations.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                Önlem metinleri Aşama 3&apos;te üretilecek.
+                Önlem önerilmedi.
               </p>
             ) : (
-              <ul className="flex flex-wrap gap-1.5">
+              <ul className="space-y-2">
                 {threat.mitigations.map((item) => (
-                  <li key={item.id}>
-                    <Badge variant="outline">{item.id}</Badge>
+                  <li key={item.id} className="rounded-md border border-border p-2.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-xs font-medium">
+                        {item.title ?? item.id}
+                      </span>
+                      <Badge variant="outline">{item.id}</Badge>
+                      {item.effort ? (
+                        <Badge variant="default">Efor: {item.effort}</Badge>
+                      ) : null}
+                      <Badge variant={item.source === "llm" ? "accent" : "default"}>
+                        {item.source === "llm" ? "AI metni" : "Katalog metni"}
+                      </Badge>
+                    </div>
+                    {item.text ? (
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {item.text}
+                      </p>
+                    ) : null}
                   </li>
                 ))}
               </ul>
+            )}
+          </Section>
+
+          <Section title="Kontrol eşlemeleri">
+            {threat.control_mappings.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Eşleme yok.</p>
+            ) : (
+              <>
+                <table className="w-full text-xs">
+                  <thead className="text-left text-[11px] text-muted-foreground">
+                    <tr>
+                      <th className="pb-1 font-medium">Çerçeve</th>
+                      <th className="pb-1 font-medium">Madde</th>
+                      <th className="pb-1 font-medium">Durum</th>
+                      <th className="pb-1 font-medium">Önlem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {threat.control_mappings.map((item) => (
+                      <tr
+                        key={`${item.framework}-${item.id}`}
+                        className="border-t border-border/60"
+                      >
+                        <td className="py-1 pr-2">{item.framework}</td>
+                        <td className="py-1 pr-2 font-mono">{item.id}</td>
+                        <td className="py-1 pr-2">
+                          {item.verification === "needed" ? (
+                            <Badge variant="warning">Doğrulanacak</Badge>
+                          ) : (
+                            <Badge variant="success">Teyitli</Badge>
+                          )}
+                        </td>
+                        <td className="py-1 text-muted-foreground">{item.via}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  ISO maddeleri “doğrulanacak” işaretlidir: standardın metni
+                  telifli olduğu için madde numarası kurumun kendi nüshasından
+                  teyit edilmelidir.
+                </p>
+              </>
             )}
           </Section>
         </div>

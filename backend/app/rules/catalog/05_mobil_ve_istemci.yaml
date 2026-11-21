@@ -7,6 +7,7 @@ rules:
     applies_to:
       component_type: [mobile_app]
     stride: T
+    confidence: confirmed
     base: { likelihood: 3, impact: 4 }
     description: >-
       Sertifika sabitlemesi olmayan mobil uygulamada, cihaza sahte kök
@@ -26,6 +27,7 @@ rules:
     applies_to:
       component_type: [mobile_app]
     stride: T
+    confidence: confirmed
     base: { likelihood: 3, impact: 3 }
     description: >-
       Kurcalanmış cihazlarda uygulama verisi okunabilir ve davranışı

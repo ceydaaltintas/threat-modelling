@@ -72,6 +72,7 @@ rules:
     applies_to:
       component_type: [database]
     stride: I
+    confidence: confirmed
     base: { likelihood: 2, impact: 5 }
     description: >-
       Yedeklerin şifrelenmemesi, veritabanı şifreli olsa bile veriyi açık
@@ -113,6 +114,7 @@ rules:
       component_type: [external, service]
       technology_any: ["saas", "yurt dışı", "bölge", "region", "ocr", "bulut"]
     stride: I
+    confidence: confirmed
     base: { likelihood: 3, impact: 4 }
     description: >-
       Belge veya kimlik verisinin yurt dışındaki bir sağlayıcıya gönderilmesi,
@@ -154,6 +156,7 @@ rules:
       component_type: [service, api, database, external]
       name_any: ["sandbox", "test", "deneme", "staging"]
     stride: I
+    confidence: confirmed
     base: { likelihood: 3, impact: 5 }
     description: >-
       Test ortamlarının üretim kadar korunmaması nedeniyle gerçek müşteri
@@ -198,6 +201,7 @@ rules:
       # how secrets are actually stored.
       technology_any: ["configmap", "secret", "yapılandırma dosyası", "env dosyası"]
     stride: I
+    confidence: confirmed
     base: { likelihood: 3, impact: 5 }
     description: >-
       API anahtarı ve parolaların ConfigMap veya düz yapılandırma dosyasında

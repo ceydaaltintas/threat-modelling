@@ -18,6 +18,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 Stride = Literal["S", "T", "R", "I", "D", "E"]
 Target = Literal["component", "flow", "system"]
+# How strongly the match is grounded in the document:
+#   confirmed - the model states the weakness itself (an unencrypted flow,
+#               an internet facing component with no authentication);
+#   possible  - the rule matched on component type alone, so the weakness is
+#               plausible but unverified. Scoring damps these by one
+#               likelihood point and says so in the breakdown.
+Confidence = Literal["confirmed", "possible"]
 # The tri-state used across the system model.
 MaybeBool = bool | Literal["unknown"]
 
@@ -90,6 +97,7 @@ class Rule(BaseModel):
     target: Target = "component"
     applies_to: AppliesTo = Field(default_factory=AppliesTo)
     stride: Stride
+    confidence: Confidence = "possible"
     base: Base
     description: str
     scenario: str

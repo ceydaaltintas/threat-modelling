@@ -1,3 +1,5 @@
+import type { Level } from "@/lib/levels";
+
 // Shapes returned by the backend API.
 
 export type StepStatus =
@@ -209,19 +211,44 @@ export interface ThreatRow {
     likelihood: number;
     impact: number;
     score: number;
-    level: string;
-    breakdown?: Array<{ label: string; delta: number; reason: string }>;
+    level: Level;
+    base_likelihood: number;
+    base_impact: number;
+    breakdown: Array<{
+      label: string;
+      field: "likelihood" | "impact";
+      delta: number;
+      reason: string;
+    }>;
+    explanation: string;
   } | null;
   expert: Record<string, unknown> | null;
-  mitigations: Array<{ id: string }>;
-  control_mappings: Array<Record<string, unknown>>;
-  validation_notes: Array<Record<string, unknown>>;
+  mitigations: Array<{
+    id: string;
+    title?: string;
+    text?: string;
+    effort?: string;
+    source?: "catalog" | "llm";
+  }>;
+  control_mappings: Array<{
+    framework: string;
+    id: string;
+    verification: "needed" | "confirmed";
+    via: string;
+  }>;
+  validation_notes: Array<{
+    code: string;
+    label?: string;
+    detail?: string | null;
+    severity?: "error" | "warning" | "info";
+  }>;
   validation_status: string;
   review_status: string;
   is_assumption: boolean;
   rule_context: {
     base_likelihood: number;
     base_impact: number;
+    confidence?: "confirmed" | "possible";
     internet_facing: boolean;
     sensitive_data: boolean;
     data_classes: string[];
@@ -235,9 +262,41 @@ export interface ThreatListResponse {
   summary: {
     by_source: Record<string, number>;
     by_stride: Record<string, number>;
+    by_level?: Record<string, number>;
     assumptions: number;
+    flagged?: number;
   };
   threats: ThreatRow[];
+}
+
+/** Step 5's stored panel payload. */
+export interface ValidationOutput {
+  checked: number;
+  flagged: number;
+  unknown_ids: number;
+  duplicates: number;
+  evidence_missing: number;
+  note_labels: Record<string, string>;
+}
+
+/** Step 6's stored panel payload. */
+export interface RiskOutput {
+  by_level: Record<string, number>;
+  heatmap: Record<string, number>;
+  thresholds: { low: number; medium: number; high: number };
+  ai_level_differs: number;
+  total: number;
+}
+
+/** Step 7's stored panel payload. */
+export interface MitigationOutput {
+  threats: number;
+  llm_calls: number;
+  llm_written: number;
+  control_mappings: number;
+  unknown_mitigations: number;
+  llm_note: string | null;
+  llm_budget: number;
 }
 
 /** Step 3's stored panel payload. */

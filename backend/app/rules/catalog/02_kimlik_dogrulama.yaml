@@ -33,6 +33,7 @@ rules:
       component_type: [auth, service, external]
       technology_any: ["sms", "otp"]
     stride: S
+    confidence: confirmed
     base: { likelihood: 3, impact: 5 }
     description: >-
       SMS kanalı, SIM değiştirme ve zararlı mobil uygulamaların bildirim

@@ -8,6 +8,7 @@ rules:
     applies_to:
       encrypted: false
     stride: I
+    confidence: confirmed
     base: { likelihood: 3, impact: 4 }
     description: >-
       İç ağ dahil olmak üzere düz metin protokol kullanımı; ağa erişebilen
@@ -28,6 +29,7 @@ rules:
     applies_to:
       encrypted: false
     stride: T
+    confidence: confirmed
     base: { likelihood: 2, impact: 5 }
     description: >-
       Şifrelenmemiş trafiğe araya giren bir saldırgan veriyi yalnızca
@@ -48,6 +50,7 @@ rules:
     applies_to:
       authenticated: false
     stride: S
+    confidence: confirmed
     base: { likelihood: 3, impact: 4 }
     description: >-
       İç servis çağrılarında çağıranın kimliğinin doğrulanmaması; ağa erişen
@@ -67,6 +70,7 @@ rules:
     applies_to:
       encrypted: "unknown"
     stride: I
+    confidence: confirmed
     base: { likelihood: 2, impact: 3 }
     description: >-
       Dokümanda belirtilmeyen bir koruma, uygulandığı varsayılamaz; bu bulgu
@@ -90,6 +94,7 @@ rules:
     applies_to:
       component_type: [queue]
     stride: T
+    confidence: confirmed
     base: { likelihood: 2, impact: 5 }
     description: >-
       Kuyruğa yazma veya okuma yetkisinin sınırlanmaması; mesajların
@@ -110,6 +115,7 @@ rules:
       component_type: [database, service]
       technology_any: ["redis", "memcached", "önbellek", "cache"]
     stride: T
+    confidence: confirmed
     base: { likelihood: 2, impact: 4 }
     description: >-
       Sayaç ve oturum verisi tutan önbelleklerde kimlik doğrulama ve ağ
