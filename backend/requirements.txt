@@ -10,6 +10,15 @@ alembic==1.14.0
 psycopg[binary]==3.2.3
 pgvector==0.3.6
 
+# --- Dokuman okuma ---
+# PyMuPDF: AGPL-3.0 - ticari kullanimda ayrica degerlendirilmeli (THIRD_PARTY.md)
+pymupdf==1.25.1
+python-docx==1.1.2
+
+# --- LLM saglayicilari ---
+google-genai==0.3.0
+httpx==0.28.1
+
 # --- Semalar / ayarlar ---
 pydantic==2.10.4
 pydantic-settings==2.7.0
@@ -17,4 +26,3 @@ pydantic-settings==2.7.0
 # --- Testler ---
 pytest==8.3.4
 pytest-asyncio==0.25.0
-httpx==0.28.1

@@ -119,6 +119,7 @@ export function StepDetail({
   busy,
   readOnly,
   buildPhase,
+  content,
 }: {
   definition: StepInfo | null;
   step: RunStep | null;
@@ -129,6 +130,8 @@ export function StepDetail({
   busy: boolean;
   readOnly: boolean;
   buildPhase: number;
+  /** The step's real output panel, when that step is implemented. */
+  content?: React.ReactNode;
 }) {
   if (!definition) {
     return (
@@ -232,7 +235,9 @@ export function StepDetail({
         </CardContent>
       </Card>
 
-      {plan && buildPhase < plan.phase ? (
+      {content ?? null}
+
+      {content === undefined && plan && buildPhase < plan.phase ? (
         <Card className="border-dashed">
           <CardHeader>
             <CardTitle className="text-sm">

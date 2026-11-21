@@ -60,8 +60,10 @@ class Document(Base, TimestampMixin):
         ForeignKey("project.id", ondelete="CASCADE"), nullable=False, index=True
     )
     filename: Mapped[str] = mapped_column(String(500), nullable=False)
-    # pdf | docx | md | txt | image
+    # pdf | docx | text | image
     doc_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Where the uploaded file lives on disk (backend/uploads/<id><ext>).
+    storage_path: Mapped[str | None] = mapped_column(String(1000))
     mime_type: Mapped[str | None] = mapped_column(String(150))
     size_bytes: Mapped[int | None] = mapped_column(Integer)
     page_count: Mapped[int | None] = mapped_column(Integer)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from app.pipeline import MODEL_APPROVAL_AFTER_STEP, PIPELINE_STEPS, step_by_no
-from app.pipeline.mock_runner import PAUSE_AFTER_STEP
+from app.pipeline.runner import PAUSE_AFTER_STEP
 
 
 def test_there_are_exactly_nine_steps() -> None:

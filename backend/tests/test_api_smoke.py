@@ -29,7 +29,8 @@ async def test_meta_exposes_the_nine_steps(client: httpx.AsyncClient) -> None:
     body = response.json()
     assert len(body["steps"]) == 9
     assert body["model_approval_after_step"] == 2
-    assert body["build_phase"] == 0
+    # Bumped as each phase lands; the UI labels placeholder steps with it.
+    assert body["build_phase"] >= 1
     assert body["risk_thresholds"]["high"] == 16
 
 

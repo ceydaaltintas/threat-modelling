@@ -111,3 +111,36 @@ class KbStatsOut(BaseModel):
     by_source: dict[str, int]
     # True once phase 2 has loaded the knowledge base.
     loaded: bool
+
+
+class DocumentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    filename: str
+    doc_type: str
+    size_bytes: int | None
+    page_count: int | None
+    extraction_note: str | None
+    section_map: list | None
+    raw_text: str | None
+
+
+class SystemModelOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    run_id: str
+    version: int
+    source: str
+    data: dict
+    approved_at: datetime | None
+    approved_by: str | None
+    created_at: datetime
+
+
+class SystemModelUpdate(BaseModel):
+    """An expert edit of the extracted model."""
+
+    data: dict
+    reason: str | None = None

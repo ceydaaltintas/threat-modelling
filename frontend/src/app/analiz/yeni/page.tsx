@@ -59,13 +59,15 @@ export default function NewAnalysisPage() {
   const start = async () => {
     setStarting(true);
     try {
-      const run = await api.createRun({
-        sample_key: selectedSample ?? undefined,
-        project_name: selectedSample
-          ? undefined
-          : files[0]?.name.replace(/\.[^.]+$/, "") || "Adsız analiz",
-        auto_continue: autoContinue,
-      });
+      const run = selectedSample
+        ? await api.createRun({
+            sample_key: selectedSample,
+            auto_continue: autoContinue,
+          })
+        : await api.uploadRun(files, {
+            project_name: files[0]?.name.replace(/\.[^.]+$/, "") || undefined,
+            auto_continue: autoContinue,
+          });
       router.push(`/analiz/${run.id}`);
     } catch (err) {
       toast({
@@ -151,9 +153,9 @@ export default function NewAnalysisPage() {
             ) : null}
 
             <p className="rounded-md bg-surface-muted p-3 text-xs text-muted-foreground">
-              Aşama 0&apos;da yüklenen dosya henüz işlenmez; analiz örnek veriyle
-              yürür. Gerçek metin çıkarma ve sistem modeli çıkarımı Aşama
-              1&apos;de devreye girer.
+              Yüklenen dosyalardan metin çıkarılır ve sistem modeli LLM ile
+              oluşturulur. Dosyalar yalnızca bu bilgisayarda saklanır; gerçek
+              banka verisi yüklemeyin.
             </p>
           </CardContent>
         </Card>

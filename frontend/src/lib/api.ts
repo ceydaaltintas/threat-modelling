@@ -1,8 +1,10 @@
 // Thin API client. Every call is made from the browser against the backend
 // origin, so the demo needs no server-side proxy.
 
+import type { SystemModelData, SystemModelVersion } from "@/lib/system-model";
 import type {
   AuditEntry,
+  DocumentOut,
   KbStats,
   Meta,
   ProgressEvent,
@@ -71,6 +73,48 @@ export const api = {
   samples: () => request<SampleScenario[]>("/api/samples"),
   projects: () => request<ProjectRow[]>("/api/projects"),
   run: (runId: string) => request<Run>(`/api/runs/${runId}`),
+  runDocuments: (runId: string) =>
+    request<DocumentOut[]>(`/api/runs/${runId}/documents`),
+  systemModel: (runId: string) =>
+    request<SystemModelVersion>(`/api/runs/${runId}/system-model`),
+  saveSystemModel: (runId: string, data: SystemModelData, reason?: string) =>
+    request<SystemModelVersion>(`/api/runs/${runId}/system-model`, {
+      method: "PUT",
+      body: JSON.stringify({ data, reason }),
+    }),
+  retryStep: (runId: string, stepNo: number) =>
+    request<Run>(`/api/runs/${runId}/steps/${stepNo}/retry`, { method: "POST" }),
+  uploadRun: async (
+    files: File[],
+    options: { project_name?: string; auto_continue?: boolean },
+  ) => {
+    const form = new FormData();
+    for (const file of files) form.append("files", file);
+    if (options.project_name) form.append("project_name", options.project_name);
+    form.append("auto_continue", String(Boolean(options.auto_continue)));
+
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}/api/runs/upload`, {
+        method: "POST",
+        body: form,
+        headers: demoHeaders(),
+      });
+    } catch {
+      throw new ApiError("Arka uca ulaşılamadı. `docker compose up` çalışıyor mu?", 0);
+    }
+    if (!response.ok) {
+      let detail = `Yükleme başarısız (HTTP ${response.status}).`;
+      try {
+        const body = await response.json();
+        if (typeof body?.detail === "string") detail = body.detail;
+      } catch {
+        /* keep the generic message */
+      }
+      throw new ApiError(detail, response.status);
+    }
+    return (await response.json()) as Run;
+  },
   runLog: (runId: string) => request<ProgressEvent[]>(`/api/runs/${runId}/log`),
   createRun: (body: {
     project_name?: string;

@@ -4,10 +4,12 @@ import { AlertCircle } from "lucide-react";
 import { useParams } from "next/navigation";
 import * as React from "react";
 
+import { DocumentPanel } from "@/components/analysis/document-panel";
 import { EventLog } from "@/components/analysis/event-log";
 import { RunTopStrip } from "@/components/analysis/run-topstrip";
 import { StepDetail } from "@/components/analysis/step-detail";
 import { Stepper } from "@/components/analysis/stepper";
+import { SystemModelPanel } from "@/components/analysis/system-model-panel";
 import { useRunStream } from "@/components/analysis/use-run-stream";
 import { useMeta } from "@/components/providers/meta-provider";
 import { useRole } from "@/components/providers/role-provider";
@@ -16,6 +18,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
+import type { SystemModelData, SystemModelVersion } from "@/lib/system-model";
+import type { DocumentOut } from "@/lib/types";
 
 export default function AnalysisPage() {
   const params = useParams<{ runId: string }>();
@@ -26,15 +30,44 @@ export default function AnalysisPage() {
 
   const stream = useRunStream(runId);
   const [selected, setSelected] = React.useState<number | null>(null);
+  const [pinned, setPinned] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
-  // Follow the active step until the user clicks another one.
-  const [pinned, setPinned] = React.useState(false);
+  const [documents, setDocuments] = React.useState<DocumentOut[]>([]);
+  const [model, setModel] = React.useState<SystemModelVersion | null>(null);
+  const [savingModel, setSavingModel] = React.useState(false);
+  const modelDirty = React.useRef(false);
+
+  const stepStatus = (no: number) =>
+    stream.steps.find((item) => item.step_no === no)?.status;
+
+  // Load each step's output once that step reports done.
+  const step1Done = stepStatus(1) === "done";
+  const step2Done = stepStatus(2) === "done";
+
+  React.useEffect(() => {
+    if (!runId || !step1Done) return;
+    api.runDocuments(runId).then(setDocuments).catch(() => setDocuments([]));
+  }, [runId, step1Done]);
+
+  React.useEffect(() => {
+    if (!runId || !step2Done) return;
+    api
+      .systemModel(runId)
+      .then((value) => {
+        // Never throw away an edit in progress.
+        if (!modelDirty.current) setModel(value);
+      })
+      .catch(() => setModel(null));
+  }, [runId, step2Done]);
+
+  // Follow the active step until the user picks one.
   React.useEffect(() => {
     if (pinned) return;
     const active =
       stream.steps.find((step) => step.status === "running") ??
       stream.steps.find((step) => step.status === "waiting_user") ??
+      stream.steps.find((step) => step.status === "failed") ??
       [...stream.steps].reverse().find((step) => step.status === "done");
     if (active) setSelected(active.step_no);
   }, [stream.steps, pinned]);
@@ -42,9 +75,7 @@ export default function AnalysisPage() {
   const definitions = meta?.steps ?? [];
   const definition = definitions.find((item) => item.no === selected) ?? null;
   const step = stream.steps.find((item) => item.step_no === selected) ?? null;
-
-  const pausedHere =
-    stream.pause !== null && stream.pause.step === selected;
+  const pausedHere = stream.pause !== null && stream.pause.step === selected;
 
   const resume = async () => {
     if (!runId) return;
@@ -63,21 +94,68 @@ export default function AnalysisPage() {
     }
   };
 
-  const restart = async () => {
-    toast({
-      title: "Yeniden çalıştırma Aşama 1'de",
-      description:
-        "Gerçek işlem hattı bağlandığında bu düğme adımları baştan koşturacak.",
-      tone: "info",
-    });
+  const retry = async (stepNo: number) => {
+    if (!runId) return;
+    setBusy(true);
+    try {
+      await api.retryStep(runId, stepNo);
+      stream.reload();
+      toast({
+        title: `${stepNo}. adım yeniden çalıştırılıyor`,
+        tone: "success",
+      });
+    } catch (err) {
+      toast({
+        title: "Adım yeniden çalıştırılamadı",
+        description: (err as Error).message,
+        tone: "error",
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const retryStep = async () => {
-    toast({
-      title: "Adım yeniden denemesi Aşama 1'de",
-      description: "Her adım bağımsız olarak yeniden denenebilir olacak.",
-      tone: "info",
-    });
+  const saveModel = async (data: SystemModelData, reason: string) => {
+    if (!runId) return;
+    setSavingModel(true);
+    try {
+      const saved = await api.saveSystemModel(runId, data, reason);
+      modelDirty.current = false;
+      setModel(saved);
+      toast({
+        title: `Sistem modeli kaydedildi (sürüm ${saved.version})`,
+        description: "Değişiklik denetim izine yazıldı.",
+        tone: "success",
+      });
+    } catch (err) {
+      toast({
+        title: "Model kaydedilemedi",
+        description: (err as Error).message,
+        tone: "error",
+      });
+      throw err;
+    } finally {
+      setSavingModel(false);
+    }
+  };
+
+  const panelFor = (stepNo: number | null): React.ReactNode | undefined => {
+    if (stepNo === 1 && documents.length > 0) {
+      return <DocumentPanel documents={documents} />;
+    }
+    if (stepNo === 2 && model) {
+      return (
+        <SystemModelPanel
+          version={model}
+          documents={documents}
+          onSave={saveModel}
+          saving={savingModel}
+          readOnly={readOnly}
+          dirtyRef={modelDirty}
+        />
+      );
+    }
+    return undefined;
   };
 
   if (!runId) return null;
@@ -89,7 +167,7 @@ export default function AnalysisPage() {
         projectName={stream.run?.project_name ?? "Analiz yükleniyor"}
         status={stream.status}
         llm={stream.llm}
-        onRestart={restart}
+        onRestart={() => retry(1)}
         busy={busy}
         readOnly={readOnly}
       />
@@ -106,8 +184,8 @@ export default function AnalysisPage() {
       {stream.placeholder ? (
         <div className="flex items-center gap-2 rounded-md border border-dashed border-border bg-surface px-3 py-2 text-xs text-muted-foreground">
           <Badge variant="warning">Örnek veri</Badge>
-          Adım akışı, olay günlüğü ve duraklama noktaları gerçektir; adım
-          çıktıları Aşama 0&apos;da örnek veridir.
+          1. ve 2. adımlar gerçek dokümanı işler. 3–9. adımlar henüz örnek veri
+          üretir; gerçek çıktı sonraki aşamalarda gelecek.
         </div>
       ) : null}
 
@@ -141,10 +219,11 @@ export default function AnalysisPage() {
             paused={pausedHere}
             pauseReason={stream.pause?.reason ?? null}
             onResume={resume}
-            onRetry={retryStep}
+            onRetry={() => retry(selected ?? 1)}
             busy={busy}
             readOnly={readOnly}
             buildPhase={meta?.build_phase ?? 0}
+            content={panelFor(selected)}
           />
         </div>
       </div>

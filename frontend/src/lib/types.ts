@@ -110,6 +110,27 @@ export interface ProgressEvent {
   placeholder?: boolean;
 }
 
+export interface SectionMapEntry {
+  type: "page" | "section";
+  page: number;
+  start: number;
+  end: number;
+  number?: string;
+  title?: string;
+  label?: string;
+}
+
+export interface DocumentOut {
+  id: string;
+  filename: string;
+  doc_type: string;
+  size_bytes: number | null;
+  page_count: number | null;
+  extraction_note: string | null;
+  section_map: SectionMapEntry[] | null;
+  raw_text: string | null;
+}
+
 export interface AuditEntry {
   id: string;
   at: string;

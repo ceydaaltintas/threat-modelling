@@ -26,12 +26,18 @@ eklendiginde bu dosya guncellenir.
 | pgvector (python) | PostgreSQL License | SQLAlchemy vektor tipi |
 | sse-starlette | BSD-3-Clause | Server-Sent Events |
 | python-multipart | Apache-2.0 | Dosya yukleme |
-| pytest / pytest-asyncio / httpx | MIT | Testler |
+| httpx | BSD-3-Clause | OpenAI uyumlu saglayici istemcisi, testler |
+| pytest / pytest-asyncio | MIT | Testler |
+| pymupdf (PyMuPDF) | **AGPL-3.0** | PDF metin cikarma ve sayfa goruntuleme |
+| python-docx | MIT | DOCX okuma |
+| google-genai | Apache-2.0 | Gemini yerel istemcisi |
 
-Asama 1 ve sonrasinda eklenecek paketler (PyMuPDF, python-docx, fastembed,
-openpyxl, WeasyPrint vb.) eklendikleri asamada bu tabloya islenecektir.
-PyMuPDF'in AGPL-3.0 lisansi oldugunu ve ticari kullanimda ayrica
-degerlendirilmesi gerektigini simdiden not ediyoruz.
+**PyMuPDF uyarisi:** AGPL-3.0 lisanslidir. Bu demo kurum ici ve dagitilmayan
+bir uygulama oldugu icin sorun degildir; urunlesme durumunda ya ticari lisans
+alinmali ya da pdfplumber/pypdfium2 gibi bir alternatife gecilmelidir.
+
+Asama 2 ve sonrasinda eklenecek paketler (fastembed, openpyxl, WeasyPrint vb.)
+eklendikleri asamada bu tabloya islenecektir.
 
 ## Frontend (JavaScript / TypeScript)
 

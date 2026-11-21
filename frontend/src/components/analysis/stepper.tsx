@@ -46,14 +46,21 @@ function StatusIcon({ status }: { status: StepStatus }) {
   }
 }
 
+// The stepper stays scannable: only the headline counters appear here, in
+// the order the step declared them. The detail panel shows all of them.
+const STEPPER_COUNTER_LIMIT = 3;
+
 /** "11 bileşen · 14 akış" from the counters the step reported. */
 function countersText(
   counters: Record<string, number> | null,
   labels: Record<string, string>,
 ): string | null {
   if (!counters) return null;
+  const order = Object.keys(labels);
   const parts = Object.entries(counters)
     .filter(([, value]) => typeof value === "number")
+    .sort(([a], [b]) => order.indexOf(a) - order.indexOf(b))
+    .slice(0, STEPPER_COUNTER_LIMIT)
     .map(([key, value]) => `${value} ${labels[key] ?? key}`);
   return parts.length > 0 ? parts.join(" · ") : null;
 }

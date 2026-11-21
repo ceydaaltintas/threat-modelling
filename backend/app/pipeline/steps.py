@@ -40,7 +40,12 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
             "Görsel varsa LLM ile okunur (veya OCR yedeği)."
         ),
         performer="code+llm",
-        counter_labels={"documents": "doküman", "pages": "sayfa"},
+        counter_labels={
+            "documents": "doküman",
+            "pages": "sayfa",
+            "sections": "bölüm",
+            "characters": "karakter",
+        },
     ),
     StepDefinition(
         no=2,
@@ -54,6 +59,11 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
             "components": "bileşen",
             "flows": "akış",
             "unknowns": "belirsiz",
+            "assumptions": "varsayım",
+            "evidence_checked": "kanıt denetlendi",
+            "evidence_unverified": "kanıt doğrulanamadı",
+            "without_evidence": "kanıtsız",
+            "dropped_flows": "elenen akış",
         },
     ),
     StepDefinition(
