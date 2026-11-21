@@ -16,13 +16,45 @@ import { usePathname } from "next/navigation";
 import { useMeta } from "@/components/providers/meta-provider";
 import { cn } from "@/lib/utils";
 
+// Each item says what the screen is for; a one-word label alone leaves
+// people guessing where they are.
 const NAV = [
-  { href: "/", label: "Projeler", icon: ListChecks },
-  { href: "/analiz/yeni", label: "Yeni analiz", icon: PlusCircle },
-  { href: "/pano", label: "Özet panosu", icon: LayoutDashboard },
-  { href: "/bilgi-tabani", label: "Bilgi tabanı", icon: BookOpen },
-  { href: "/denetim", label: "Denetim izi", icon: ScrollText },
-  { href: "/ayarlar", label: "Ayarlar", icon: Settings },
+  {
+    href: "/",
+    label: "Projeler",
+    hint: "Yapılmış analizler",
+    icon: ListChecks,
+  },
+  {
+    href: "/analiz/yeni",
+    label: "Yeni analiz",
+    hint: "Doküman yükle veya örnek seç",
+    icon: PlusCircle,
+  },
+  {
+    href: "/pano",
+    label: "Özet panosu",
+    hint: "Risk dağılımı ve en kritik bulgular",
+    icon: LayoutDashboard,
+  },
+  {
+    href: "/bilgi-tabani",
+    label: "Bilgi tabanı",
+    hint: "Kaynaklar ve canlı arama",
+    icon: BookOpen,
+  },
+  {
+    href: "/denetim",
+    label: "Denetim izi",
+    hint: "Kim neyi değiştirdi",
+    icon: ScrollText,
+  },
+  {
+    href: "/ayarlar",
+    label: "Ayarlar",
+    hint: "LLM, eşikler, roller",
+    icon: Settings,
+  },
 ] as const;
 
 export function Sidebar() {
@@ -51,14 +83,26 @@ export function Sidebar() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+                "flex items-start gap-2.5 rounded-md px-2.5 py-2 transition-colors",
                 active
-                  ? "bg-accent-subtle font-medium text-accent"
+                  ? "bg-accent-subtle text-accent"
                   : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
               )}
             >
-              <item.icon className="h-4 w-4 shrink-0" aria-hidden />
-              {item.label}
+              <item.icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              <span className="min-w-0">
+                <span
+                  className={cn(
+                    "block text-sm leading-tight",
+                    active && "font-medium",
+                  )}
+                >
+                  {item.label}
+                </span>
+                <span className="block text-[11px] leading-tight opacity-70">
+                  {item.hint}
+                </span>
+              </span>
             </Link>
           );
         })}

@@ -13,7 +13,7 @@ import {
   RiskSummary,
   ValidationSummary,
 } from "@/components/analysis/step-summaries";
-import { ThreatTable } from "@/components/analysis/threat-table";
+import { ThreatList } from "@/components/analysis/threat-list";
 import { RunTopStrip } from "@/components/analysis/run-topstrip";
 import { StepDetail } from "@/components/analysis/step-detail";
 import { Stepper } from "@/components/analysis/stepper";
@@ -269,7 +269,7 @@ export default function AnalysisPage() {
     if (stepNo === 4 && threats) {
       const output = stepOutput(4) as ThreatGenOutput | null;
       return (
-        <ThreatTable
+        <ThreatList
           data={threats}
           documents={documents}
           componentNames={componentNames}
@@ -283,7 +283,7 @@ export default function AnalysisPage() {
       return (
         <div className="space-y-4">
           <ValidationSummary output={output} />
-          <ThreatTable
+          <ThreatList
             data={threats}
             documents={documents}
             componentNames={componentNames}
@@ -297,7 +297,7 @@ export default function AnalysisPage() {
       return (
         <div className="space-y-4">
           <RiskSummary output={output} />
-          <ThreatTable
+          <ThreatList
             data={threats}
             documents={documents}
             componentNames={componentNames}
@@ -307,7 +307,7 @@ export default function AnalysisPage() {
     }
     if (stepNo === 8 && threats) {
       return (
-        <ThreatTable
+        <ThreatList
           data={threats}
           documents={documents}
           componentNames={componentNames}
@@ -323,7 +323,21 @@ export default function AnalysisPage() {
     if (stepNo === 9) {
       const output = stepOutput(9) as ReportOutput | null;
       if (output?.files) {
-        return <ReportPanel runId={runId!} output={output} />;
+        return (
+          <ReportPanel
+            runId={runId!}
+            output={output}
+            findings={
+              threats ? (
+                <ThreatList
+                  data={threats}
+                  documents={documents}
+                  componentNames={componentNames}
+                />
+              ) : undefined
+            }
+          />
+        );
       }
     }
     if (stepNo === 7 && threats) {
@@ -332,7 +346,7 @@ export default function AnalysisPage() {
       return (
         <div className="space-y-4">
           <MitigationSummary output={output} />
-          <ThreatTable
+          <ThreatList
             data={threats}
             documents={documents}
             componentNames={componentNames}
@@ -374,8 +388,15 @@ export default function AnalysisPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <Card className="h-fit p-2">
+      <div className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="space-y-1.5">
+          <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Analiz adımları
+          </p>
+          <p className="px-1 text-[11px] text-muted-foreground">
+            Bir adıma tıklayın; o adımın çıktısı sağda açılır.
+          </p>
+          <Card className="h-fit p-2">
           {metaLoading || definitions.length === 0 ? (
             <div className="space-y-2 p-2">
               {Array.from({ length: 9 }).map((_, index) => (
@@ -395,7 +416,8 @@ export default function AnalysisPage() {
               pauseStep={stream.pause?.step ?? null}
             />
           )}
-        </Card>
+          </Card>
+        </div>
 
         <div className="min-w-0 space-y-5">
           <StepDetail
