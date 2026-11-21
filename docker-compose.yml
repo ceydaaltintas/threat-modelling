@@ -1,0 +1,89 @@
+# Tehdit Modelleme Platformu - yerel demo ortami
+# Calistirmak icin:  cp .env.example .env  &&  docker compose up
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: tm_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-threatmodel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-threatmodel}
+      POSTGRES_DB: ${POSTGRES_DB:-threatmodel}
+      # Turkce karakterlerin dogru siralanmasi/karsilastirilmasi icin
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-threatmodel} -d ${POSTGRES_DB:-threatmodel}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tm_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_NAME: ${APP_NAME:-Tehdit Modelleme Platformu}
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://threatmodel:threatmodel@db:5432/threatmodel}
+      CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-3000}
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini_native}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.2}
+      LLM_MAX_OUTPUT_TOKENS: ${LLM_MAX_OUTPUT_TOKENS:-0}
+      DEMO_REPLAY: ${DEMO_REPLAY:-false}
+      OCR_ENABLED: ${OCR_ENABLED:-false}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      RISK_THRESHOLD_LOW: ${RISK_THRESHOLD_LOW:-4}
+      RISK_THRESHOLD_MEDIUM: ${RISK_THRESHOLD_MEDIUM:-9}
+      RISK_THRESHOLD_HIGH: ${RISK_THRESHOLD_HIGH:-16}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+      - ./samples:/samples:ro
+    # Once migration'lari uygula, sonra sunucuyu baslat.
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --timeout-graceful-shutdown 3"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health/live').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tm_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Tehdit Modelleme Platformu}
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: sh -c "npm run dev -- --hostname 0.0.0.0 --port 3000"
+
+volumes:
+  db_data:
