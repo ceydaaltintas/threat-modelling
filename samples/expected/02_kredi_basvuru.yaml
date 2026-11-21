@@ -1,0 +1,77 @@
+# Doküman 2: Bireysel kredi başvuru platformu (KRD-APP-SA-003)
+document: 02_bireysel_kredi_basvuru_platformu.pdf
+sample_key: kredi-basvuru
+fixture: credit_application_model
+findings:
+  - id: "2-1"
+    title: "Sıralı başvuru numarası ve sahiplik kontrolü yok"
+    component: "Başvuru Servisi"
+    stride: E
+    rules: [R-API-BOLA, R-API-SEQUENTIAL-ID]
+    keywords: ["sıralı", "numaralandırma", "idor", "bola", "sahiplik"]
+  - id: "2-2"
+    title: "Belge yüklemede yalnızca uzantı kontrolü"
+    component: "Belge Yükleme Servisi"
+    stride: T
+    rules: [R-DOC-UPLOAD-VALIDATION]
+    keywords: ["uzantı", "içerik doğrula", "virüs"]
+  - id: "2-3"
+    title: "Belgeler yurt dışı bölgeye gidiyor (KVKK)"
+    component: "OCR servisi"
+    stride: I
+    rules: [R-DATA-CROSS-BORDER]
+    keywords: ["yurt dışı", "kvkk", "aktarım"]
+  - id: "2-4"
+    title: "Kural değişikliği ikinci onay olmadan canlıya çıkıyor"
+    component: "Kural Yönetim Arayüzü / Karar Motoru"
+    stride: T
+    rules: [R-RULE-CHANGE-NO-APPROVAL]
+    keywords: ["çift onay", "ikinci kişi", "kural değişikliği"]
+  - id: "2-5"
+    title: "Veri ambarında maskesiz TCKN ve gelir, geniş erişim"
+    component: "Veri Ambarı"
+    stride: I
+    rules: [R-DATA-WIDE-ACCESS, R-DATA-UNMASKED-PII]
+    keywords: ["maskelen", "veri ambarı", "geniş erişim"]
+  - id: "2-6"
+    title: "Çağrı merkezi panelinde tam TCKN ve gelir"
+    component: "Çağrı Merkezi Paneli"
+    stride: I
+    rules: [R-DATA-UNMASKED-PII]
+    keywords: ["maskelen", "tckn", "panel"]
+  - id: "2-7"
+    title: "Model dosyalarında sürüm ve imza kontrolü yok"
+    component: "Model Yönetim Deposu"
+    stride: T
+    rules: [R-MODEL-INTEGRITY]
+    keywords: ["model", "imza", "sürüm"]
+  - id: "2-8"
+    title: "KYC webhook imzası doğrulanmıyor"
+    component: "KYC webhook"
+    stride: S
+    rules: [R-API-WEBHOOK-SIGNATURE, R-FLOW-UNAUTHENTICATED]
+    keywords: ["webhook", "imza"]
+  - id: "2-9"
+    title: "Başvuru ucunda istek sınırlaması yok"
+    component: "Başvuru oluşturma ucu"
+    stride: D
+    rules: [R-API-NO-RATE-LIMIT]
+    keywords: ["hız sınır", "istek sınır", "rate limit"]
+  - id: "2-10"
+    title: "Kampanya bağlantısı tek kullanımlık değil, 30 gün geçerli"
+    component: "Kampanya SMS bağlantısı"
+    stride: S
+    rules: [R-AUTH-RESET-LINK]
+    keywords: ["tek kullanımlık", "bağlantı", "kampanya"]
+  - id: "2-11"
+    title: "İmzalı URL 7 gün geçerli"
+    component: "Nesne depolama"
+    stride: I
+    rules: [R-DATA-SIGNED-URL-LIFETIME]
+    keywords: ["imzalı url", "geçerlilik", "süre"]
+  - id: "2-12"
+    title: "Ret gerekçesinin izlenememesi (açıklanabilirlik)"
+    component: "Karar Motoru"
+    stride: R
+    rules: [R-DECISION-EXPLAINABILITY]
+    keywords: ["gerekçe", "açıklanabilir", "karar kaydı"]

@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, Lock } from "lucide-react";
+import { Database, Info, Lock } from "lucide-react";
 import * as React from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
@@ -14,7 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { DemoRole } from "@/lib/types";
+import { api } from "@/lib/api";
+import type { DemoRole, ReplayStatus } from "@/lib/types";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -28,6 +29,11 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export default function SettingsPage() {
   const { meta } = useMeta();
   const { role, setRole } = useRole();
+  const [replay, setReplay] = React.useState<ReplayStatus | null>(null);
+
+  React.useEffect(() => {
+    api.replayStatus().then(setReplay).catch(() => setReplay(null));
+  }, []);
 
   return (
     <>
@@ -65,6 +71,61 @@ export default function SettingsPage() {
               </span>
             </Row>
             <Row label="Kayıtlı çıktı modu">{meta?.demo_replay ?? "—"}</Row>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-4 w-4 text-accent" aria-hidden />
+              Kayıtlı çıktı
+            </CardTitle>
+            <CardDescription>
+              Kayıtlı çıktı, daha önce gerçekten yapılmış LLM çağrılarının
+              yanıtlarıdır; elle yazılmış kayıt yoktur. Demoyu internetsiz
+              çalıştırmayı sağlar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Row label="Mod">
+              {replay?.mode === "strict" ? (
+                <Badge variant="warning">strict — kayıt yoksa hata verir</Badge>
+              ) : replay?.mode === "true" ? (
+                <Badge variant="accent">true — kayıt varsa kullanılır</Badge>
+              ) : (
+                <Badge>false — her zaman canlı çağrı</Badge>
+              )}
+            </Row>
+            <Row label="Kayıtlı yanıt">
+              {replay ? (
+                replay.ready ? (
+                  <Badge variant="success">{replay.recorded_calls} kayıt</Badge>
+                ) : (
+                  <Badge variant="warning">Kayıt yok</Badge>
+                )
+              ) : (
+                "—"
+              )}
+            </Row>
+            {replay && Object.keys(replay.by_sample).length > 0 ? (
+              <Row label="Örnek senaryo kaydı">
+                <span className="flex flex-wrap justify-end gap-1">
+                  {Object.entries(replay.by_sample).map(([key, count]) => (
+                    <Badge key={key} variant="outline">
+                      {key}: {count}
+                    </Badge>
+                  ))}
+                </span>
+              </Row>
+            ) : null}
+            {replay && !replay.ready ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Kayıt üretmek için bir kez, internet ve anahtar varken:{" "}
+                <code>
+                  docker compose exec backend python -m scripts.seed_demo
+                </code>
+              </p>
+            ) : null}
           </CardContent>
         </Card>
 

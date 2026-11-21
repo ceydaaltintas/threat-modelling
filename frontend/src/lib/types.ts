@@ -312,6 +312,15 @@ export interface ReportOutput {
   unknowns: Array<{ text: string; impact?: string | null }>;
 }
 
+export interface ReplayStatus {
+  mode: string;
+  recorded_calls: number;
+  by_prompt: Record<string, number>;
+  by_sample: Record<string, number>;
+  ready: boolean;
+  note: string;
+}
+
 export interface DashboardData {
   available: boolean;
   reason?: string;

@@ -8,6 +8,7 @@ import type {
   DashboardRun,
   DocumentOut,
   KbSearchResult,
+  ReplayStatus,
   KbStats,
   ReviewAction,
   ThreatListResponse,
@@ -176,6 +177,7 @@ export const api = {
       `/api/runs/${runId}/threats/review-bulk`,
       { method: "POST", body: JSON.stringify(body) },
     ),
+  replayStatus: () => request<ReplayStatus>("/api/replay"),
   dashboard: (runId?: string) =>
     request<DashboardData>(
       `/api/dashboard${runId ? `?run_id=${runId}` : ""}`,

@@ -1,0 +1,83 @@
+# Doküman 3: Açık bankacılık API platformu (OB-PLT-SA-001)
+document: 03_acik_bankacilik_api_platformu.pdf
+sample_key: acik-bankacilik
+fixture: open_banking_model
+findings:
+  - id: "3-1"
+    title: "redirect_uri ön ek eşleşmesi (açık yönlendirme)"
+    component: "Yetkilendirme Sunucusu"
+    stride: S
+    rules: [R-AUTH-OPEN-REDIRECT]
+    keywords: ["redirect", "yönlendirme", "tam eşleşme"]
+  - id: "3-2"
+    title: "Yenileme token'ı rotasyonu yok"
+    component: "Yetkilendirme Sunucusu"
+    stride: S
+    rules: [R-AUTH-REFRESH-NO-ROTATION, R-AUTH-LONG-LIVED-TOKEN]
+    keywords: ["rotasyon", "yenileme token"]
+  - id: "3-3"
+    title: "Rıza iptalinde token iptali gecikmeli"
+    component: "Rıza Yönetim Servisi"
+    stride: E
+    rules: [R-CONSENT-REVOCATION-DELAY]
+    keywords: ["rıza iptal", "token iptal", "anlık iptal"]
+  - id: "3-4"
+    title: "Rıza ekranında varsayılan olarak tüm hesaplar seçili"
+    component: "Rıza ekranı"
+    stride: E
+    rules: [R-CONSENT-DEFAULT-SCOPE]
+    keywords: ["varsayılan", "kapsam", "rıza ekranı"]
+  - id: "3-5"
+    title: "Callback URL doğrulaması yalnızca https (SSRF)"
+    component: "Webhook Servisi"
+    stride: T
+    rules: [R-API-SSRF-CALLBACK]
+    keywords: ["ssrf", "callback", "iç ağ"]
+  - id: "3-6"
+    title: "Hız sınırı IP bazlı, TPP bazlı değil"
+    component: "API Geçidi"
+    stride: D
+    rules: [R-API-NO-RATE-LIMIT]
+    keywords: ["hız sınır", "ip bazlı", "tpp bazlı"]
+  - id: "3-7"
+    title: "Sertifika iptali günlük senkronizasyonla"
+    component: "TPP Sertifika Deposu"
+    stride: S
+    rules: [R-TPP-CERT-REVOCATION]
+    keywords: ["sertifika iptal", "ocsp", "anlık iptal"]
+  - id: "3-8"
+    title: "Geliştirici portalında MFA yok, anahtar e-postayla"
+    component: "Geliştirici Portalı"
+    stride: S
+    rules: [R-AUTH-NO-MFA-ADMIN, R-AUTH-WEAK-CREDENTIAL-DELIVERY]
+    keywords: ["mfa", "çok faktör", "e-posta", "api anahtarı"]
+  - id: "3-9"
+    title: "Erişim token'ları loglarda, geniş erişim"
+    component: "Merkezi log"
+    stride: I
+    rules: [R-DATA-LOG-SENSITIVE]
+    keywords: ["log", "token", "maskelen"]
+  - id: "3-10"
+    title: "Sandbox'ta gerçek IBAN ve bakiye"
+    component: "Sandbox Ortamı"
+    stride: I
+    rules: [R-DATA-REAL-DATA-IN-TEST]
+    keywords: ["sandbox", "gerçek veri", "sentetik"]
+  - id: "3-11"
+    title: "Talimat imzası (JWS) isteğe bağlı; SCA muafiyeti TPP beyanına göre"
+    component: "Ödeme Başlatma Servisi"
+    stride: R
+    rules: [R-PAY-UNSIGNED-INSTRUCTION, R-PAY-SCA-EXEMPTION]
+    keywords: ["imza", "jws", "muafiyet", "sca"]
+  - id: "3-12"
+    title: "Sayfalama limiti istemciden alınıyor"
+    component: "Hesap Bilgisi Servisi"
+    stride: D
+    rules: [R-API-CLIENT-CONTROLLED-LIMIT]
+    keywords: ["sayfalama", "limit parametresi", "istemciden"]
+  - id: "3-13"
+    title: "TPP onboarding tek yönetici onayıyla"
+    component: "TPP onboarding"
+    stride: E
+    rules: [R-TPP-ONBOARDING]
+    keywords: ["tek onay", "çift onay", "tpp kayıt"]

@@ -23,7 +23,9 @@ npm-debug.log*
 yarn-error.log*
 
 # Build & data artefacts
-/eval/
+# Evaluation output is generated; keep the folder, not the results.
+/eval/*
+!/eval/.gitkeep
 backend/uploads/
 backend/reports_out/
 backend/.coverage

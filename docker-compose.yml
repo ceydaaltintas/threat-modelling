@@ -53,6 +53,7 @@ services:
     volumes:
       - ./backend:/app
       - ./samples:/samples:ro
+      - ./eval:/eval
     # Once migration'lari uygula, sonra sunucuyu baslat.
     command: >
       sh -c "alembic upgrade head &&

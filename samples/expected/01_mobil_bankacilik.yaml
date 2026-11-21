@@ -1,0 +1,77 @@
+# Doküman 1: Mobil bankacılık, para transferi (MB-TRF-AD-007)
+document: 01_mobil_bankacilik_para_transferi.pdf
+sample_key: mobil-para-transferi
+fixture: mobile_transfer_model
+findings:
+  - id: "1-1"
+    title: "Hesap sahipliği kontrolü yok (BOLA/IDOR)"
+    component: "Transfer Servisi"
+    stride: E
+    rules: [R-API-BOLA]
+    keywords: ["nesne düzeyi yetki", "idor", "bola", "hesap sahipliği"]
+  - id: "1-2"
+    title: "Dolandırıcılık kontrolünde fail-open"
+    component: "Dolandırıcılık Kontrol Servisi"
+    stride: D
+    rules: [R-PAY-FAIL-OPEN]
+    keywords: ["fail-open", "zaman aşımında", "kontrol atlat"]
+  - id: "1-3"
+    title: "İç ağda şifrelenmemiş HTTP"
+    component: "Transfer Servisi ↔ Limit / Dolandırıcılık"
+    stride: I
+    rules: [R-FLOW-PLAINTEXT, R-FLOW-PLAINTEXT-TAMPER, R-FLOW-UNAUTHENTICATED]
+    keywords: ["şifrelenmemiş", "şifresiz", "düz metin"]
+  - id: "1-4"
+    title: "Limit sayacında yarış durumu"
+    component: "Limit Servisi"
+    stride: T
+    rules: [R-PAY-RACE-LIMIT]
+    keywords: ["yarış durumu", "eşzamanlı", "sayaç"]
+  - id: "1-5"
+    title: "Tekrar önleme anahtarı yok"
+    component: "Transfer Servisi"
+    stride: T
+    rules: [R-PAY-NO-IDEMPOTENCY]
+    keywords: ["idempot", "tekrar önleme", "mükerrer"]
+  - id: "1-6"
+    title: "OTP deneme sınırı yok, SMS kanalı riski"
+    component: "Kimlik Doğrulama Servisi"
+    stride: S
+    rules: [R-AUTH-OTP-BRUTEFORCE, R-AUTH-SMS-OTP-CHANNEL]
+    keywords: ["otp", "kaba kuvvet", "sim değiştirme"]
+  - id: "1-7"
+    title: "Üretimde DEBUG; loglarda IBAN ve tutar"
+    component: "Merkezi Log Platformu"
+    stride: I
+    rules: [R-DATA-LOG-SENSITIVE]
+    keywords: ["log", "debug", "maskelen"]
+  - id: "1-8"
+    title: "Ortak yönetici hesabı, MFA yok, kayıt yok"
+    component: "Operasyon Paneli"
+    stride: R
+    rules: [R-AUTH-SHARED-ACCOUNT, R-AUTH-NO-MFA-ADMIN, R-DATA-NO-AUDIT-TRAIL]
+    keywords: ["ortak hesap", "çok faktör", "denetim izi"]
+  - id: "1-9"
+    title: "Sertifika sabitleme, root tespiti ve kod karartma yok"
+    component: "Mobil uygulama"
+    stride: T
+    rules: [R-MOB-NO-PINNING, R-MOB-NO-ROOT-DETECTION]
+    keywords: ["sertifika sabitleme", "pinning", "root", "jailbreak"]
+  - id: "1-10"
+    title: "Uzun ömürlü, cihaza bağlı olmayan token"
+    component: "Kimlik Doğrulama Servisi"
+    stride: S
+    rules: [R-AUTH-LONG-LIVED-TOKEN]
+    keywords: ["token ömrü", "uzun ömürlü", "cihaz bağlama"]
+  - id: "1-11"
+    title: "SMS bakiye içeriyor; API anahtarı ConfigMap'te"
+    component: "Bildirim Servisi / SMS operatörü"
+    stride: I
+    rules: [R-MOB-NOTIFICATION-CONTENT, R-DATA-SECRET-IN-CONFIG]
+    keywords: ["bildirim içeriği", "configmap", "api anahtarı"]
+  - id: "1-12"
+    title: "Yedek şifrelemesi belirtilmemiş"
+    component: "İşlem Veritabanı / yedekler"
+    stride: I
+    rules: [R-DATA-BACKUP-ENCRYPTION]
+    keywords: ["yedek", "backup"]

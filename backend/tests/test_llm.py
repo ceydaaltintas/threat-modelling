@@ -179,3 +179,71 @@ def _silence_recording(monkeypatch, gateway) -> None:
 
     monkeypatch.setattr(gateway, "_record", _noop)
     monkeypatch.setattr(gateway, "_replay", _noop)
+
+
+# --- recorded output mode ---------------------------------------------
+
+
+async def test_strict_mode_refuses_without_a_recording(monkeypatch) -> None:
+    """DEMO_REPLAY=strict must fail loudly, with what to do next."""
+    from app.llm.base import LLMError
+    from app.llm.gateway import LLMGateway
+
+    gateway = LLMGateway(
+        StubClient(), run_id=None, settings=Settings(demo_replay="strict")
+    )
+    _silence_recording(monkeypatch, gateway)
+
+    with pytest.raises(LLMError) as info:
+        await gateway.generate_json(
+            prompt_name="t", system="s", user="u", schema=Tiny
+        )
+    message = str(info.value)
+    assert "strict" in message
+    assert "seed_demo" in message
+
+
+async def test_recorded_answer_is_served_and_counted(monkeypatch) -> None:
+    from app.llm.gateway import LLMGateway
+
+    client = StubClient(responses=['{"name": "canlı", "count": 1}'])
+    gateway = LLMGateway(
+        client, run_id=None, settings=Settings(demo_replay="true")
+    )
+    _silence_recording(monkeypatch, gateway)
+
+    async def _recorded(_key: str) -> str:
+        return '{"name": "kayıt", "count": 9}'
+
+    monkeypatch.setattr(gateway, "_replay", _recorded)
+
+    result = await gateway.generate_json(
+        prompt_name="t", system="s", user="u", schema=Tiny
+    )
+
+    assert result.name == "kayıt"
+    assert gateway.usage.cached == 1
+    # The provider was never called.
+    assert client.calls == []
+
+
+async def test_replay_is_off_by_default(monkeypatch) -> None:
+    from app.llm.gateway import LLMGateway
+
+    gateway = LLMGateway(
+        StubClient(), run_id=None, settings=Settings(demo_replay="false")
+    )
+    assert await gateway._replay("anahtar") is None
+
+
+async def test_text_generation_honours_strict_mode(monkeypatch) -> None:
+    from app.llm.base import LLMError
+    from app.llm.gateway import LLMGateway
+
+    gateway = LLMGateway(
+        StubClient(), run_id=None, settings=Settings(demo_replay="strict")
+    )
+    _silence_recording(monkeypatch, gateway)
+
+    with pytest.raises(LLMError):
+        await gateway.generate_text(prompt_name="t", system="s", user="u")

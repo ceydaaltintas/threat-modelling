@@ -227,7 +227,23 @@ class LLMGateway:
         if cached is not None:
             self.usage.calls += 1
             self.usage.cached += 1
+            await self._record(
+                key,
+                prompt_name=prompt_name,
+                step_no=step_no,
+                duration_ms=0,
+                response={"text": cached},
+                status="ok",
+                from_cache=True,
+            )
             return cached
+
+        if self.replay_mode == "strict":
+            raise LLMError(
+                "Kayıtlı çıktı modu 'strict' ve bu istem için kayıt yok. "
+                "scripts/seed_demo.py ile kayıtları üretin veya DEMO_REPLAY=true "
+                "yapın."
+            )
 
         response = await self.client.generate(
             system=system, user=user, temperature=self.settings.llm_temperature
@@ -249,6 +265,11 @@ class LLMGateway:
     # --- recorded output ------------------------------------------------
 
     async def _replay(self, key: str) -> str | None:
+        """The recorded answer for this exact prompt, if there is one.
+
+        Only genuine live calls are replayed: a row that was itself written
+        by a cache hit is skipped, so the cache can never feed on itself.
+        """
         if self.replay_mode == "false":
             return None
         from sqlalchemy import select
@@ -257,7 +278,11 @@ class LLMGateway:
             row = (
                 await session.execute(
                     select(LlmCall)
-                    .where(LlmCall.prompt_hash == key, LlmCall.status == "ok")
+                    .where(
+                        LlmCall.prompt_hash == key,
+                        LlmCall.status == "ok",
+                        LlmCall.from_cache.is_(False),
+                    )
                     .order_by(LlmCall.created_at.desc())
                     .limit(1)
                 )
