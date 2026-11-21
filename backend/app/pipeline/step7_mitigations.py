@@ -192,6 +192,14 @@ async def run(ctx: RunContext) -> dict[str, int]:
             "LLM sağlayıcısı yapılandırılmadığı için önlem metinleri katalog "
             "metinleriyle bırakıldı."
         )
+    elif llm_calls and not written and llm_note is None:
+        # Calls went out but nothing usable came back: say so rather than
+        # leaving the panel showing "12 çağrı, 0 metin" with no explanation.
+        llm_note = (
+            f"{llm_calls} LLM çağrısı yapıldı ancak kullanılabilir önlem metni "
+            "dönmedi (model, verilen önlem kimlikleri için metin üretmedi). "
+            "Katalog metinleri kullanıldı."
+        )
 
     ctx.step_output[STEP.no] = {
         "threats": len(threats),

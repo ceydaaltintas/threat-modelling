@@ -10,7 +10,7 @@ ekran gereksinimi, analizin **hangi adımda olduğunun canlı olarak** görülme
 > sistem testi yerine geçmez. Tüm örnek dokümanlar kurgusaldır
 > ("Örnek Banka A.Ş.").
 
-**Şu anki durum: Aşama 2.** Ayrıntı için aşağıdaki
+**Şu anki durum: Aşama 3.** Ayrıntı için aşağıdaki
 "Aşama 0'da ne çalışıyor" bölümüne bakın. Görev tanımının tamamı
 [docs/PROMPT.md](docs/PROMPT.md) dosyasındadır.
 
@@ -92,7 +92,10 @@ kullanılmalıdır.
 | ⏸ Model onayı | **Gerçek.** Analiz durur; model düzenlenip onaylanır, her düzenleme yeni sürüm ve denetim kaydı olur. |
 | 3. İlgili bilgi toplandı | **Gerçek.** Her bileşen ve akış için bilgi tabanında hibrit arama. |
 | 4. Tehditler üretildi | **Gerçek.** 59 kurallık katalog + LLM önerisi, kod tarafından birleştirilir. |
-| 5–9 | **Örnek veri.** Adım akışı gerçek, çıktılar yer tutucu. Arayüz bunu "Örnek veri" rozetiyle belirtir. |
+| 5. Doğrulama | **Gerçek.** Yedi kontrol; başarısızlar elenmez, işaretlenir. |
+| 6. Risk hesaplandı | **Gerçek.** Olasılık × etki, kırılımı ekranda sayısal olarak açıklanır. |
+| 7. Önlemler önerildi | **Gerçek.** 83 önlemlik katalog, ISO/NIST/ASVS eşlemeleriyle. |
+| 8–9 | **Örnek veri.** Adım akışı gerçek, çıktılar yer tutucu. Arayüz bunu "Örnek veri" rozetiyle belirtir. |
 
 ### Aşama 1'de gelenler
 
@@ -149,11 +152,49 @@ kullanılmalıdır.
   filtreler) ve tehdit çekmecesi (kanıt alıntısı dokümandaki yeriyle,
   kaynak kimlikleri, AI önerisi / Sistem hesabı / Uzman onayı sütunları).
 
+### Aşama 3'te gelenler
+
+- **Önlem kataloğu: 83 önlem**, YAML olarak
+  `backend/app/controls/catalog.yaml`. Her önlem ISO/IEC 27001:2022 Ek A,
+  NIST SP 800-53 ve OWASP ASVS kimliklerine eşlenir. **ISO eşlemelerinin
+  tamamı "doğrulanacak" işaretlidir**: standardın metni telifli olduğu için
+  madde numarası kurumun kendi nüshasından teyit edilmelidir. Kurallarda
+  geçen her önlemin tanımlı olduğu ve her kontrol kimliğinin bilgi tabanında
+  bulunduğu testle sabitlenmiştir.
+- **Doğrulama (adım 5):** bileşen/akış onaylı modelde var mı, STRIDE geçerli
+  mi, kaynak kimlikleri bilgi tabanında var mı, zorunlu alanlar dolu mu,
+  kanıt alıntısı dokümanda geçiyor mu, tekrar var mı, önlemler katalogda mı.
+  **Hiçbir tehdit elenmez**; işaretlenir ve notu Türkçe etiketiyle
+  çekmecede gösterilir. Uydurma bir kaynak kimliği (örn. `CWE-99999`) burada
+  reddedilir — kabul kriteri testlerle sabitlenmiştir.
+- **Risk (adım 6):** olasılık × etki (1–5), eşikler ayarlardan. Taban değer
+  kuraldan gelir; kuralı olmayan (LLM önerisi) tehditler için STRIDE
+  varsayılan tablosundan. **LLM'in önerdiği değer hiçbir koşulda skora
+  girmez**, yalnızca yanında gösterilir. Bağlam düzeltmeleri: internete açık
+  +1 olasılık, hassas veri +1 etki, dokümanda önlem izi −1 olasılık,
+  kanıtsız (varsayım) −1 olasılık, dokümanda doğrulanmamış kural eşleşmesi
+  −1 olasılık. Her düzeltme gerekçesiyle kırılımda durur ve ekranda cümle
+  olarak yazılır:
+  *"Olasılık 3 + 1 (İnternete açık) = 4; Etki 5 + 1 (Hassas veri) = 5.
+  Skor 4 × 5 = 20 → Kritik."*
+- **Kurallara `confidence` alanı:** dokümandaki açık bir olguyla eşleşen
+  kurallar (şifresiz akış, kimlik doğrulamasız çağrı, sertifika sabitleme
+  yok) `confirmed`; yalnızca bileşen türüne bakanlar `possible` ve bir puan
+  düşer. Bu ayrım olmadan 43 tehdidin 37'si aynı seviyeye düşüyordu.
+- **Önlemler (adım 7):** hangi önlemin uygulanacağını **kod** seçer
+  (kuraldan ya da STRIDE yedeğinden); LLM yalnızca önlemin bu sisteme nasıl
+  uygulanacağını yazar ve listeyi değiştiremez. LLM bütçesi yalnızca Kritik
+  ve Yüksek seviyeli tehditlere harcanır; sağlayıcı yoksa veya kota biterse
+  katalog metinleri kullanılır ve bu ekranda yazar.
+- **Arayüz:** tehdit tablosunda seviye rozeti, seviye filtresi ve doğrulama
+  durumu; çekmecede doğrulama notları, sayısal risk kırılımı (taban + her
+  düzeltme + gerekçe), önlem metinleri ve kontrol eşlemeleri tablosu;
+  5./6./7. adım özet panelleri ve gerçek sayılarla 5×5 ısı haritası.
+
 Henüz **çalışmayanlar** (planlandıkları aşamalarla):
 
 | Eksik | Aşama |
 |---|---|
-| Doğrulama kuralları, risk hesabı, önlem üretimi, kontrol eşleme | 3 |
 | Uzman kararları, rapor (PDF/Excel/JSON), panonun gerçek verisi | 4 |
 | Kayıtlı çıktı modu, `seed_demo.py`, `eval.py`, 5 dakikalık demo akışı | 5 |
 
@@ -169,8 +210,9 @@ backend/                 FastAPI + SQLAlchemy 2 + Alembic
   app/schemas/           API ve SystemModel şemaları
   app/kb/                bilgi tabanı: yükleme, gömme, hibrit arama
   app/rules/catalog/     YAML kural kataloğu (59 kural)
-  app/risk/ controls/    sonraki aşamalarda doldurulacak modüller
-  app/reports/           "
+  app/controls/          YAML önlem kataloğu (83 önlem) + kontrol eşleme
+  app/risk/              risk hesabı ve kırılım
+  app/reports/           sonraki aşamada doldurulacak modül
   app/audit/             denetim izi yazıcısı
   data/kb/*.jsonl        ön işlenmiş bilgi tabanı (gömme vektörleri dahil)
   scripts/kb_data/       bilgi tabanının kaynak metinleri
@@ -198,6 +240,10 @@ docker compose exec backend python -m pytest -q
 
 # Frontend tip kontrolü
 docker compose exec frontend npx tsc --noEmit
+
+# Üretim derlemesi (dikkat: çalışan dev sunucusunun .next çıktısını bozar,
+# sonrasında "docker compose restart frontend" gerekir)
+docker compose exec frontend npx next build
 
 # Bilgi tabanını yeniden üretmek (içerik değiştiyse)
 docker compose exec backend python -m scripts.ingest_kb
@@ -245,6 +291,10 @@ kendisi hiçbir yerde gösterilmez).
 **2. adım kota hatası veriyor.**
 Ücretsiz katman sınırına ulaşılmıştır. Bir dakika bekleyip "Bu adımı yeniden
 dene" deyin veya `.env` içinde daha küçük/hızlı bir model seçin.
+
+**Arayüz stilsiz (düz HTML gibi) açılıyor.**
+Çalışan dev sunucusunun üstüne `next build` çalıştırılmıştır; `.next`
+çıktısı bozulur. `docker compose restart frontend` yeterlidir.
 
 **Bilgi tabanı araması "Yalnızca anahtar kelime" diyor.**
 Yerel gömme modeli yüklenememiştir. İmaj oluşturulurken model indirilemediyse

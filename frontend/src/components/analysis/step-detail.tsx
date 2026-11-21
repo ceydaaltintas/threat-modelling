@@ -28,6 +28,21 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateTime } from "@/lib/format";
 import type { Performer, RunStep, StepInfo } from "@/lib/types";
 
+// Turkish locative suffix for a phase number: 1'de, 3'te, 4'te, 5'te...
+// The ending follows the number's spelling (üç, dört, beş end voiceless).
+const LOCATIVE: Record<number, string> = {
+  0: "'da",
+  1: "'de",
+  2: "'de",
+  3: "'te",
+  4: "'te",
+  5: "'te",
+};
+
+function phaseIn(phase: number): string {
+  return `Aşama ${phase}${LOCATIVE[phase] ?? "'de"}`;
+}
+
 const PERFORMER_LABEL: Record<Performer, string> = {
   code: "Sistem hesabı",
   llm: "AI önerisi",
@@ -241,11 +256,11 @@ export function StepDetail({
         <Card className="border-dashed">
           <CardHeader>
             <CardTitle className="text-sm">
-              Bu panel Aşama {plan.phase}&apos;de dolacak
+              Bu panel {phaseIn(plan.phase)} dolacak
             </CardTitle>
             <CardDescription>
-              Aşama 0 iskelet aşamasıdır: adım akışı ve olay günlüğü gerçek, adım
-              çıktıları henüz örnek veridir.
+              Bu adımın akışı, süresi ve olay günlüğü gerçektir; çıktısı henüz
+              örnek veridir.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -99,7 +99,13 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
             "işaretlenir."
         ),
         performer="code",
-        counter_labels={"checked": "kontrol", "flagged": "işaretli"},
+        counter_labels={
+            "checked": "kontrol",
+            "flagged": "işaretli",
+            "unknown_ids": "bilinmeyen kimlik",
+            "duplicates": "tekrar",
+            "evidence_missing": "kanıt bulunamadı",
+        },
     ),
     StepDefinition(
         no=6,
@@ -109,7 +115,12 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
             "ve kırılım ekranda açıklanır."
         ),
         performer="code",
-        counter_labels={"critical": "kritik", "high": "yüksek"},
+        counter_labels={
+            "critical": "kritik",
+            "high": "yüksek",
+            "medium": "orta",
+            "low": "düşük",
+        },
     ),
     StepDefinition(
         no=7,
@@ -119,7 +130,11 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
             "kataloğuna eşlenir."
         ),
         performer="code+llm",
-        counter_labels={"mitigations": "önlem", "mapped": "eşlenen"},
+        counter_labels={
+            "mitigations": "önlem",
+            "mapped": "kontrol eşlemesi",
+            "llm_written": "AI metni",
+        },
     ),
     StepDefinition(
         no=8,
