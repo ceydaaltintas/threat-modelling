@@ -1,24 +1,15 @@
 """Placeholder content for the steps that are not implemented yet.
 
-Steps 3-9 arrive in phases 2-4. Until then they emit clearly labelled sample
-progress so the stepper, the pauses and the report flow can be demonstrated.
-Every event these steps publish carries ``placeholder: true`` and the UI
-labels it; nothing here is presented as a real result.
+All nine steps are implemented as of phase 4, so this module is empty. It
+stays in place as the hook for any future step that needs a placeholder:
+anything listed in ``PLACEHOLDER_STEPS`` publishes ``placeholder: true`` and
+the UI labels it as sample data.
 """
 
 from __future__ import annotations
 
-PLACEHOLDER_STEPS = frozenset({8, 9})
+PLACEHOLDER_STEPS = frozenset()
 
-COUNTERS: dict[int, dict[str, int]] = {
-    8: {"accepted": 0, "pending": 37},
-    9: {"reports": 3},
-}
+COUNTERS: dict[int, dict[str, int]] = {}
 
-MESSAGES: dict[int, list[str]] = {
-    8: ["Uzman incelemesi bekleniyor"],
-    9: [
-        "Yönetici özeti taslaklanıyor",
-        "PDF, Excel ve JSON çıktıları yazılıyor",
-    ],
-}
+MESSAGES: dict[int, list[str]] = {}

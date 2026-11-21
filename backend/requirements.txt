@@ -21,6 +21,12 @@ fastembed==0.5.1
 # --- Kural katalogu ---
 pyyaml==6.0.2
 
+# --- Rapor uretimi ---
+# WeasyPrint HTML -> PDF; Turkce karakterler icin DejaVu yazi tipi kullanilir
+# (Dockerfile'da fonts-dejavu kurulur).
+weasyprint==63.1
+openpyxl==3.1.5
+
 # --- LLM saglayicilari ---
 google-genai==0.3.0
 httpx==0.28.1

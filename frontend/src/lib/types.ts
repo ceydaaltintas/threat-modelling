@@ -222,7 +222,18 @@ export interface ThreatRow {
     }>;
     explanation: string;
   } | null;
-  expert: Record<string, unknown> | null;
+  expert: {
+    status?: string;
+    by?: string;
+    at?: string;
+    note?: string | null;
+    reason?: string | null;
+    likelihood?: number;
+    impact?: number;
+    score?: number;
+    level?: string;
+    bulk?: boolean;
+  } | null;
   mitigations: Array<{
     id: string;
     title?: string;
@@ -268,6 +279,92 @@ export interface ThreatListResponse {
   };
   threats: ThreatRow[];
 }
+
+/** Step 8's stored panel payload. */
+export interface ReviewOutput {
+  total: number;
+  pending: number;
+  accepted: number;
+  rejected: number;
+  false_positive: number;
+  edited: number;
+  decided: number;
+}
+
+/** Step 9's stored panel payload. */
+export interface ReportOutput {
+  files: Array<{ kind: string; name: string; size: number }>;
+  summary_text: string | null;
+  summary_is_ai: boolean;
+  counts: Record<string, number>;
+  by_level: Record<string, number>;
+  by_stride: Record<string, number>;
+  by_component: Array<[string, number]>;
+  heatmap: Record<string, number>;
+  thresholds: { low: number; medium: number; high: number };
+  top_threats: Array<{
+    id: string;
+    title: string;
+    level: string;
+    score: number;
+    component: string;
+  }>;
+  unknowns: Array<{ text: string; impact?: string | null }>;
+}
+
+export interface DashboardData {
+  available: boolean;
+  reason?: string;
+  run?: {
+    id: string;
+    project: string;
+    status: string;
+    started_at: string | null;
+    finished_at: string | null;
+  };
+  kpis?: {
+    total: number;
+    included: number;
+    critical: number;
+    high: number;
+    assumptions: number;
+    flagged: number;
+    decided: number;
+    decided_ratio: number;
+    components: number;
+    flows: number;
+  };
+  by_level?: Record<string, number>;
+  by_stride?: Record<string, number>;
+  by_component?: Array<[string, number]>;
+  by_review?: Record<string, number>;
+  heatmap?: Record<string, number>;
+  thresholds?: { low: number; medium: number; high: number };
+  top_threats?: Array<{
+    id: string;
+    title: string;
+    level: string;
+    score: number;
+    component: string;
+    stride: string;
+  }>;
+  unknowns?: Array<{ text: string; impact?: string | null }>;
+}
+
+export interface DashboardRun {
+  id: string;
+  created_at: string;
+  status: string;
+  project: string;
+  threats: number;
+}
+
+export type ReviewAction =
+  | "accept"
+  | "reject"
+  | "false_positive"
+  | "edit"
+  | "reset";
 
 /** Step 5's stored panel payload. */
 export interface ValidationOutput {

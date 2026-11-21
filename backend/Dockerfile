@@ -7,9 +7,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# curl: healthcheck ve el ile deneme icin kullanisli
+# curl: healthcheck ve el ile deneme icin kullanisli.
+# libpango/libcairo/libgdk-pixbuf: WeasyPrint'in PDF cizimi icin gerekli.
+# fonts-dejavu-core: raporda Turkce karakterlerin dogru cikmasi icin.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends \
+        curl \
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
+        libcairo2 \
+        libgdk-pixbuf-2.0-0 \
+        libffi8 \
+        shared-mime-info \
+        fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./

@@ -25,6 +25,7 @@ yarn-error.log*
 # Build & data artefacts
 /eval/
 backend/uploads/
+backend/reports_out/
 backend/.coverage
 htmlcov/
 

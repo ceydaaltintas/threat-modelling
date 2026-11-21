@@ -144,7 +144,15 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
             "yanlış pozitif işaretler. Her işlem denetim izine yazılır."
         ),
         performer="human",
-        counter_labels={"accepted": "kabul", "pending": "bekleyen"},
+        counter_labels={
+            "total": "tehdit",
+            "decided": "karar verildi",
+            "pending": "bekleyen",
+            "accepted": "kabul",
+            "rejected": "red",
+            "false_positive": "yanlış pozitif",
+            "edited": "düzenlendi",
+        },
     ),
     StepDefinition(
         no=9,

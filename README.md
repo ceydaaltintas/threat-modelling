@@ -10,7 +10,7 @@ ekran gereksinimi, analizin **hangi adımda olduğunun canlı olarak** görülme
 > sistem testi yerine geçmez. Tüm örnek dokümanlar kurgusaldır
 > ("Örnek Banka A.Ş.").
 
-**Şu anki durum: Aşama 3.** Ayrıntı için aşağıdaki
+**Şu anki durum: Aşama 4.** Dokuz adımın tamamı gerçek çalışıyor. Ayrıntı için aşağıdaki
 "Aşama 0'da ne çalışıyor" bölümüne bakın. Görev tanımının tamamı
 [docs/PROMPT.md](docs/PROMPT.md) dosyasındadır.
 
@@ -85,17 +85,20 @@ kullanılmalıdır.
 
 ## 3. Hangi adımlar gerçek
 
-| Adım | Durum |
+Dokuz adımın tamamı gerçek veriyle çalışır. Yer tutucu adım kalmadı.
+
+| Adım | Ne yapar |
 |---|---|
-| 1. Doküman okundu | **Gerçek.** PDF/DOCX/MD/TXT/görsel okunur, sayfa ve bölümler indekslenir. |
-| 2. Sistem modeli çıkarıldı | **Gerçek.** LLM bileşenleri, akışları ve kanıtları çıkarır; kod doğrular. |
-| ⏸ Model onayı | **Gerçek.** Analiz durur; model düzenlenip onaylanır, her düzenleme yeni sürüm ve denetim kaydı olur. |
-| 3. İlgili bilgi toplandı | **Gerçek.** Her bileşen ve akış için bilgi tabanında hibrit arama. |
-| 4. Tehditler üretildi | **Gerçek.** 59 kurallık katalog + LLM önerisi, kod tarafından birleştirilir. |
-| 5. Doğrulama | **Gerçek.** Yedi kontrol; başarısızlar elenmez, işaretlenir. |
-| 6. Risk hesaplandı | **Gerçek.** Olasılık × etki, kırılımı ekranda sayısal olarak açıklanır. |
-| 7. Önlemler önerildi | **Gerçek.** 83 önlemlik katalog, ISO/NIST/ASVS eşlemeleriyle. |
-| 8–9 | **Örnek veri.** Adım akışı gerçek, çıktılar yer tutucu. Arayüz bunu "Örnek veri" rozetiyle belirtir. |
+| 1. Doküman okundu | PDF/DOCX/MD/TXT/görsel okunur, sayfa ve bölümler indekslenir. |
+| 2. Sistem modeli çıkarıldı | LLM bileşenleri, akışları ve kanıtları çıkarır; kod doğrular. |
+| ⏸ Model onayı | Analiz durur; model düzenlenip onaylanır, her düzenleme yeni sürüm ve denetim kaydı olur. |
+| 3. İlgili bilgi toplandı | Her bileşen ve akış için bilgi tabanında hibrit arama. |
+| 4. Tehditler üretildi | 59 kurallık katalog + LLM önerisi, kod tarafından birleştirilir. |
+| 5. Doğrulama | Yedi kontrol; başarısızlar elenmez, işaretlenir. |
+| 6. Risk hesaplandı | Olasılık × etki, kırılımı ekranda sayısal olarak açıklanır. |
+| 7. Önlemler önerildi | 83 önlemlik katalog, ISO/NIST/ASVS eşlemeleriyle. |
+| ⏸ 8. Uzman incelemesi | Analiz durur; kabul/ret/düzenle/yanlış pozitif ve toplu işlem. |
+| 9. Rapor hazır | PDF, Excel ve iki JSON (tam veri + Open Threat Model). |
 
 ### Aşama 1'de gelenler
 
@@ -191,12 +194,48 @@ kullanılmalıdır.
   düzeltme + gerekçe), önlem metinleri ve kontrol eşlemeleri tablosu;
   5./6./7. adım özet panelleri ve gerçek sayılarla 5×5 ısı haritası.
 
-Henüz **çalışmayanlar** (planlandıkları aşamalarla):
+### Aşama 4'te gelenler
+
+- **Uzman incelemesi (adım 8):** analiz burada durur ve kaç bulgunun karar
+  beklediğini söyler. Her tehdit için kabul / reddet / yanlış pozitif /
+  seviyeyi düzenle; tablodan çoklu seçimle toplu kabul ve toplu yanlış
+  pozitif. **Seviye değiştirmek için gerekçe zorunludur** (API ve arayüz
+  ikisi de zorlar). Verilen her karar geri alınabilir.
+- **Denetim izi:** her karar kim, ne zaman, eski ve yeni değer ve gerekçesiyle
+  `audit_log` tablosuna yazılır. Toplu işlemde her tehdit için ayrı kayıt
+  oluşur. Yönetici rolü hiçbir karar veremez (HTTP 403).
+- **Uzman kararı sistemin hesabını ezmez:** düzenlenen seviye `expert`
+  alanında saklanır, `system_calc` olduğu gibi kalır. Rapor ve pano uzman
+  değerini kullanır ama ikisi de yan yana görünür.
+- **PDF yönetici raporu:** 7 sayfalık kurumsal rapor — kapak, yönetici özeti,
+  KPI'lar, risk dağılımı ve ısı haritası, STRIDE ve bileşen dağılımı, en
+  kritik 5 bulgu (kanıt alıntısı ve önlemleriyle), tüm bulgular tablosu,
+  dokümanda belirtilmemiş konular, varsayımlar, uzmanın elediği bulgular ve
+  yöntem/kaynak notu. **Türkçe karakterler doğru çıkar** (DejaVu yazı tipi
+  imaja gömülüdür); testle sabitlenmiştir. Uyarı metni hem başta hem sonda,
+  her sayfanın altbilgisinde de künye yer alır.
+- **Excel çıktısı:** dört sayfa — Tehditler (23 sütun: kanıt, kaynak
+  kimlikleri, risk kırılımı, doğrulama notları, uzman kararı, önlemler,
+  kontrol eşlemeleri), Özet, Sistem modeli, Açık konular.
+- **JSON çıktıları:** tam veri (`analiz.json`) ve Open Threat Model
+  (`otm.json`). OTM eşlemesi yaklaşıktır ve bu README ile THIRD_PARTY.md'de
+  böyle yazılıdır: OTM'de kanıt alıntısı ve risk kırılımı için alan yoktur.
+- **Yönetici özeti:** LLM ile taslaklanır ve her yerde **"AI üretti"**
+  etiketiyle gösterilir. Model prose yerine JSON veya markdown dönerse çıktı
+  reddedilir ve hesaplanan sayılardan üretilen özet kullanılır — sağlayıcı
+  olmadan da rapor üretilir.
+- **Özet panosu:** gerçek veriye bağlandı. Analiz seçici, KPI kutuları,
+  tıklanabilir 5×5 ısı haritası, seviye ve karar durumu dağılımı, STRIDE ve
+  bileşen bazlı çubuklar, en kritik 5 tehdit, "dokümanda belirtilmeyen ama
+  önemli" konular.
+- **Rapor indirme:** dosyalar bu bilgisayarda üretilir; indirme ucu yalnızca
+  bilinen dört dosya adını sunar, uydurma bir ad diske erişemez.
+
+Henüz **çalışmayan** (Aşama 5):
 
 | Eksik | Aşama |
 |---|---|
-| Uzman kararları, rapor (PDF/Excel/JSON), panonun gerçek verisi | 4 |
-| Kayıtlı çıktı modu, `seed_demo.py`, `eval.py`, 5 dakikalık demo akışı | 5 |
+| Kayıtlı çıktı modu, `seed_demo.py`, `eval.py`, 5 dakikalık demo akışı, bilinen sınırlar listesi | 5 |
 
 ## 4. Proje yapısı
 
@@ -212,7 +251,7 @@ backend/                 FastAPI + SQLAlchemy 2 + Alembic
   app/rules/catalog/     YAML kural kataloğu (59 kural)
   app/controls/          YAML önlem kataloğu (83 önlem) + kontrol eşleme
   app/risk/              risk hesabı ve kırılım
-  app/reports/           sonraki aşamada doldurulacak modül
+  app/reports/           PDF, Excel, JSON ve OTM üretimi
   app/audit/             denetim izi yazıcısı
   data/kb/*.jsonl        ön işlenmiş bilgi tabanı (gömme vektörleri dahil)
   scripts/kb_data/       bilgi tabanının kaynak metinleri
@@ -304,6 +343,11 @@ Arama bu durumda da çalışır, yalnızca anlamsal benzerlik devre dışı kal�
 **4. adım "LLM tehdit önerisi alınamadı" diyor.**
 Kural kataloğunun bulguları yine üretilir. LLM anahtarını veya kotasını
 kontrol edip "Bu adımı yeniden dene" diyebilirsiniz.
+
+**PDF indirilemiyor / 9. adım hata veriyor.**
+`docker compose logs backend` çıktısına bakın. WeasyPrint sistem
+kütüphaneleri imajın içindedir; imaj eski kaldıysa
+`docker compose build backend` ile yeniden oluşturun.
 
 **Veritabanı hatası veya tablo bulunamadı.**
 `docker compose exec backend alembic upgrade head` çalıştırın. Sorun sürerse

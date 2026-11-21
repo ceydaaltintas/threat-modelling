@@ -13,6 +13,8 @@ eklendiginde bu dosya guncellenir.
 | Python | 3.12 (slim) | PSF License | Backend calisma ortami |
 | Node.js | 20 (alpine) | MIT | Frontend calisma ortami |
 | paraphrase-multilingual-MiniLM-L12-v2 | - | Apache-2.0 | Yerel embedding modeli (384 boyut), imaj icine gomulur |
+| DejaVu Sans / Sans Mono | - | Bitstream Vera + DejaVu lisansi (serbest) | PDF raporda Turkce karakterler icin |
+| libpango, libcairo, libgdk-pixbuf | - | LGPL-2.1+ | WeasyPrint'in PDF cizim bagimliliklari |
 
 ## Backend (Python)
 
@@ -32,6 +34,8 @@ eklendiginde bu dosya guncellenir.
 | pymupdf (PyMuPDF) | **AGPL-3.0** | PDF metin cikarma ve sayfa goruntuleme |
 | python-docx | MIT | DOCX okuma |
 | google-genai | Apache-2.0 | Gemini yerel istemcisi |
+| weasyprint | BSD-3-Clause | HTML -> PDF rapor uretimi |
+| openpyxl | MIT | Excel ciktisi |
 | fastembed | Apache-2.0 | Yerel (CPU) embedding, API anahtari gerektirmez |
 | pyyaml | MIT | Kural katalogu okuma |
 
@@ -58,7 +62,15 @@ eklendikleri asamada bu tabloya islenecektir.
 | reactflow | MIT | DFD diyagrami |
 | @tanstack/react-table | MIT | Tehdit tablosu |
 
-Asama 4'te eklenecek: `recharts` (MIT).
+Grafikler icin ayri bir kutuphane kullanilmadi: pano ve rapordaki dagilim
+cubuklari ile 5x5 isi haritasi CSS ile cizilir, bu da bagimlilik sayisini
+dusuk tutar.
+
+## Disa aktarma bicimleri
+
+| Bicim | Durum | Not |
+|---|---|---|
+| Open Threat Model (OTM) | Acik bicim | `otmVersion: 0.2.0`. Esleme yaklasiktir: OTM'de kanit alintisi ve risk kirilimi icin alan yoktur, bunlar yalnizca kendi JSON ciktimizda bulunur. Baska bir araca aktarmadan once esleme dogrulanmalidir. |
 
 ## Bilgi tabani veri kaynaklari (Asama 2)
 

@@ -1,16 +1,26 @@
 "use client";
 
-import { AlertCircle, ExternalLink, Info, ShieldCheck, X } from "lucide-react";
+import {
+  AlertCircle,
+  Ban,
+  Check,
+  ExternalLink,
+  Info,
+  Pencil,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import * as React from "react";
 
 import { EvidenceView } from "@/components/analysis/evidence-view";
 import { RiskBreakdown } from "@/components/analysis/risk-breakdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatDateTime } from "@/lib/format";
 import { levelClasses, type Level } from "@/lib/levels";
-import { STRIDE_LABELS, SOURCE_LABELS } from "@/lib/threats";
+import { REVIEW_LABELS, STRIDE_LABELS, SOURCE_LABELS } from "@/lib/threats";
 import { cn } from "@/lib/utils";
-import type { DocumentOut, ThreatRow } from "@/lib/types";
+import type { DocumentOut, ReviewAction, ThreatRow } from "@/lib/types";
 
 /** Right-hand drawer with everything known about one threat. */
 export function ThreatDrawer({
@@ -18,11 +28,21 @@ export function ThreatDrawer({
   documents,
   componentName,
   onClose,
+  review,
 }: {
   threat: ThreatRow | null;
   documents: DocumentOut[];
   componentName: (id: string | null) => string;
   onClose: () => void;
+  review?: {
+    readOnly: boolean;
+    busy: boolean;
+    onDecide: (
+      threatId: string,
+      action: ReviewAction,
+      extra?: { note?: string; likelihood?: number; impact?: number; reason?: string },
+    ) => Promise<void>;
+  };
 }) {
   React.useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -189,7 +209,19 @@ export function ThreatDrawer({
               />
               <ValueBox
                 label="Uzman onayı"
-                value={threat.expert ? "Verildi" : "Aşama 4'te"}
+                value={
+                  threat.expert?.level
+                    ? `${threat.expert.score} · ${threat.expert.level}`
+                    : threat.review_status === "pending"
+                      ? "Bekliyor"
+                      : REVIEW_LABELS[threat.review_status] ??
+                        threat.review_status
+                }
+                note={
+                  threat.expert?.at
+                    ? `${threat.expert.by} · ${formatDateTime(threat.expert.at)}`
+                    : undefined
+                }
               />
             </div>
           </Section>
@@ -225,6 +257,12 @@ export function ThreatDrawer({
               </ul>
             )}
           </Section>
+
+          {review ? (
+            <Section title="Uzman kararı">
+              <ReviewControls threat={threat} review={review} />
+            </Section>
+          ) : null}
 
           <Section title="Kontrol eşlemeleri">
             {threat.control_mappings.length === 0 ? (
@@ -308,6 +346,180 @@ function ValueBox({
       <p className="mt-0.5 text-sm font-medium">{value}</p>
       {note ? (
         <p className="mt-0.5 text-[11px] text-muted-foreground">{note}</p>
+      ) : null}
+    </div>
+  );
+}
+
+
+function ReviewControls({
+  threat,
+  review,
+}: {
+  threat: ThreatRow;
+  review: NonNullable<Parameters<typeof ThreatDrawer>[0]["review"]>;
+}) {
+  const [note, setNote] = React.useState("");
+  const [editing, setEditing] = React.useState(false);
+  const computed = threat.system_calc;
+  const [likelihood, setLikelihood] = React.useState(
+    threat.expert?.likelihood ?? computed?.likelihood ?? 3,
+  );
+  const [impact, setImpact] = React.useState(
+    threat.expert?.impact ?? computed?.impact ?? 3,
+  );
+  const [reason, setReason] = React.useState(threat.expert?.reason ?? "");
+
+  const disabled = review.readOnly || review.busy;
+  const changed =
+    likelihood !== (computed?.likelihood ?? 0) ||
+    impact !== (computed?.impact ?? 0);
+
+  return (
+    <div className="space-y-3">
+      {threat.expert?.note || threat.expert?.reason ? (
+        <p className="rounded-md bg-surface-muted p-2.5 text-xs">
+          <strong>
+            {REVIEW_LABELS[threat.review_status] ?? threat.review_status}
+          </strong>{" "}
+          — {threat.expert.reason || threat.expert.note}
+        </p>
+      ) : null}
+
+      <textarea
+        value={note}
+        onChange={(event) => setNote(event.target.value)}
+        placeholder="Karar notu (isteğe bağlı)"
+        aria-label="Karar notu"
+        rows={2}
+        className="w-full rounded-md border border-input bg-surface p-2 text-xs"
+      />
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          disabled={disabled}
+          onClick={() => review.onDecide(threat.id, "accept", { note })}
+        >
+          <Check aria-hidden /> Kabul et
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={disabled}
+          onClick={() => review.onDecide(threat.id, "reject", { note })}
+        >
+          Reddet
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={disabled}
+          onClick={() => review.onDecide(threat.id, "false_positive", { note })}
+        >
+          <Ban aria-hidden /> Yanlış pozitif
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={disabled}
+          onClick={() => setEditing((value) => !value)}
+        >
+          <Pencil aria-hidden /> Seviyeyi düzenle
+        </Button>
+        {threat.review_status !== "pending" ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={disabled}
+            onClick={() => review.onDecide(threat.id, "reset")}
+          >
+            Kararı geri al
+          </Button>
+        ) : null}
+      </div>
+
+      {editing ? (
+        <div className="space-y-2 rounded-md border border-border p-3">
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <label className="flex items-center gap-1.5">
+              Olasılık
+              <select
+                value={likelihood}
+                onChange={(event) => setLikelihood(Number(event.target.value))}
+                className="h-7 rounded border border-input bg-surface px-1.5"
+              >
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5">
+              Etki
+              <select
+                value={impact}
+                onChange={(event) => setImpact(Number(event.target.value))}
+                className="h-7 rounded border border-input bg-surface px-1.5"
+              >
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className="text-muted-foreground">
+              Yeni skor: <strong>{likelihood * impact}</strong>
+              {computed ? ` (sistem hesabı: ${computed.score})` : ""}
+            </span>
+          </div>
+          <textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Seviye değişikliği için gerekçe (zorunlu)"
+            aria-label="Seviye değişikliği gerekçesi"
+            rows={2}
+            className="w-full rounded-md border border-input bg-surface p-2 text-xs"
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              disabled={disabled || !reason.trim() || !changed}
+              onClick={async () => {
+                await review.onDecide(threat.id, "edit", {
+                  likelihood,
+                  impact,
+                  reason,
+                  note,
+                });
+                setEditing(false);
+              }}
+            >
+              Kaydet
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              Vazgeç
+            </Button>
+            {!reason.trim() ? (
+              <span className="text-[11px] text-level-high">
+                Gerekçe zorunludur.
+              </span>
+            ) : !changed ? (
+              <span className="text-[11px] text-muted-foreground">
+                Sistem hesabıyla aynı; bir değer değiştirin.
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {review.readOnly ? (
+        <p className="text-[11px] text-muted-foreground">
+          Yönetici rolü salt okunurdur; karar vermek için Güvenlik Uzmanı
+          rolüne geçin.
+        </p>
       ) : null}
     </div>
   );

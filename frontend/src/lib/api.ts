@@ -4,10 +4,14 @@
 import type { SystemModelData, SystemModelVersion } from "@/lib/system-model";
 import type {
   AuditEntry,
+  DashboardData,
+  DashboardRun,
   DocumentOut,
   KbSearchResult,
   KbStats,
+  ReviewAction,
   ThreatListResponse,
+  ThreatRow,
   Meta,
   ProgressEvent,
   ProjectRow,
@@ -145,6 +149,40 @@ export const api = {
     ),
   threats: (runId: string) =>
     request<ThreatListResponse>(`/api/runs/${runId}/threats`),
+  reviewThreat: (
+    runId: string,
+    threatId: string,
+    body: {
+      action: ReviewAction;
+      note?: string;
+      likelihood?: number;
+      impact?: number;
+      reason?: string;
+    },
+  ) =>
+    request<ThreatRow>(`/api/runs/${runId}/threats/${threatId}/review`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  reviewBulk: (
+    runId: string,
+    body: {
+      threat_ids: string[];
+      action: "accept" | "reject" | "false_positive" | "reset";
+      note?: string;
+    },
+  ) =>
+    request<{ updated: number; review_status: string }>(
+      `/api/runs/${runId}/threats/review-bulk`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+  dashboard: (runId?: string) =>
+    request<DashboardData>(
+      `/api/dashboard${runId ? `?run_id=${runId}` : ""}`,
+    ),
+  dashboardRuns: () => request<DashboardRun[]>("/api/dashboard/runs"),
+  reportUrl: (runId: string, name: string) =>
+    `${API_BASE}/api/runs/${runId}/reports/${name}`,
 };
 
 export function eventStreamUrl(runId: string): string {

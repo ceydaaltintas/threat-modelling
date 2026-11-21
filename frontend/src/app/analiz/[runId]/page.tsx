@@ -6,6 +6,7 @@ import * as React from "react";
 
 import { DocumentPanel } from "@/components/analysis/document-panel";
 import { EventLog } from "@/components/analysis/event-log";
+import { ReportPanel } from "@/components/analysis/report-panel";
 import { RetrievalPanel } from "@/components/analysis/retrieval-panel";
 import {
   MitigationSummary,
@@ -31,6 +32,8 @@ import type {
   MitigationOutput,
   RetrievalOutput,
   RiskOutput,
+  ReportOutput,
+  ReviewAction,
   ThreatGenOutput,
   ThreatListResponse,
   ValidationOutput,
@@ -62,7 +65,7 @@ export default function AnalysisPage() {
   const step2Done = stepStatus(2) === "done";
   const step4Done = stepStatus(4) === "done";
   // Steps 5-7 rewrite the threat rows, so reload when each finishes.
-  const laterSteps = [5, 6, 7].map(stepStatus).join(",");
+  const laterSteps = [5, 6, 7, 8].map(stepStatus).join(",");
 
   React.useEffect(() => {
     if (!runId || !step1Done) return;
@@ -138,6 +141,75 @@ export default function AnalysisPage() {
       setBusy(false);
     }
   };
+
+  const reloadThreats = React.useCallback(async () => {
+    if (!runId) return;
+    try {
+      setThreats(await api.threats(runId));
+    } catch {
+      /* the table keeps the rows it has */
+    }
+  }, [runId]);
+
+  const decide = React.useCallback(
+    async (
+      threatId: string,
+      action: ReviewAction,
+      extra?: {
+        note?: string;
+        likelihood?: number;
+        impact?: number;
+        reason?: string;
+      },
+    ) => {
+      if (!runId) return;
+      setBusy(true);
+      try {
+        await api.reviewThreat(runId, threatId, { action, ...extra });
+        await reloadThreats();
+      } catch (err) {
+        toast({
+          title: "Karar kaydedilemedi",
+          description: (err as Error).message,
+          tone: "error",
+        });
+      } finally {
+        setBusy(false);
+      }
+    },
+    [runId, reloadThreats, toast],
+  );
+
+  const decideBulk = React.useCallback(
+    async (
+      threatIds: string[],
+      action: "accept" | "reject" | "false_positive" | "reset",
+    ) => {
+      if (!runId) return;
+      setBusy(true);
+      try {
+        const result = await api.reviewBulk(runId, {
+          threat_ids: threatIds,
+          action,
+        });
+        await reloadThreats();
+        toast({
+          title: `${result.updated} tehdit güncellendi`,
+          description: "Her işlem denetim izine yazıldı.",
+          tone: "success",
+        });
+      } catch (err) {
+        toast({
+          title: "Toplu işlem başarısız",
+          description: (err as Error).message,
+          tone: "error",
+        });
+      } finally {
+        setBusy(false);
+      }
+    },
+    [runId, reloadThreats, toast],
+  );
 
   const saveModel = async (data: SystemModelData, reason: string) => {
     if (!runId) return;
@@ -232,6 +304,27 @@ export default function AnalysisPage() {
           />
         </div>
       );
+    }
+    if (stepNo === 8 && threats) {
+      return (
+        <ThreatTable
+          data={threats}
+          documents={documents}
+          componentNames={componentNames}
+          review={{
+            readOnly,
+            busy,
+            onDecide: decide,
+            onBulk: decideBulk,
+          }}
+        />
+      );
+    }
+    if (stepNo === 9) {
+      const output = stepOutput(9) as ReportOutput | null;
+      if (output?.files) {
+        return <ReportPanel runId={runId!} output={output} />;
+      }
     }
     if (stepNo === 7 && threats) {
       const output = stepOutput(7) as MitigationOutput | null;

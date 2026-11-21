@@ -6,6 +6,8 @@ import asyncio
 from collections.abc import AsyncGenerator
 from typing import Any
 
+from fastapi.responses import FileResponse
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -30,6 +32,7 @@ from app.core.db import get_session
 from app.core.events import broker
 from app.core.samples import sample_by_key
 from app.core import storage
+from app.reports import storage as report_storage
 from app.models import AnalysisRun, Document, Project, RunStep, SystemModel
 from app.pipeline import PIPELINE_STEPS, extract, runner
 from app.pipeline.steps import step_by_no
@@ -527,3 +530,26 @@ async def retry_step(
 
     await runner.retry_step(run_id, step_no)
     return await _load_run(session, run_id)
+
+
+@router.get("/{run_id}/reports/{name}")
+async def download_report(
+    run_id: str, name: str, session: AsyncSession = Depends(get_session)
+):
+    """Serve a generated report file.
+
+    Only the four known filenames are served, so a crafted name cannot reach
+    anything else on disk.
+    """
+    await _load_run(session, run_id)
+    path = report_storage.report_path(run_id, name)
+    if path is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Rapor bulunamadı. 9. adımı çalıştırın.",
+        )
+    return FileResponse(
+        path,
+        media_type=report_storage.ALLOWED[name],
+        filename=name,
+    )

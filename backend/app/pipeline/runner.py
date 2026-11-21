@@ -36,6 +36,8 @@ from app.pipeline import (
     step5_validation,
     step6_risk,
     step7_mitigations,
+    step8_review,
+    step9_report,
 )
 from app.pipeline.context import RunContext, StepFailed
 from app.pipeline.steps import PIPELINE_STEPS, StepDefinition, step_by_no
@@ -55,6 +57,7 @@ REAL_STEPS: dict[int, StepRunner] = {
     5: step5_validation.run,
     6: step6_risk.run,
     7: step7_mitigations.run,
+    9: step9_report.run,
 }
 
 _resume_events: dict[str, asyncio.Event] = {}
@@ -248,27 +251,51 @@ async def _pipeline(run_id: str, *, from_step: int = 1) -> None:
 
         # Step 8 is the expert's own work: it waits instead of running.
         if step.performer == "human":
+            counts = await step8_review.snapshot(ctx)
             if not auto_continue:
                 await progress.save_step(
-                    step_no=step.no,
-                    run_id=run_id,
+                    run_id,
+                    step.no,
                     status="waiting_user",
-                    message="Uzman incelemesi bekleniyor.",
+                    message=(
+                        f"{counts['pending']} tehdit uzman kararı bekliyor."
+                    ),
+                    counters=counts,
+                    output=ctx.step_output.get(step.no),
                     started=True,
                 )
                 await progress.publish_step(
-                    run_id, step, "waiting_user",
-                    message="Uzman incelemesi bekleniyor.",
-                    placeholder=True,
+                    run_id,
+                    step,
+                    "waiting_user",
+                    message=f"{counts['pending']} tehdit uzman kararı bekliyor.",
+                    counters=counts,
                 )
-                await _wait_for_user(ctx, step, PAUSE_AFTER_STEP.get(step.no, "user_action"))
+                await _wait_for_user(
+                    ctx, step, PAUSE_AFTER_STEP.get(step.no, "user_action")
+                )
+            # Re-read: the expert has been deciding while we waited.
+            counts = await step8_review.snapshot(ctx)
             await progress.save_step(
-                run_id, step.no, status="done", progress=1.0,
-                message="Uzman incelemesi tamamlandı.", finished=True,
+                run_id,
+                step.no,
+                status="done",
+                progress=1.0,
+                message=(
+                    f"{counts['decided']}/{counts['total']} tehdit için karar "
+                    "verildi."
+                ),
+                counters=counts,
+                output=ctx.step_output.get(step.no),
+                finished=True,
             )
             await progress.publish_step(
-                run_id, step, "done", progress=1.0,
-                message="Uzman incelemesi tamamlandı.", placeholder=True,
+                run_id,
+                step,
+                "done",
+                progress=1.0,
+                message=f"{counts['decided']}/{counts['total']} tehdit için karar verildi.",
+                counters=counts,
             )
             continue
 
