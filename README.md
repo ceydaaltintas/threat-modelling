@@ -10,7 +10,9 @@ ekran gereksinimi, analizin **hangi adımda olduğunun canlı olarak** görülme
 > sistem testi yerine geçmez. Tüm örnek dokümanlar kurgusaldır
 > ("Örnek Banka A.Ş.").
 
-**Şu anki durum: Aşama 5 (son aşama).** Dokuz adımın tamamı gerçek çalışıyor. Ayrıntı için aşağıdaki
+**Şu anki durum: Aşama 5 (son aşama).** Dokuz adımın tamamı gerçek çalışıyor.
+Her kabul kriterinin tek tek durumu:
+[docs/KABUL_KRITERLERI.md](docs/KABUL_KRITERLERI.md). Ayrıntı için aşağıdaki
 "Aşama 0'da ne çalışıyor" bölümüne bakın. Görev tanımının tamamı
 [docs/PROMPT.md](docs/PROMPT.md) dosyasındadır.
 
