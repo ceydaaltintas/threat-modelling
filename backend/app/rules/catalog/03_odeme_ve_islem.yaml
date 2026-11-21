@@ -1,0 +1,129 @@
+# Ödeme, transfer ve işlem bütünlüğü kuralları.
+rules:
+  - id: R-PAY-RACE-LIMIT
+    title: "Limit sayaçlarında yarış durumu"
+    area: odeme
+    target: component
+    applies_to:
+      component_type: [service, api]
+      name_any: ["limit", "transfer", "ödeme", "kota"]
+    stride: T
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Sayaç işlemden sonra güncelleniyorsa, eşzamanlı isteklerle günlük limit
+      aşılabilir.
+    scenario: >-
+      Saldırgan aynı anda çok sayıda transfer isteği gönderir; hepsi limit
+      kontrolünden geçer ve toplam tutar günlük limiti aşar.
+    knowledge_ids: ["CWE-362", "ASVS-V11", "A04:2021"]
+    mitigations: ["M-ATOMIC-COUNTER", "M-IDEMPOTENCY", "M-MONITORING"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords:
+        - "atomik olarak"
+        - "atomik güncelle"
+        - "işlem öncesi rezerv"
+        - "dağıtık kilit"
+
+  - id: R-PAY-NO-IDEMPOTENCY
+    title: "Tekrar önleme anahtarı (idempotency) yok"
+    area: odeme
+    target: component
+    applies_to:
+      component_type: [service, api]
+      name_any: ["transfer", "ödeme", "havale", "eft", "talimat"]
+    stride: T
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Otomatik yeniden denemelerde aynı işlemin birden fazla kez
+      işlenebilmesi.
+    scenario: >-
+      İstemci zaman aşımı sonrası isteği yeniler; sunucu aynı transferi
+      ikinci kez gerçekleştirir ve müşteri iki kez borçlanır.
+    knowledge_ids: ["CWE-362", "ASVS-V11", "STRIDE-T"]
+    mitigations: ["M-IDEMPOTENCY", "M-RECONCILIATION"]
+    context_adjust:
+      evidence_of_control_keywords:
+        - "idempot"
+        - "tekrar önleme"
+        - "işlem referans"
+
+  - id: R-PAY-FAIL-OPEN
+    title: "Kontrol servisi zaman aşımında işleme devam edilmesi (fail-open)"
+    area: odeme
+    target: component
+    applies_to:
+      component_type: [service]
+      name_any: ["dolandırıcılık", "fraud", "risk", "kontrol", "skor"]
+    stride: D
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Güvenlik kontrolü yanıt vermediğinde işlemin engellenmeden devam etmesi,
+      kontrolün bilerek atlatılmasına izin verir.
+    scenario: >-
+      Saldırgan kontrol servisini yavaşlatacak yük oluşturur; zaman aşımına
+      giren işlemler kontrolsüz geçer.
+    knowledge_ids: ["A04:2021", "STRIDE-D", "SC-5", "CAPEC-212"]
+    mitigations: ["M-FAIL-CLOSED", "M-CIRCUIT-BREAKER", "M-MONITORING"]
+    context_adjust:
+      evidence_of_control_keywords: ["fail-closed", "işlem reddedilir", "durdurulur"]
+
+  - id: R-PAY-UNSIGNED-INSTRUCTION
+    title: "Ödeme talimatının imzalanmaması (inkâr ve bütünlük riski)"
+    area: odeme
+    target: component
+    applies_to:
+      component_type: [api, service]
+      name_any: ["ödeme başlatma", "talimat", "payment"]
+    stride: R
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Talimat imzası isteğe bağlıysa, talimatın içeriği değiştirilebilir ve
+      kimin verdiği kanıtlanamaz.
+    scenario: >-
+      Üçüncü taraf, gönderdiği talimatı inkâr eder; bankanın elinde
+      değiştirilemez bir kanıt yoktur.
+    knowledge_ids: ["STRIDE-R", "CWE-778", "AU-9", "SI-7"]
+    mitigations: ["M-TRANSACTION-SIGNING", "M-AUDIT-TRAIL"]
+    context_adjust:
+      evidence_of_control_keywords: ["jws", "imzalı talimat", "dijital imza"]
+
+  - id: R-PAY-AMOUNT-FROM-CLIENT
+    title: "İstemciden alınan tutar veya hesap bilgisinin doğrulanmaması"
+    area: odeme
+    target: component
+    applies_to:
+      component_type: [api, service]
+      name_any: ["transfer", "ödeme", "sipariş"]
+    stride: T
+    base: { likelihood: 2, impact: 5 }
+    description: >-
+      Tutar, kaynak hesap veya komisyon gibi değerlerin sunucuda yeniden
+      doğrulanmaması.
+    scenario: >-
+      Saldırgan istek gövdesindeki kaynak hesabı değiştirerek başkasının
+      hesabından transfer başlatmayı dener.
+    knowledge_ids: ["CWE-565", "SI-10", "ASVS-V5"]
+    mitigations: ["M-SERVER-SIDE-LIMIT", "M-AUTHZ-OBJECT"]
+    context_adjust:
+      evidence_of_control_keywords: ["sunucu tarafında doğrula", "yeniden hesapla"]
+
+  - id: R-PAY-SCA-EXEMPTION
+    title: "Güçlü kimlik doğrulama muafiyetinin üçüncü taraf beyanına bırakılması"
+    area: odeme
+    target: component
+    applies_to:
+      component_type: [api, service, gateway]
+      technology_any: ["sca", "muafiyet", "tpp", "açık bankacılık"]
+    stride: S
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Muafiyet kararının doğrulanmadan kabul edilmesi, güçlü kimlik
+      doğrulamanın atlanmasına yol açar.
+    scenario: >-
+      Üçüncü taraf, muafiyet beyanıyla işlemleri ek doğrulama olmadan
+      geçirir.
+    knowledge_ids: ["API10:2023", "CAPEC-115", "A07:2021"]
+    mitigations: ["M-SERVER-SIDE-LIMIT", "M-MONITORING", "M-AUDIT-TRAIL"]
+    context_adjust:
+      evidence_of_control_keywords: ["banka doğrular", "muafiyet kontrolü"]

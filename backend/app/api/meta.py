@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api", tags=["meta"])
 
 # Which build phase of docs/PROMPT.md is implemented. The UI uses this to
 # label placeholder data instead of pretending it is real output.
-BUILD_PHASE = 1
+BUILD_PHASE = 2
 
 
 @router.get("/meta", response_model=MetaResponse)

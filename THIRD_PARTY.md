@@ -12,6 +12,7 @@ eklendiginde bu dosya guncellenir.
 | pgvector | 0.7+ | PostgreSQL License | Vektor benzerlik aramasi |
 | Python | 3.12 (slim) | PSF License | Backend calisma ortami |
 | Node.js | 20 (alpine) | MIT | Frontend calisma ortami |
+| paraphrase-multilingual-MiniLM-L12-v2 | - | Apache-2.0 | Yerel embedding modeli (384 boyut), imaj icine gomulur |
 
 ## Backend (Python)
 
@@ -31,6 +32,8 @@ eklendiginde bu dosya guncellenir.
 | pymupdf (PyMuPDF) | **AGPL-3.0** | PDF metin cikarma ve sayfa goruntuleme |
 | python-docx | MIT | DOCX okuma |
 | google-genai | Apache-2.0 | Gemini yerel istemcisi |
+| fastembed | Apache-2.0 | Yerel (CPU) embedding, API anahtari gerektirmez |
+| pyyaml | MIT | Kural katalogu okuma |
 
 **PyMuPDF uyarisi:** AGPL-3.0 lisanslidir. Bu demo kurum ici ve dagitilmayan
 bir uygulama oldugu icin sorun degildir; urunlesme durumunda ya ticari lisans
@@ -52,13 +55,20 @@ eklendikleri asamada bu tabloya islenecektir.
 | clsx / tailwind-merge | MIT | Sinif birlestirme |
 | shadcn/ui desenleri | MIT | Bilesenler projeye kopyalanir (paket bagimliligi degil) |
 
-Asama 1-4'te eklenecek: `@tanstack/react-table` (MIT), `recharts` (MIT),
-`reactflow` / `@xyflow/react` (MIT).
+| reactflow | MIT | DFD diyagrami |
+| @tanstack/react-table | MIT | Tehdit tablosu |
+
+Asama 4'te eklenecek: `recharts` (MIT).
 
 ## Bilgi tabani veri kaynaklari (Asama 2)
 
 Bilgi tabanina **telifli standartlarin tam metni konulmaz.** Yalnizca madde
-kimligi, baslik ve projede yazilmis kisa ozet saklanir.
+kimligi, baslik ve projede yazilmis kisa ozet saklanir. ISO 27001 ve Turkiye
+mevzuati kayitlarinin tamami `verification: "needed"` ile isaretlidir: madde
+numarasi kurumun kendi standart nushasindan dogrulanmadan rapora girmemelidir.
+
+Su an bilgi tabaninda 196 kayit var; hepsi bu projede yazilmis kisa
+Turkce ozetlerdir.
 
 | Kaynak | Durum | Not |
 |---|---|---|

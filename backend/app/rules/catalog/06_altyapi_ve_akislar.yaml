@@ -1,0 +1,160 @@
+# Veri akışı ve altyapı kuralları. Hedefi "flow" olan kurallar bileşenlere
+# değil, bileşenler arasındaki akışlara uygulanır.
+rules:
+  - id: R-FLOW-PLAINTEXT
+    title: "Şifrelenmemiş veri akışı"
+    area: altyapi
+    target: flow
+    applies_to:
+      encrypted: false
+    stride: I
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      İç ağ dahil olmak üzere düz metin protokol kullanımı; ağa erişebilen
+      bir saldırgan veriyi okuyabilir.
+    scenario: >-
+      Uygulama bölgesine erişen saldırgan, servisler arası trafiği dinleyerek
+      müşteri ve işlem bilgilerini toplar.
+    knowledge_ids: ["CWE-319", "T1557", "SC-8", "A.8.20"]
+    mitigations: ["M-TLS-EVERYWHERE", "M-MTLS", "M-NETWORK-SEGMENTATION"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords: ["mtls", "tls zorunlu", "service mesh"]
+
+  - id: R-FLOW-PLAINTEXT-TAMPER
+    title: "Şifrelenmemiş akışta veri değiştirme"
+    area: altyapi
+    target: flow
+    applies_to:
+      encrypted: false
+    stride: T
+    base: { likelihood: 2, impact: 5 }
+    description: >-
+      Şifrelenmemiş trafiğe araya giren bir saldırgan veriyi yalnızca
+      okumakla kalmaz, değiştirebilir de.
+    scenario: >-
+      Saldırgan limit kontrolü yanıtını değiştirerek limit aşan bir transferi
+      onaylatır.
+    knowledge_ids: ["CWE-319", "T1565", "SC-8", "STRIDE-T"]
+    mitigations: ["M-TLS-EVERYWHERE", "M-MTLS", "M-TRANSACTION-SIGNING"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords: ["mtls", "mesaj imzası", "bütünlük kontrolü"]
+
+  - id: R-FLOW-UNAUTHENTICATED
+    title: "Kimlik doğrulaması olmayan servisler arası çağrı"
+    area: altyapi
+    target: flow
+    applies_to:
+      authenticated: false
+    stride: S
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      İç servis çağrılarında çağıranın kimliğinin doğrulanmaması; ağa erişen
+      herkes servisi çağırabilir.
+    scenario: >-
+      Uygulama bölgesine giren saldırgan, limit servisini doğrudan çağırarak
+      sayaçları sıfırlar.
+    knowledge_ids: ["CWE-306", "A.8.5", "IA-2", "STRIDE-S"]
+    mitigations: ["M-MTLS", "M-SERVICE-IDENTITY", "M-NETWORK-SEGMENTATION"]
+    context_adjust:
+      evidence_of_control_keywords: ["mtls", "servis kimliği", "token ile çağrı"]
+
+  - id: R-FLOW-UNKNOWN-ENCRYPTION
+    title: "Akışın şifreli olup olmadığı dokümanda belirtilmemiş"
+    area: altyapi
+    target: flow
+    applies_to:
+      encrypted: "unknown"
+    stride: I
+    base: { likelihood: 2, impact: 3 }
+    description: >-
+      Dokümanda belirtilmeyen bir koruma, uygulandığı varsayılamaz; bu bulgu
+      bir eksiklik değil, doğrulanması gereken bir açık konudur.
+    scenario: >-
+      Akış şifresizse ağa erişen saldırgan veriyi okuyabilir; tasarım
+      dokümanı bu soruyu yanıtlamıyor.
+    knowledge_ids: ["CWE-311", "SC-8", "ASVS-V9"]
+    mitigations: ["M-TLS-EVERYWHERE", "M-DOCUMENT-CONTROL"]
+    context_adjust:
+      # A TLS mention at the edge does not make an internal flow encrypted.
+      evidence_of_control_keywords:
+        - "uçtan uca tls"
+        - "tls zorunlu"
+        - "tüm iç trafik şifreli"
+
+  - id: R-INFRA-QUEUE-SECURITY
+    title: "Mesaj kuyruğunda erişim denetimi ve mesaj koruması"
+    area: altyapi
+    target: component
+    applies_to:
+      component_type: [queue]
+    stride: T
+    base: { likelihood: 2, impact: 5 }
+    description: >-
+      Kuyruğa yazma veya okuma yetkisinin sınırlanmaması; mesajların
+      imzalanmaması veya şifrelenmemesi.
+    scenario: >-
+      Kuyruğa erişen saldırgan sahte transfer mesajı yazarak çekirdek
+      bankacılığa işlem gönderir.
+    knowledge_ids: ["CWE-502", "AC-3", "A.8.20", "STRIDE-T"]
+    mitigations: ["M-QUEUE-ACL", "M-MESSAGE-SIGNING", "M-NETWORK-SEGMENTATION"]
+    context_adjust:
+      evidence_of_control_keywords: ["kuyruk yetkilendirme", "kuyruk acl", "imzalı mesaj"]
+
+  - id: R-INFRA-CACHE-ACCESS
+    title: "Önbellek veya anahtar-değer deposunda erişim denetimi"
+    area: altyapi
+    target: component
+    applies_to:
+      component_type: [database, service]
+      technology_any: ["redis", "memcached", "önbellek", "cache"]
+    stride: T
+    base: { likelihood: 2, impact: 4 }
+    description: >-
+      Sayaç ve oturum verisi tutan önbelleklerde kimlik doğrulama ve ağ
+      kısıtlamasının belirtilmemesi.
+    scenario: >-
+      Ağa erişen saldırgan limit sayaçlarını doğrudan değiştirir.
+    knowledge_ids: ["CWE-306", "AC-3", "A.8.20"]
+    mitigations: ["M-CACHE-AUTH", "M-NETWORK-SEGMENTATION"]
+    context_adjust:
+      evidence_of_control_keywords: ["redis parola", "redis acl", "ağ kısıtlaması"]
+
+  - id: R-INFRA-CORE-BANKING
+    title: "Çekirdek bankacılık entegrasyonunda mutabakat eksikliği"
+    area: altyapi
+    target: component
+    applies_to:
+      component_type: [service, external]
+      name_any: ["çekirdek", "core", "mainframe", "adaptör"]
+    stride: T
+    base: { likelihood: 2, impact: 5 }
+    description: >-
+      Çekirdek sisteme giden mesajlar için mutabakat ve tutarsızlık tespiti
+      tanımlanmamışsa, çift işlem veya kayıp işlem fark edilmez.
+    scenario: >-
+      Ağ hatası sonrası işlem çekirdekte gerçekleşir ama uygulamada
+      görünmez; müşteri bakiyesi tutarsız kalır.
+    knowledge_ids: ["STRIDE-T", "A.5.33", "AU-6"]
+    mitigations: ["M-RECONCILIATION", "M-IDEMPOTENCY", "M-MONITORING"]
+    context_adjust:
+      evidence_of_control_keywords: ["mutabakat", "reconciliation", "gün sonu"]
+
+  - id: R-INFRA-NO-MONITORING
+    title: "Anormal davranış için alarm tanımlanmamış"
+    area: log
+    target: system
+    applies_to:
+      system_has_component_type: [service]
+    stride: D
+    base: { likelihood: 3, impact: 3 }
+    description: >-
+      Olaylar kaydedilse bile üzerine alarm kurulmamışsa saldırı uzun süre
+      fark edilmez.
+    scenario: >-
+      Saldırgan haftalarca düşük hacimli veri sızdırır; kimse fark etmez.
+    knowledge_ids: ["A09:2021", "SI-4", "A.8.16", "T1070"]
+    mitigations: ["M-MONITORING", "M-ANOMALY-DETECTION", "M-AUDIT-TRAIL"]
+    context_adjust:
+      evidence_of_control_keywords: ["alarm", "siem", "anomali", "uyarı kuralı"]

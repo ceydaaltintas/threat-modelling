@@ -61,6 +61,8 @@ export interface RunStep {
   finished_at: string | null;
   counters: Record<string, number> | null;
   message: string | null;
+  /** Step specific payload for its detail panel. */
+  output: Record<string, unknown> | null;
 }
 
 export interface Run {
@@ -149,6 +151,117 @@ export interface KbStats {
   total_chunks: number;
   by_source: Record<string, number>;
   loaded: boolean;
+  verification_needed: number;
+  licenses: Record<string, string>;
+  embedding_model: string;
+  vector_search: boolean;
+}
+
+export interface KbHit {
+  id: string;
+  source: string;
+  identifier: string;
+  title: string;
+  text: string;
+  url: string | null;
+  license: string | null;
+  verification: string | null;
+  score: number;
+  matched_by: string[];
+}
+
+export interface KbSearchResult {
+  query: string;
+  diagnostics: {
+    mode: string;
+    exact_identifiers: string[];
+    vector_search: boolean;
+    candidates: number;
+    note: string | null;
+  };
+  results: KbHit[];
+}
+
+export interface KnowledgeSource {
+  id: string;
+  title?: string | null;
+  url?: string | null;
+}
+
+export interface ThreatRow {
+  id: string;
+  source: "rule" | "llm" | "merged";
+  rule_id: string | null;
+  component_ref: string | null;
+  flow_ref: string | null;
+  stride: "S" | "T" | "R" | "I" | "D" | "E";
+  title: string;
+  description: string | null;
+  scenario: string | null;
+  evidence: Array<{ quote: string; page: number | null; section: string | null }>;
+  knowledge_sources: KnowledgeSource[];
+  ai_proposed: {
+    likelihood: number | null;
+    impact: number | null;
+    rationale: string | null;
+  } | null;
+  system_calc: {
+    likelihood: number;
+    impact: number;
+    score: number;
+    level: string;
+    breakdown?: Array<{ label: string; delta: number; reason: string }>;
+  } | null;
+  expert: Record<string, unknown> | null;
+  mitigations: Array<{ id: string }>;
+  control_mappings: Array<Record<string, unknown>>;
+  validation_notes: Array<Record<string, unknown>>;
+  validation_status: string;
+  review_status: string;
+  is_assumption: boolean;
+  rule_context: {
+    base_likelihood: number;
+    base_impact: number;
+    internet_facing: boolean;
+    sensitive_data: boolean;
+    data_classes: string[];
+    control_evidence: string | null;
+    area: string;
+  } | null;
+}
+
+export interface ThreatListResponse {
+  total: number;
+  summary: {
+    by_source: Record<string, number>;
+    by_stride: Record<string, number>;
+    assumptions: number;
+  };
+  threats: ThreatRow[];
+}
+
+/** Step 3's stored panel payload. */
+export interface RetrievalOutput {
+  elements: Array<{
+    kind: "component" | "flow";
+    id: string;
+    label: string;
+    query: string;
+    sources: KbHit[];
+  }>;
+  unique_identifiers: string[];
+  degraded: boolean;
+  note: string | null;
+}
+
+/** Step 4's stored panel payload. */
+export interface ThreatGenOutput {
+  rule_threats: number;
+  llm_threats: number;
+  merged_duplicates: number;
+  total: number;
+  llm_note: string | null;
+  knowledge_ids_offered: number;
 }
 
 export type DemoRole = "security_expert" | "manager";

@@ -26,7 +26,14 @@ from app.llm.base import LLMError
 from app.llm.factory import build_client
 from app.llm.gateway import LLMGateway
 from app.models import AnalysisRun
-from app.pipeline import placeholder, progress, step1_documents, step2_system_model
+from app.pipeline import (
+    placeholder,
+    progress,
+    step1_documents,
+    step2_system_model,
+    step3_knowledge,
+    step4_threats,
+)
 from app.pipeline.context import RunContext, StepFailed
 from app.pipeline.steps import PIPELINE_STEPS, StepDefinition, step_by_no
 
@@ -40,6 +47,8 @@ StepRunner = Callable[[RunContext], Awaitable[dict[str, int]]]
 REAL_STEPS: dict[int, StepRunner] = {
     1: step1_documents.run,
     2: step2_system_model.run,
+    3: step3_knowledge.run,
+    4: step4_threats.run,
 }
 
 _resume_events: dict[str, asyncio.Event] = {}
@@ -148,6 +157,7 @@ async def _run_step(ctx: RunContext, step: StepDefinition) -> bool:
         progress=1.0,
         message="Tamamlandı.",
         counters=counters,
+        output=ctx.step_output.get(step.no),
         finished=True,
     )
     await progress.publish_step(

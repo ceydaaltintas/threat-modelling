@@ -1,0 +1,97 @@
+# Mobil uygulama ve istemci tarafı kuralları.
+rules:
+  - id: R-MOB-NO-PINNING
+    title: "Sertifika sabitleme (certificate pinning) yok"
+    area: mobil
+    target: component
+    applies_to:
+      component_type: [mobile_app]
+    stride: T
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Sertifika sabitlemesi olmayan mobil uygulamada, cihaza sahte kök
+      sertifika kurulabilirse trafik okunabilir ve değiştirilebilir.
+    scenario: >-
+      Saldırgan kurban cihaza profil yükleyerek araya girer ve transfer
+      isteklerini değiştirir.
+    knowledge_ids: ["MASVS-NETWORK", "T1557", "CWE-319"]
+    mitigations: ["M-CERT-PINNING", "M-MTLS"]
+    context_adjust:
+      evidence_of_control_keywords: ["sertifika sabitleme", "pinning"]
+
+  - id: R-MOB-NO-ROOT-DETECTION
+    title: "Root/jailbreak tespiti ve kod karartma yok"
+    area: mobil
+    target: component
+    applies_to:
+      component_type: [mobile_app]
+    stride: T
+    base: { likelihood: 3, impact: 3 }
+    description: >-
+      Kurcalanmış cihazlarda uygulama verisi okunabilir ve davranışı
+      değiştirilebilir; kod karartma olmaması tersine mühendisliği
+      kolaylaştırır.
+    scenario: >-
+      Saldırgan root'lu cihazda uygulamayı inceleyerek iş kurallarını ve
+      gömülü anahtarları çıkarır.
+    knowledge_ids: ["MASVS-RESILIENCE", "T1409", "T1406"]
+    mitigations: ["M-ROOT-DETECTION", "M-OBFUSCATION", "M-SERVER-SIDE-LIMIT"]
+    context_adjust:
+      evidence_of_control_keywords: ["root tespiti", "jailbreak", "karartma", "obfuscation"]
+
+  - id: R-MOB-LOCAL-STORAGE
+    title: "Cihazda hassas veri saklanması"
+    area: mobil
+    target: component
+    applies_to:
+      component_type: [mobile_app]
+    stride: I
+    base: { likelihood: 2, impact: 4 }
+    description: >-
+      Token, müşteri bilgisi veya işlem geçmişinin cihazda korumasız
+      saklanması.
+    scenario: >-
+      Kaybolan veya kurcalanan cihazdan uygulama verisi okunur.
+    knowledge_ids: ["MASVS-STORAGE", "T1409", "CWE-311"]
+    mitigations: ["M-SECURE-STORAGE", "M-TOKEN-LIFETIME"]
+    context_adjust:
+      evidence_of_control_keywords: ["keystore", "keychain", "güvenli alan"]
+
+  - id: R-MOB-NOTIFICATION-CONTENT
+    title: "Bildirim içeriğinde hassas bilgi"
+    area: mobil
+    target: component
+    applies_to:
+      component_type: [service, mobile_app]
+      name_any: ["bildirim", "push", "sms"]
+    stride: I
+    base: { likelihood: 3, impact: 3 }
+    description: >-
+      Bakiye, tutar veya kod içeren bildirimler kilit ekranında ve
+      bildirimleri okuyabilen uygulamalarda görünür.
+    scenario: >-
+      Cihaza fiziksel erişimi olan biri, kilit ekranındaki bildirimden
+      bakiyeyi ve işlem bilgisini öğrenir.
+    knowledge_ids: ["T1517", "CWE-200", "MASVS-PRIVACY"]
+    mitigations: ["M-MINIMISE-DATA", "M-NOTIFICATION-REDACTION"]
+    context_adjust:
+      evidence_of_control_keywords: ["bildirimde bilgi yok", "maskelen"]
+
+  - id: R-WEB-XSS
+    title: "Çıktı kodlaması eksikliği (XSS)"
+    area: web
+    target: component
+    applies_to:
+      component_type: [web_app, admin]
+    stride: T
+    base: { likelihood: 2, impact: 4 }
+    description: >-
+      Kullanıcı girdisinin kaçışsız olarak sayfaya yazılması; oturum çalma ve
+      sahte işlem başlatma riski.
+    scenario: >-
+      Saldırgan başvuru alanına betik yerleştirir; operasyon ekranında kayıt
+      açıldığında betik çalışır.
+    knowledge_ids: ["CWE-79", "A03:2021", "ASVS-V5"]
+    mitigations: ["M-OUTPUT-ENCODING", "M-CSP"]
+    context_adjust:
+      evidence_of_control_keywords: ["csp", "çıktı kodlama", "sanitize"]

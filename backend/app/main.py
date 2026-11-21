@@ -12,6 +12,7 @@ from app import __version__
 from app.api import api_router
 from app.core.config import get_settings
 from app.core.db import engine
+from app.kb import loader
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +31,12 @@ async def lifespan(app: FastAPI):
         settings.demo_replay,
         settings.ocr_enabled,
     )
+    # The knowledge base ships pre-processed; load it once into Postgres.
+    try:
+        stats = await loader.ensure_loaded()
+        logger.info("Bilgi tabani: %s kayit", stats["total"])
+    except Exception:  # noqa: BLE001 - the app must still start
+        logger.exception("Bilgi tabani yuklenemedi")
     yield
     await engine.dispose()
 

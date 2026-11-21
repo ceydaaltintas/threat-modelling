@@ -1,0 +1,223 @@
+# Üçüncü taraf entegrasyonları, açık bankacılık, belge yükleme ve yapay zekâ
+# bileşeni kuralları.
+rules:
+  - id: R-TPP-ONBOARDING
+    title: "Üçüncü taraf kaydının tek onayla yapılması"
+    area: ucuncu-taraf
+    target: component
+    applies_to:
+      component_type: [service, admin, external]
+      name_any: ["tpp", "onboarding", "kayıt", "sağlayıcı", "başvuru yönetim"]
+    stride: E
+    base: { likelihood: 2, impact: 5 }
+    description: >-
+      Üçüncü taraf sağlayıcının sisteme tek kişinin onayıyla kaydedilmesi,
+      hatalı veya kötü niyetli kaydın önüne geçilememesi demektir.
+    scenario: >-
+      Yetkisi kötüye kullanılan bir hesap, sahte bir sağlayıcıyı kaydederek
+      müşteri verisine erişim yetkisi alır.
+    knowledge_ids: ["T1199", "A.8.32", "AC-6", "CAPEC-122"]
+    mitigations: ["M-FOUR-EYES", "M-AUDIT-TRAIL", "M-ACCESS-REVIEW"]
+    context_adjust:
+      evidence_of_control_keywords: ["çift onay", "ikinci kişi", "dört göz"]
+
+  - id: R-TPP-CERT-REVOCATION
+    title: "Sertifika iptalinin gecikmeli yansıması"
+    area: ucuncu-taraf
+    target: component
+    applies_to:
+      component_type: [gateway, service]
+      technology_any: ["sertifika", "mtls", "tpp", "certificate"]
+    stride: S
+    base: { likelihood: 2, impact: 5 }
+    description: >-
+      İptal listesinin seyrek güncellenmesi, iptal edilmiş bir sağlayıcının
+      bir süre daha erişmeye devam etmesine yol açar.
+    scenario: >-
+      Yetkisi kaldırılan sağlayıcı, iptal yansıyana kadar müşteri verisini
+      çekmeyi sürdürür.
+    knowledge_ids: ["CWE-287", "A.5.19", "IA-5"]
+    mitigations: ["M-REALTIME-REVOCATION", "M-MONITORING"]
+    context_adjust:
+      evidence_of_control_keywords: ["anlık iptal", "ocsp", "gerçek zamanlı"]
+
+  - id: R-CONSENT-REVOCATION-DELAY
+    title: "Rıza iptalinin erişimi hemen kesmemesi"
+    area: ucuncu-taraf
+    target: component
+    applies_to:
+      component_type: [service, auth]
+      name_any: ["rıza", "consent", "izin"]
+    stride: E
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Müşteri rızasını iptal ettiğinde mevcut token'lar hemen geçersiz
+      kılınmazsa erişim sürer.
+    scenario: >-
+      Müşteri rızayı iptal eder; üçüncü taraf, token süresi dolana kadar
+      hesap bilgisi çekmeye devam eder.
+    knowledge_ids: ["STRIDE-E", "CWE-613", "AC-3", "KVKK-6698"]
+    mitigations: ["M-REALTIME-REVOCATION", "M-TOKEN-LIFETIME", "M-AUDIT-TRAIL"]
+    context_adjust:
+      evidence_of_control_keywords: ["anında iptal", "token iptal", "revoke"]
+
+  - id: R-CONSENT-DEFAULT-SCOPE
+    title: "Rıza ekranında varsayılan olarak geniş kapsam"
+    area: ucuncu-taraf
+    target: component
+    applies_to:
+      component_type: [web_app, auth, service]
+      name_any: ["rıza", "consent", "izin", "yetkilendirme"]
+    stride: E
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Tüm hesapların veya tüm yetkilerin varsayılan olarak seçili gelmesi,
+      müşterinin farkında olmadan geniş yetki vermesine yol açar.
+    scenario: >-
+      Müşteri yalnızca bir hesap için izin verdiğini sanırken tüm hesapları
+      paylaşır.
+    knowledge_ids: ["LINDDUN-U", "AC-6", "KVKK-6698", "A01:2021"]
+    mitigations: ["M-MINIMISE-SCOPE", "M-EXPLICIT-CONSENT"]
+    context_adjust:
+      evidence_of_control_keywords: ["varsayılan seçili değil", "tek tek seç"]
+
+  - id: R-THIRD-PARTY-DEPENDENCY
+    title: "Üçüncü taraf servis kesintisinin iş akışını durdurması"
+    area: ucuncu-taraf
+    target: component
+    applies_to:
+      component_type: [external]
+    stride: D
+    base: { likelihood: 3, impact: 3 }
+    description: >-
+      Dış sağlayıcıya senkron bağımlılık; sağlayıcı yavaşladığında veya
+      durduğunda iş akışı da durur.
+    scenario: >-
+      Kimlik doğrulama sağlayıcısı yanıt vermeyince hiçbir başvuru
+      tamamlanamaz.
+    knowledge_ids: ["A.5.19", "SC-5", "STRIDE-D"]
+    mitigations: ["M-CIRCUIT-BREAKER", "M-FALLBACK", "M-MONITORING"]
+    context_adjust:
+      evidence_of_control_keywords: ["devre kesici", "yedek sağlayıcı", "fallback"]
+
+  - id: R-DOC-UPLOAD-VALIDATION
+    title: "Belge yüklemede yalnızca uzantı kontrolü"
+    area: belge
+    target: component
+    applies_to:
+      component_type: [service, api]
+      name_any: ["belge", "doküman", "yükleme", "upload", "dosya"]
+    stride: T
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      İçerik doğrulaması ve zararlı yazılım taraması yapılmadan dosya kabul
+      edilmesi.
+    scenario: >-
+      Saldırgan PDF uzantılı zararlı bir dosya yükler; dosyayı açan operasyon
+      çalışanının makinesi etkilenir.
+    knowledge_ids: ["CWE-434", "A.8.7", "ASVS-V12"]
+    mitigations: ["M-CONTENT-VALIDATION", "M-MALWARE-SCAN", "M-SANDBOX-PROCESSING"]
+    context_adjust:
+      evidence_of_control_keywords: ["içerik doğrula", "virüs tara", "antivirüs"]
+
+  - id: R-RULE-CHANGE-NO-APPROVAL
+    title: "Kural veya parametre değişikliğinin onaysız canlıya çıkması"
+    area: karar
+    target: component
+    applies_to:
+      component_type: [admin, service]
+      name_any: ["kural", "karar", "parametre", "skor", "motor"]
+    stride: T
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Karar kurallarının ikinci bir kişinin onayı olmadan anında
+      uygulanması; hatalı ya da kötü niyetli değişiklik doğrudan müşteriyi
+      etkiler.
+    scenario: >-
+      Yetkili bir kullanıcı kredi onay eşiğini düşürerek uygun olmayan
+      başvuruların onaylanmasını sağlar.
+    knowledge_ids: ["A.8.32", "AC-6", "CAPEC-122", "STRIDE-T"]
+    mitigations: ["M-FOUR-EYES", "M-CHANGE-MANAGEMENT", "M-AUDIT-TRAIL"]
+    context_adjust:
+      evidence_of_control_keywords: ["çift onay", "onay akışı", "değişiklik yönetimi"]
+
+  - id: R-DECISION-EXPLAINABILITY
+    title: "Otomatik kararın gerekçesinin izlenememesi"
+    area: karar
+    target: component
+    applies_to:
+      component_type: [service, llm]
+      name_any: ["karar", "skor", "model", "motor"]
+    stride: R
+    base: { likelihood: 3, impact: 3 }
+    description: >-
+      Ret veya onay gerekçesinin kaydedilmemesi; müşteri itirazında ve
+      düzenleyici incelemede kurumun savunması zayıf kalır.
+    scenario: >-
+      Müşteri ret kararına itiraz eder; kararın hangi veriyle ve hangi kural
+      sürümüyle alındığı gösterilemez.
+    knowledge_ids: ["STRIDE-R", "A.5.33", "AU-2", "KVKK-6698"]
+    mitigations: ["M-DECISION-LOG", "M-MODEL-VERSIONING", "M-AUDIT-TRAIL"]
+    context_adjust:
+      evidence_of_control_keywords: ["gerekçe kayd", "karar logu", "açıklanabilir"]
+
+  - id: R-MODEL-INTEGRITY
+    title: "Model dosyalarında sürüm ve imza kontrolü yok"
+    area: yapay-zeka
+    target: component
+    applies_to:
+      component_type: [llm, service]
+      technology_any: ["model", "ml", "makine öğrenmesi", "skor modeli"]
+    stride: T
+    base: { likelihood: 2, impact: 5 }
+    description: >-
+      Paylaşımlı klasörde tutulan ve bütünlüğü doğrulanmayan model
+      dosyaları değiştirilebilir (model zehirlenmesi).
+    scenario: >-
+      Klasöre yazma yetkisi olan biri modeli değiştirerek belirli
+      başvuruların otomatik onaylanmasını sağlar.
+    knowledge_ids: ["LLM04", "LLM03", "SI-7", "A08:2021"]
+    mitigations: ["M-MODEL-SIGNING", "M-MODEL-VERSIONING", "M-LEAST-PRIVILEGE"]
+    context_adjust:
+      evidence_of_control_keywords: ["imza", "sürüm kontrol", "model kayıt defteri"]
+
+  - id: R-LLM-PROMPT-INJECTION
+    title: "Güvenilmez içeriğin LLM'e talimat olarak verilmesi"
+    area: yapay-zeka
+    target: component
+    applies_to:
+      component_type: [llm]
+    stride: T
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Dokümandan, kullanıcıdan veya dış kaynaktan gelen metnin modele talimat
+      olarak verilmesi; saldırgan modelin davranışını yönlendirebilir.
+    scenario: >-
+      Yüklenen dokümana gizlenen bir talimat, modelin bulguları gizlemesine
+      ya da uydurmasına yol açar.
+    knowledge_ids: ["LLM01", "LLM05", "A04:2021"]
+    mitigations: ["M-PROMPT-ISOLATION", "M-OUTPUT-SCHEMA", "M-HUMAN-REVIEW"]
+    context_adjust:
+      evidence_of_control_keywords: ["veri bloğu", "talimat olarak verilmez"]
+
+  - id: R-LLM-DATA-EXPOSURE
+    title: "Hassas verinin dış LLM sağlayıcısına gönderilmesi"
+    area: yapay-zeka
+    target: component
+    applies_to:
+      # Only AI components; a generic external provider is covered by
+      # R-THIRD-PARTY-DEPENDENCY and the data rules.
+      component_type: [llm]
+    stride: I
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Müşteri verisinin dış model sağlayıcısına gönderilmesi; ücretsiz
+      katmanlarda veri sağlayıcı tarafından kullanılabilir.
+    scenario: >-
+      Gerçek müşteri belgeleri analiz için dış sağlayıcıya gönderilir ve
+      kurum dışına çıkar.
+    knowledge_ids: ["LLM02", "KVKK-6698", "A.5.23", "LINDDUN-DD"]
+    mitigations: ["M-MINIMISE-DATA", "M-DATA-RESIDENCY", "M-SYNTHETIC-DATA"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords: ["yerel model", "kurum içi", "anonim"]

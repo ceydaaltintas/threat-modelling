@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from app.core.config import Settings
@@ -19,6 +19,8 @@ class RunContext:
     # Built lazily: a run that never reaches an LLM step needs no provider.
     gateway: LLMGateway | None = None
     counters: dict[str, int] | None = None
+    # Panel payload each step wants persisted, keyed by step number.
+    step_output: dict[int, dict] = field(default_factory=dict)
 
     async def report(
         self,

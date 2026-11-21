@@ -1,0 +1,211 @@
+# Veri koruma, gizlilik, log ve yedekleme kuralları.
+rules:
+  - id: R-DATA-UNMASKED-PII
+    title: "Panellerde maskelenmemiş kişisel veri"
+    area: veri
+    target: component
+    applies_to:
+      component_type: [admin, web_app, database]
+      data_class_any: ["tckn", "pii", "gelir", "kimlik", "müşteri"]
+    stride: I
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Çağrı merkezi ve operasyon ekranlarında tam TCKN, gelir ve iletişim
+      bilgisinin görünmesi, iç kaynaklı sızıntı riskini büyütür.
+    scenario: >-
+      Panele erişimi olan bir çalışan, müşteri verisini ekrandan toplayarak
+      dışarı aktarır.
+    knowledge_ids: ["CWE-213", "A.8.11", "A.8.3", "CAPEC-122", "KVKK-6698"]
+    mitigations: ["M-MASKING", "M-LEAST-PRIVILEGE", "M-ACCESS-REVIEW"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords: ["maskelen", "son dört hane", "kısmi gösterim"]
+
+  - id: R-DATA-WIDE-ACCESS
+    title: "Veri ambarına geniş erişim"
+    area: veri
+    target: component
+    applies_to:
+      component_type: [database, service]
+      name_any: ["ambar", "warehouse", "raporlama", "analitik"]
+    stride: I
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Çok sayıda kullanıcının ham kişisel veriye erişebilmesi; en az yetki
+      ilkesinin uygulanmaması.
+    scenario: >-
+      Analiz yetkisiyle erişen bir kullanıcı, iş gereği olmayan müşteri
+      verisini toplu olarak sorgular.
+    knowledge_ids: ["T1213", "AC-6", "A.8.3", "A.8.12"]
+    mitigations: ["M-LEAST-PRIVILEGE", "M-ACCESS-REVIEW", "M-DLP"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords: ["en az yetki", "erişim gözden geçir"]
+
+  - id: R-DATA-LOG-SENSITIVE
+    title: "Loglara hassas veri yazılması"
+    area: log
+    target: component
+    applies_to:
+      component_type: [service, api, other]
+      name_any: ["log", "kayıt", "izleme", "monitor"]
+    stride: I
+    base: { likelihood: 4, impact: 4 }
+    description: >-
+      Üretimde DEBUG seviyesi veya istek/yanıt gövdelerinin kaydedilmesi;
+      IBAN, tutar, TCKN ve token'ların loglara düşmesi.
+    scenario: >-
+      Log platformuna erişimi olan geniş bir ekip, müşteri işlem
+      ayrıntılarını ve erişim token'larını görür.
+    knowledge_ids: ["CWE-532", "A09:2021", "A.8.15", "STRIDE-I"]
+    mitigations: ["M-LOG-MASKING", "M-LOG-LEVEL", "M-LEAST-PRIVILEGE"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      # "log seviyesi" alone also matches "DEBUG log seviyesinde çalışır",
+      # which is the finding, not a control.
+      evidence_of_control_keywords: ["log maskelen", "maskelenerek", "maskelenmis olarak"]
+
+  - id: R-DATA-BACKUP-ENCRYPTION
+    title: "Yedeklerin şifrelenip şifrelenmediği belirtilmemiş"
+    area: veri
+    target: component
+    applies_to:
+      component_type: [database]
+    stride: I
+    base: { likelihood: 2, impact: 5 }
+    description: >-
+      Yedeklerin şifrelenmemesi, veritabanı şifreli olsa bile veriyi açık
+      bırakır.
+    scenario: >-
+      Yedek ortamına erişen biri, alıcı bilgileri ve işlem geçmişini açık
+      metin olarak okur.
+    knowledge_ids: ["CWE-311", "A.8.13", "SC-28", "CP-9"]
+    mitigations: ["M-BACKUP-ENCRYPTION", "M-KEY-MANAGEMENT"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords: ["yedek şifrelen", "backup encryption"]
+
+  - id: R-DATA-RETENTION
+    title: "Saklama süresi ve silme koşulu belirtilmemiş"
+    area: veri
+    target: component
+    applies_to:
+      component_type: [database, service]
+      data_class_any: ["pii", "tckn", "belge", "biyometrik", "selfie"]
+    stride: I
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Kişisel verinin ne kadar saklanacağı ve ne zaman silineceği
+      tanımlanmamışsa, veri gereğinden uzun süre risk altında kalır.
+    scenario: >-
+      Yıllar önce reddedilmiş başvuruların belgeleri hâlâ erişilebilir
+      durumdadır ve bir sızıntıda etki büyür.
+    knowledge_ids: ["A.8.10", "KVKK-6698", "LINDDUN-NC", "ASVS-V8"]
+    mitigations: ["M-RETENTION-POLICY", "M-DATA-DELETION"]
+    context_adjust:
+      evidence_of_control_keywords: ["saklama süresi", "silme", "imha"]
+
+  - id: R-DATA-CROSS-BORDER
+    title: "Kişisel verinin yurt dışına aktarılması"
+    area: veri
+    target: component
+    applies_to:
+      component_type: [external, service]
+      technology_any: ["saas", "yurt dışı", "bölge", "region", "ocr", "bulut"]
+    stride: I
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Belge veya kimlik verisinin yurt dışındaki bir sağlayıcıya gönderilmesi,
+      KVKK açısından ek yükümlülük doğurur.
+    scenario: >-
+      Gelir belgeleri işlenmek üzere yurt dışı bölgesine gönderilir; aktarımın
+      hukuki dayanağı ve saklama koşulu belirsizdir.
+    knowledge_ids: ["KVKK-6698", "A.5.23", "LINDDUN-NC", "LINDDUN-DD"]
+    mitigations: ["M-DATA-RESIDENCY", "M-DPA", "M-MINIMISE-DATA"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords: ["yurt içi", "türkiye bölgesi", "veri aktarım sözleşme"]
+
+  - id: R-DATA-SIGNED-URL-LIFETIME
+    title: "Uzun süre geçerli imzalı URL"
+    area: veri
+    target: component
+    applies_to:
+      component_type: [database, service, external]
+      technology_any: ["s3", "nesne depolama", "imzalı url", "object storage"]
+    stride: I
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Belgelere erişim veren imzalı bağlantıların uzun süre geçerli olması,
+      bağlantı paylaşıldığında kalıcı erişime dönüşür.
+    scenario: >-
+      Paylaşılan bir bağlantı günlerce geçerli kalır ve üçüncü kişiler gelir
+      belgelerine erişir.
+    knowledge_ids: ["T1530", "CWE-200", "A.8.3"]
+    mitigations: ["M-SHORT-EXPIRY", "M-SCOPED-ACCESS", "M-LOGGING-ACCESS"]
+    context_adjust:
+      evidence_of_control_keywords: ["kısa süre", "dakika", "tek kullanımlık"]
+
+  - id: R-DATA-REAL-DATA-IN-TEST
+    title: "Test veya sandbox ortamında gerçek veri"
+    area: veri
+    target: component
+    applies_to:
+      component_type: [service, api, database, external]
+      name_any: ["sandbox", "test", "deneme", "staging"]
+    stride: I
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Test ortamlarının üretim kadar korunmaması nedeniyle gerçek müşteri
+      verisi buralarda yüksek risk altındadır.
+    scenario: >-
+      Sandbox'a kaydolan bir geliştirici, gerçek IBAN ve bakiye bilgilerini
+      görüntüler.
+    knowledge_ids: ["A.8.31", "API9:2023", "CWE-200"]
+    mitigations: ["M-SYNTHETIC-DATA", "M-ENV-SEPARATION"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords: ["sentetik", "anonim", "maskelenmiş test verisi"]
+
+  - id: R-DATA-NO-AUDIT-TRAIL
+    title: "Kritik değişikliklerin kaydedilmemesi"
+    area: log
+    target: component
+    applies_to:
+      component_type: [admin, service]
+      # Components that actually hold changeable rules, limits or permissions.
+      name_any: ["limit", "kural", "yetki", "parametre", "onay", "operasyon", "yönetim"]
+    stride: R
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Limit, kural ve yetki değişikliklerinin denetim izine yazılmaması,
+      inkâr ve kötüye kullanımın tespitini engeller.
+    scenario: >-
+      Bir limit değişikliği sonrası kimin ne zaman değiştirdiği
+      belirlenemez.
+    knowledge_ids: ["CWE-778", "AU-2", "AU-9", "A.5.33"]
+    mitigations: ["M-AUDIT-TRAIL", "M-MONITORING"]
+    context_adjust:
+      evidence_of_control_keywords: ["denetim izi", "audit", "kayıt altına"]
+
+  - id: R-DATA-SECRET-IN-CONFIG
+    title: "Sırların yapılandırma dosyasında tutulması"
+    area: altyapi
+    target: component
+    applies_to:
+      component_type: [service, api, external]
+      # "kubernetes" alone is too weak a signal; the document must mention
+      # how secrets are actually stored.
+      technology_any: ["configmap", "secret", "yapılandırma dosyası", "env dosyası"]
+    stride: I
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      API anahtarı ve parolaların ConfigMap veya düz yapılandırma dosyasında
+      saklanması; erişimi olan herkes okuyabilir.
+    scenario: >-
+      Kümeye okuma yetkisi olan bir kullanıcı, SMS sağlayıcısının API
+      anahtarını alarak müşterilere mesaj gönderir.
+    knowledge_ids: ["CWE-256", "T1552", "IA-5", "A.8.24"]
+    mitigations: ["M-SECRET-STORE", "M-SECRET-ROTATION", "M-LEAST-PRIVILEGE"]
+    context_adjust:
+      evidence_of_control_keywords: ["secret", "vault", "kasa", "kms"]

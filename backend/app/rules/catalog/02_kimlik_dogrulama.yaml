@@ -1,0 +1,188 @@
+# Kimlik doğrulama, OTP ve oturum yönetimi kuralları.
+rules:
+  - id: R-AUTH-OTP-BRUTEFORCE
+    title: "OTP için deneme sınırı belirtilmemiş"
+    area: kimlik
+    target: component
+    applies_to:
+      component_type: [auth, service]
+      technology_any: ["otp", "sms", "tek kullanımlık", "doğrulama kodu"]
+    stride: S
+    base: { likelihood: 4, impact: 5 }
+    description: >-
+      Altı haneli bir tek kullanımlık kod, deneme sayısı ve süre
+      sınırlanmazsa kaba kuvvetle bulunabilir.
+    scenario: >-
+      Saldırgan, doğrulama ucuna arka arkaya istek göndererek kodu dener ve
+      hesaba erişir.
+    knowledge_ids: ["CWE-307", "A07:2021", "AC-7", "T1110"]
+    mitigations: ["M-OTP-ATTEMPT-LIMIT", "M-RATE-LIMIT", "M-MONITORING"]
+    context_adjust:
+      internet_facing: { likelihood: 1 }
+      # OTP specific: a password lockout is not an OTP attempt limit.
+      evidence_of_control_keywords:
+        - "otp.{0,60}deneme sınır"
+        - "kod.{0,40}deneme sınır"
+        - "doğrulama kodu.{0,60}kilitlen"
+
+  - id: R-AUTH-SMS-OTP-CHANNEL
+    title: "SMS tabanlı OTP kanal riski (SIM değiştirme, bildirim okuma)"
+    area: kimlik
+    target: component
+    applies_to:
+      component_type: [auth, service, external]
+      technology_any: ["sms", "otp"]
+    stride: S
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      SMS kanalı, SIM değiştirme ve zararlı mobil uygulamaların bildirim
+      okuması gibi saldırılara açıktır; tek faktör olarak güvenilmemelidir.
+    scenario: >-
+      Saldırgan operatör üzerinden numarayı kendi SIM'ine taşıyarak gelen OTP
+      kodlarını alır ve transfer yetkisi kazanır.
+    knowledge_ids: ["T1111", "T1517", "A07:2021", "MASVS-AUTH"]
+    mitigations: ["M-STRONG-MFA", "M-DEVICE-BINDING", "M-TRANSACTION-SIGNING"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords: ["push onay", "fido", "uygulama içi onay"]
+
+  - id: R-AUTH-LONG-LIVED-TOKEN
+    title: "Uzun ömürlü ve cihaza bağlı olmayan oturum anahtarı"
+    area: kimlik
+    target: component
+    applies_to:
+      component_type: [auth, api, service]
+      technology_any: ["jwt", "token", "oturum", "refresh"]
+    stride: S
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Uzun süre geçerli, iptal edilemeyen ve cihazla ilişkilendirilmeyen
+      token'lar çalındığında uzun süre kullanılabilir.
+    scenario: >-
+      Saldırgan ele geçirdiği token ile, kullanıcı parolasını değiştirse bile
+      günlerce işlem yapmayı sürdürür.
+    knowledge_ids: ["CWE-613", "A07:2021", "ASVS-V3", "T1539"]
+    mitigations: ["M-TOKEN-LIFETIME", "M-TOKEN-ROTATION", "M-DEVICE-BINDING"]
+    context_adjust:
+      evidence_of_control_keywords:
+        - "token rotasyon"
+        - "cihaz bağlama"
+        - "iptal listesi"
+
+  - id: R-AUTH-REFRESH-NO-ROTATION
+    title: "Yenileme token'ında rotasyon olmaması"
+    area: kimlik
+    target: component
+    applies_to:
+      component_type: [auth]
+      technology_any: ["oauth", "refresh", "yenileme"]
+    stride: S
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Yenileme token'ı her kullanımda yenilenmezse, çalınan token geçerlilik
+      süresi boyunca kullanılabilir ve çalındığı fark edilemez.
+    scenario: >-
+      Saldırgan çalınan yenileme token'ını aylarca kullanarak erişim
+      token'ları üretir.
+    knowledge_ids: ["CWE-613", "ASVS-V3", "API2:2023"]
+    mitigations: ["M-TOKEN-ROTATION", "M-ANOMALY-DETECTION"]
+    context_adjust:
+      evidence_of_control_keywords: ["rotasyon", "rotation", "tek kullanımlık"]
+
+  - id: R-AUTH-WEAK-CREDENTIAL-DELIVERY
+    title: "Kimlik bilgisinin güvensiz kanaldan iletilmesi"
+    area: kimlik
+    target: component
+    applies_to:
+      component_type: [auth, admin, web_app]
+      technology_any: ["e-posta", "email", "portal", "api anahtarı"]
+    stride: I
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      API anahtarı veya parolanın e-posta gibi kalıcı ve korumasız bir
+      kanalla gönderilmesi.
+    scenario: >-
+      E-posta kutusuna erişen saldırgan, anahtarı doğrudan okur.
+    knowledge_ids: ["CWE-522", "CWE-523", "IA-5"]
+    mitigations: ["M-SECRET-DELIVERY", "M-SECRET-ROTATION"]
+    context_adjust:
+      evidence_of_control_keywords: ["tek seferlik gösterim", "kasa", "vault"]
+
+  - id: R-AUTH-NO-MFA-ADMIN
+    title: "Yönetici veya geliştirici portalında çok faktörlü doğrulama yok"
+    area: kimlik
+    target: component
+    applies_to:
+      component_type: [admin, web_app]
+      name_any: ["yönetim", "operasyon", "admin", "portal", "geliştirici"]
+    stride: S
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Ayrıcalıklı arayüzlerde ikinci faktörün bulunmaması, parola
+      sızıntısında doğrudan hesap ele geçirmeye yol açar.
+    scenario: >-
+      Oltalama ile parolayı ele geçiren saldırgan, ikinci faktör olmadığı
+      için panele girer ve limitleri değiştirir.
+    knowledge_ids: ["T1078", "A07:2021", "IA-2", "A.8.5"]
+    mitigations: ["M-STRONG-MFA", "M-PRIVILEGED-ACCESS"]
+    context_adjust:
+      evidence_of_control_keywords: ["ikinci faktör", "mfa", "2fa", "çok faktör"]
+
+  - id: R-AUTH-SHARED-ACCOUNT
+    title: "Ortak kullanılan hesap (inkâr ve izlenebilirlik sorunu)"
+    area: kimlik
+    target: component
+    applies_to:
+      component_type: [admin]
+    stride: R
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Birden fazla kişinin aynı hesabı kullanması, bir işlemin kim
+      tarafından yapıldığının kanıtlanmasını imkânsız kılar.
+    scenario: >-
+      Limit değişikliği sonrası, işlemin kim tarafından yapıldığı
+      belirlenemez; soruşturma sonuçsuz kalır.
+    knowledge_ids: ["AC-2", "A.5.16", "STRIDE-R", "CAPEC-122"]
+    mitigations: ["M-INDIVIDUAL-ACCOUNTS", "M-AUDIT-TRAIL"]
+    context_adjust:
+      evidence_of_control_keywords: ["kişiye özel hesap", "bireysel hesap"]
+
+  - id: R-AUTH-OPEN-REDIRECT
+    title: "Yetkilendirme yönlendirmesinin zayıf doğrulanması"
+    area: kimlik
+    target: component
+    applies_to:
+      component_type: [auth, gateway]
+      technology_any: ["oauth", "openid", "redirect", "yetkilendirme"]
+    stride: S
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      redirect_uri'nin tam eşleşme yerine ön ek eşleşmesiyle doğrulanması,
+      yetkilendirme kodunun saldırgan adresine gönderilmesine yol açar.
+    scenario: >-
+      Saldırgan, izinli adresin altında kendi kontrolündeki bir yola
+      yönlendirme yaparak yetkilendirme kodunu ele geçirir.
+    knowledge_ids: ["CWE-601", "A01:2021", "ASVS-V2"]
+    mitigations: ["M-EXACT-REDIRECT", "M-PKCE"]
+    context_adjust:
+      evidence_of_control_keywords: ["tam eşleşme", "exact match", "pkce"]
+
+  - id: R-AUTH-RESET-LINK
+    title: "Tek kullanımlık olmayan veya uzun süre geçerli bağlantı"
+    area: kimlik
+    target: component
+    applies_to:
+      component_type: [auth, service, web_app]
+      technology_any: ["bağlantı", "link", "kampanya", "sıfırlama"]
+    stride: S
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Tek kullanımlık olmayan ve uzun süre geçerli bağlantılar, paylaşıldığı
+      veya ele geçirildiği anda yeniden kullanılabilir.
+    scenario: >-
+      Müşterinin ilettiği kampanya bağlantısı başka biri tarafından
+      kullanılarak onun adına başvuru tamamlanır.
+    knowledge_ids: ["CWE-640", "T1566", "ASVS-V2"]
+    mitigations: ["M-ONE-TIME-LINK", "M-SHORT-EXPIRY"]
+    context_adjust:
+      evidence_of_control_keywords: ["tek kullanımlık", "one-time", "kısa süre"]

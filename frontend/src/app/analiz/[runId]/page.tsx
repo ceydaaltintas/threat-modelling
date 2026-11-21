@@ -6,6 +6,8 @@ import * as React from "react";
 
 import { DocumentPanel } from "@/components/analysis/document-panel";
 import { EventLog } from "@/components/analysis/event-log";
+import { RetrievalPanel } from "@/components/analysis/retrieval-panel";
+import { ThreatTable } from "@/components/analysis/threat-table";
 import { RunTopStrip } from "@/components/analysis/run-topstrip";
 import { StepDetail } from "@/components/analysis/step-detail";
 import { Stepper } from "@/components/analysis/stepper";
@@ -19,7 +21,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 import type { SystemModelData, SystemModelVersion } from "@/lib/system-model";
-import type { DocumentOut } from "@/lib/types";
+import type {
+  DocumentOut,
+  RetrievalOutput,
+  ThreatGenOutput,
+  ThreatListResponse,
+} from "@/lib/types";
 
 export default function AnalysisPage() {
   const params = useParams<{ runId: string }>();
@@ -37,6 +44,7 @@ export default function AnalysisPage() {
   const [model, setModel] = React.useState<SystemModelVersion | null>(null);
   const [savingModel, setSavingModel] = React.useState(false);
   const modelDirty = React.useRef(false);
+  const [threats, setThreats] = React.useState<ThreatListResponse | null>(null);
 
   const stepStatus = (no: number) =>
     stream.steps.find((item) => item.step_no === no)?.status;
@@ -44,6 +52,7 @@ export default function AnalysisPage() {
   // Load each step's output once that step reports done.
   const step1Done = stepStatus(1) === "done";
   const step2Done = stepStatus(2) === "done";
+  const step4Done = stepStatus(4) === "done";
 
   React.useEffect(() => {
     if (!runId || !step1Done) return;
@@ -60,6 +69,11 @@ export default function AnalysisPage() {
       })
       .catch(() => setModel(null));
   }, [runId, step2Done]);
+
+  React.useEffect(() => {
+    if (!runId || !step4Done) return;
+    api.threats(runId).then(setThreats).catch(() => setThreats(null));
+  }, [runId, step4Done]);
 
   // Follow the active step until the user picks one.
   React.useEffect(() => {
@@ -139,6 +153,17 @@ export default function AnalysisPage() {
     }
   };
 
+  const componentNames = React.useMemo(() => {
+    const names: Record<string, string> = {};
+    for (const component of model?.data.components ?? []) {
+      names[component.id] = component.name;
+    }
+    return names;
+  }, [model]);
+
+  const stepOutput = (stepNo: number) =>
+    stream.steps.find((item) => item.step_no === stepNo)?.output ?? null;
+
   const panelFor = (stepNo: number | null): React.ReactNode | undefined => {
     if (stepNo === 1 && documents.length > 0) {
       return <DocumentPanel documents={documents} />;
@@ -152,6 +177,21 @@ export default function AnalysisPage() {
           saving={savingModel}
           readOnly={readOnly}
           dirtyRef={modelDirty}
+        />
+      );
+    }
+    if (stepNo === 3) {
+      const output = stepOutput(3) as RetrievalOutput | null;
+      if (output?.elements) return <RetrievalPanel output={output} />;
+    }
+    if (stepNo === 4 && threats) {
+      const output = stepOutput(4) as ThreatGenOutput | null;
+      return (
+        <ThreatTable
+          data={threats}
+          documents={documents}
+          componentNames={componentNames}
+          note={output?.llm_note}
         />
       );
     }

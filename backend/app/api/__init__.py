@@ -2,13 +2,14 @@
 
 from fastapi import APIRouter
 
-from app.api import audit, health, kb, meta, projects, runs
+from app.api import audit, health, kb, meta, projects, runs, threats
 
 api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(meta.router)
 api_router.include_router(projects.router)
 api_router.include_router(runs.router)
+api_router.include_router(threats.router)
 api_router.include_router(kb.router)
 api_router.include_router(audit.router)
 

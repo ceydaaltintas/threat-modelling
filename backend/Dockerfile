@@ -15,6 +15,13 @@ RUN apt-get update \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download the local embedding model into the image so the demo machine does
+# not need internet at run time.
+ENV EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 \
+    FASTEMBED_CACHE_PATH=/opt/fastembed
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='${EMBEDDING_MODEL}')" \
+    || echo "UYARI: embedding modeli indirilemedi; arama anahtar kelimeyle calisir"
+
 COPY . .
 
 EXPOSE 8000

@@ -83,6 +83,7 @@ class RunStepOut(BaseModel):
     finished_at: datetime | None
     counters: dict | None
     message: str | None
+    output: dict | None = None
 
 
 class RunOut(BaseModel):
@@ -109,8 +110,14 @@ class RunCreate(BaseModel):
 class KbStatsOut(BaseModel):
     total_chunks: int
     by_source: dict[str, int]
-    # True once phase 2 has loaded the knowledge base.
     loaded: bool
+    # Entries whose clause number the expert still has to confirm.
+    verification_needed: int = 0
+    licenses: dict[str, str] = {}
+    embedding_model: str = ""
+    # False when the local model could not be loaded; search falls back to
+    # keyword only and says so.
+    vector_search: bool = False
 
 
 class DocumentOut(BaseModel):

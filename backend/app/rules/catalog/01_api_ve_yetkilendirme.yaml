@@ -1,0 +1,220 @@
+# API ve yetkilendirme kuralları.
+# Her kuralın kaynağı bilgi tabanında bulunmalıdır; bulunmayan kimlik
+# 5. adımda (doğrulama) reddedilir.
+rules:
+  - id: R-API-BOLA
+    title: "Nesne düzeyi yetki kontrolü eksikliği (BOLA/IDOR)"
+    area: api
+    target: component
+    applies_to:
+      # Not the gateway: it forwards requests, it does not own the objects.
+      component_type: [api, service]
+      data_class_any: ["hesap", "pii", "tckn", "iban", "müşteri", "başvuru"]
+    stride: E
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Kimliği doğrulanmış bir kullanıcının, istekteki nesne kimliğini
+      değiştirerek başka bir müşterinin verisine erişebilmesi. Sunucu, her
+      istekte nesnenin istek sahibine ait olduğunu doğrulamalıdır.
+    scenario: >-
+      Saldırgan kendi hesabıyla giriş yapar, istekteki hesap veya başvuru
+      numarasını değiştirir ve başka bir müşterinin bilgilerini görüntüler.
+    knowledge_ids: ["API1:2023", "CWE-639", "A01:2021", "ASVS-V4"]
+    mitigations: ["M-AUTHZ-OBJECT", "M-LOGGING-ACCESS"]
+    context_adjust:
+      internet_facing: { likelihood: 1 }
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords:
+        - "nesne düzeyi yetki"
+        - "sahiplik kontrol"
+        - "hesap sahipliği"
+        - "resource ownership"
+
+  - id: R-API-SEQUENTIAL-ID
+    title: "Tahmin edilebilir kaynak numarası ile numaralandırma"
+    area: api
+    target: component
+    applies_to:
+      component_type: [api, service]
+      name_any: ["başvuru", "sipariş", "talep", "işlem"]
+    stride: I
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Sıralı veya tahmin edilebilir kaynak numaraları, yetki kontrolü zayıfsa
+      toplu veri çekmeyi kolaylaştırır.
+    scenario: >-
+      Saldırgan numarayı birer birer artırarak çok sayıda kaydın varlığını ve
+      içeriğini öğrenir.
+    knowledge_ids: ["CWE-639", "CWE-799", "API1:2023"]
+    mitigations: ["M-OPAQUE-ID", "M-AUTHZ-OBJECT", "M-RATE-LIMIT"]
+    context_adjust:
+      internet_facing: { likelihood: 1 }
+      evidence_of_control_keywords: ["uuid", "rastgele numara", "opak kimlik"]
+
+  - id: R-API-FUNCTION-AUTHZ
+    title: "Fonksiyon düzeyi yetkilendirme eksikliği"
+    area: api
+    target: component
+    applies_to:
+      component_type: [api, gateway, admin]
+    stride: E
+    base: { likelihood: 2, impact: 5 }
+    description: >-
+      Yönetim veya ayrıcalıklı işlevlerin, rol kontrolü yalnızca arayüzde
+      yapıldığı için doğrudan API çağrısıyla kullanılabilmesi.
+    scenario: >-
+      Normal yetkili bir kullanıcı, arayüzde görmediği yönetim ucunu doğrudan
+      çağırarak limit değiştirir veya kayıt siler.
+    knowledge_ids: ["API5:2023", "CWE-862", "A01:2021"]
+    mitigations: ["M-AUTHZ-FUNCTION", "M-AUDIT-TRAIL"]
+    context_adjust:
+      internet_facing: { likelihood: 1 }
+      evidence_of_control_keywords: ["rol tabanlı", "rbac", "yetki matrisi"]
+
+  - id: R-API-NO-RATE-LIMIT
+    title: "İstek sınırlaması olmayan uç"
+    area: api
+    target: component
+    applies_to:
+      component_type: [api, gateway, service]
+      internet_facing: true
+    stride: D
+    base: { likelihood: 3, impact: 3 }
+    description: >-
+      Hız sınırı veya kota olmayan uçlar, otomatik taleplerle hizmeti
+      aksatabilir ve ücretli dış sorguların maliyetini artırabilir.
+    scenario: >-
+      Saldırgan saniyede yüzlerce istek göndererek servisi yavaşlatır veya
+      her istekte tetiklenen ücretli üçüncü taraf sorgusuyla maliyet yaratır.
+    knowledge_ids: ["API4:2023", "CWE-770", "SC-5", "T1499"]
+    mitigations: ["M-RATE-LIMIT", "M-QUOTA", "M-MONITORING"]
+    context_adjust:
+      internet_facing: { likelihood: 1 }
+      evidence_of_control_keywords:
+        - "hız sınır"
+        - "rate limit"
+        - "istek sınırı"
+        - "dakikada"
+
+  - id: R-API-CLIENT-CONTROLLED-LIMIT
+    title: "İstemciden alınan sayfalama veya limit değeri"
+    area: api
+    target: component
+    applies_to:
+      # Only components that take requests from outside the trust boundary.
+      component_type: [api, gateway, web_app]
+    stride: D
+    base: { likelihood: 2, impact: 3 }
+    description: >-
+      Sayfa boyutu gibi değerlerin istemciden alınıp sunucuda üst sınıra
+      bağlanmaması, tek istekle çok büyük veri kümesi çekilmesine yol açar.
+    scenario: >-
+      Saldırgan sayfa boyutunu çok büyük vererek hem sistemi zorlar hem de
+      toplu veri çeker.
+    knowledge_ids: ["API4:2023", "CWE-565", "CWE-400"]
+    mitigations: ["M-SERVER-SIDE-LIMIT", "M-RATE-LIMIT"]
+    context_adjust:
+      evidence_of_control_keywords: ["üst sınır", "maksimum sayfa", "max page"]
+
+  - id: R-API-MASS-ASSIGNMENT
+    title: "Denetimsiz alan atama (mass assignment)"
+    area: api
+    target: component
+    applies_to:
+      component_type: [api, gateway, web_app]
+    stride: T
+    base: { likelihood: 2, impact: 4 }
+    description: >-
+      İstek gövdesindeki alanların doğrudan nesneye atanması, kullanıcının
+      değiştirmemesi gereken alanları değiştirmesine izin verir.
+    scenario: >-
+      Kullanıcı başvuru gövdesine onay durumu veya limit alanı ekleyerek
+      kendi kaydını yükseltir.
+    knowledge_ids: ["API3:2023", "CWE-915"]
+    mitigations: ["M-INPUT-ALLOWLIST", "M-SERVER-SIDE-LIMIT"]
+    context_adjust:
+      evidence_of_control_keywords: ["izin verilen alan", "allowlist", "dto"]
+
+  - id: R-API-EXCESSIVE-DATA
+    title: "Yanıtta gereğinden fazla veri dönmesi"
+    area: api
+    target: component
+    applies_to:
+      component_type: [api, service]
+      data_class_any: ["pii", "tckn", "iban", "gelir", "müşteri"]
+    stride: I
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Arayüzün göstermediği alanların yanıtta dönmesi; istemci maskeleme
+      yapsa bile veri ağdan geçer.
+    scenario: >-
+      Saldırgan arayüzü değil API'yi doğrudan çağırarak maskelenmemiş TCKN ve
+      gelir bilgisine ulaşır.
+    knowledge_ids: ["API3:2023", "CWE-200", "A.8.11"]
+    mitigations: ["M-MASKING", "M-FIELD-FILTER"]
+    context_adjust:
+      sensitive_data: { impact: 1 }
+      evidence_of_control_keywords: ["maskelen", "maskeleme"]
+
+  - id: R-API-SSRF-CALLBACK
+    title: "Doğrulanmayan callback adresi ile iç ağa istek (SSRF)"
+    area: api
+    target: component
+    applies_to:
+      component_type: [api, service]
+      name_any: ["webhook", "callback", "bildirim", "entegrasyon"]
+    stride: T
+    base: { likelihood: 3, impact: 4 }
+    description: >-
+      Üçüncü tarafın verdiği adrese istek yapan servislerde adresin yalnızca
+      şema (https) düzeyinde doğrulanması, iç ağ adreslerine ve bulut meta
+      veri uçlarına istek yapılmasına izin verir.
+    scenario: >-
+      Saldırgan callback adresi olarak iç ağdaki bir servisi verir; sunucu bu
+      adrese istek yaparak iç bilgiyi dışarı taşır.
+    knowledge_ids: ["API7:2023", "CWE-918", "A10:2021", "SC-7"]
+    mitigations: ["M-SSRF-ALLOWLIST", "M-EGRESS-CONTROL"]
+    context_adjust:
+      evidence_of_control_keywords:
+        - "izin listesi"
+        - "allowlist"
+        - "iç ağ adresleri engel"
+
+  - id: R-API-WEBHOOK-SIGNATURE
+    title: "Webhook imzasının doğrulanmaması"
+    area: ucuncu-taraf
+    target: component
+    applies_to:
+      component_type: [api, service, external]
+      name_any: ["webhook", "callback", "bildirim", "kyc"]
+    stride: S
+    base: { likelihood: 3, impact: 5 }
+    description: >-
+      Gelen webhook çağrılarının imzası doğrulanmazsa, herkes üçüncü taraf
+      adına bildirim gönderebilir.
+    scenario: >-
+      Saldırgan "kimlik doğrulandı" veya "ödeme başarılı" bildirimi
+      göndererek süreci kendi lehine ilerletir.
+    knowledge_ids: ["API10:2023", "CWE-287", "STRIDE-S", "SI-7"]
+    mitigations: ["M-WEBHOOK-SIGNATURE", "M-MTLS"]
+    context_adjust:
+      evidence_of_control_keywords: ["imza doğrula", "hmac", "jws", "signature"]
+
+  - id: R-API-INVENTORY
+    title: "Belgelenmemiş veya eski sürüm uçların açık kalması"
+    area: api
+    target: component
+    applies_to:
+      component_type: [api, gateway]
+    stride: I
+    base: { likelihood: 2, impact: 3 }
+    description: >-
+      Envanteri tutulmayan uçlar güncel güvenlik kontrollerinden yoksun
+      kalır.
+    scenario: >-
+      Saldırgan eski sürüm bir ucu bularak yeni sürümde kapatılmış bir
+      zafiyeti kullanır.
+    knowledge_ids: ["API9:2023", "CM-7", "CAPEC-310"]
+    mitigations: ["M-API-INVENTORY", "M-DEPRECATION"]
+    context_adjust:
+      evidence_of_control_keywords: ["envanter", "sürüm yönetimi", "api katalog"]

@@ -121,6 +121,9 @@ class RunStep(Base, TimestampMixin):
     # {"components": 11, "threats": 37, ...}
     counters: Mapped[dict | None] = mapped_column(JSONB)
     message: Mapped[str | None] = mapped_column(Text)
+    # Step specific payload for its detail panel (retrieved knowledge,
+    # merge statistics, report links...). Not used for pipeline decisions.
+    output: Mapped[dict | None] = mapped_column(JSONB)
 
     run: Mapped[AnalysisRun] = relationship(back_populates="steps")
 

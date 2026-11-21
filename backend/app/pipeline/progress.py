@@ -29,6 +29,7 @@ async def save_step(
     progress: float | None = None,
     message: str | None = None,
     counters: dict[str, int] | None = None,
+    output: dict | None = None,
     started: bool = False,
     finished: bool = False,
 ) -> None:
@@ -49,6 +50,8 @@ async def save_step(
             row.message = message
         if counters is not None:
             row.counters = counters
+        if output is not None:
+            row.output = output
         if started:
             row.started_at = now()
             row.finished_at = None

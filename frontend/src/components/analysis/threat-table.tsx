@@ -1,0 +1,318 @@
+"use client";
+
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type ColumnDef,
+  type SortingState,
+} from "@tanstack/react-table";
+import { ArrowUpDown, Filter, Info } from "lucide-react";
+import * as React from "react";
+
+import { ThreatDrawer } from "@/components/analysis/threat-drawer";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SOURCE_LABELS, STRIDE_SHORT, VALIDATION_LABELS } from "@/lib/threats";
+import type { DocumentOut, ThreatListResponse, ThreatRow } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+const STRIDE_ORDER = ["S", "T", "R", "I", "D", "E"];
+
+export function ThreatTable({
+  data,
+  documents,
+  componentNames,
+  note,
+}: {
+  data: ThreatListResponse;
+  documents: DocumentOut[];
+  componentNames: Record<string, string>;
+  note?: string | null;
+}) {
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [search, setSearch] = React.useState("");
+  const [stride, setStride] = React.useState<string>("");
+  const [source, setSource] = React.useState<string>("");
+  const [component, setComponent] = React.useState<string>("");
+  const [selected, setSelected] = React.useState<ThreatRow | null>(null);
+
+  const nameOf = React.useCallback(
+    (id: string | null) => (id ? componentNames[id] ?? id : "Sistem geneli"),
+    [componentNames],
+  );
+
+  const columns = React.useMemo<ColumnDef<ThreatRow>[]>(
+    () => [
+      {
+        accessorKey: "title",
+        header: "Tehdit",
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <p className="truncate text-xs font-medium">{row.original.title}</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {nameOf(row.original.component_ref)}
+            </p>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "stride",
+        header: "STRIDE",
+        cell: ({ getValue }) => (
+          <Badge variant="outline" title={STRIDE_SHORT[getValue<string>()]}>
+            {getValue<string>()}
+          </Badge>
+        ),
+        sortingFn: (a, b) =>
+          STRIDE_ORDER.indexOf(a.original.stride) -
+          STRIDE_ORDER.indexOf(b.original.stride),
+      },
+      {
+        accessorKey: "source",
+        header: "Kaynak",
+        cell: ({ getValue }) => (
+          <Badge variant={getValue<string>() === "rule" ? "default" : "accent"}>
+            {SOURCE_LABELS[getValue<string>()] ?? getValue<string>()}
+          </Badge>
+        ),
+      },
+      {
+        id: "evidence",
+        header: "Kanıt",
+        cell: ({ row }) =>
+          row.original.is_assumption ? (
+            <Badge variant="warning">Varsayım</Badge>
+          ) : (
+            <Badge variant="success">{row.original.evidence.length}</Badge>
+          ),
+      },
+      {
+        id: "sources",
+        header: "Kaynak kimliği",
+        cell: ({ row }) => (
+          <span className="text-[11px] text-muted-foreground">
+            {row.original.knowledge_sources.map((s) => s.id).join(", ") || "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "validation_status",
+        header: "Doğrulama",
+        cell: ({ getValue }) => (
+          <span className="text-[11px] text-muted-foreground">
+            {VALIDATION_LABELS[getValue<string>()] ?? getValue<string>()}
+          </span>
+        ),
+      },
+      {
+        id: "level",
+        header: "Seviye",
+        cell: ({ row }) =>
+          row.original.system_calc ? (
+            <Badge variant="danger">{row.original.system_calc.level}</Badge>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">
+              Aşama 3&apos;te
+            </span>
+          ),
+      },
+    ],
+    [nameOf],
+  );
+
+  const filtered = React.useMemo(
+    () =>
+      data.threats.filter((threat) => {
+        if (stride && threat.stride !== stride) return false;
+        if (source && threat.source !== source) return false;
+        if (component && threat.component_ref !== component) return false;
+        if (search.trim()) {
+          const needle = search.toLocaleLowerCase("tr");
+          const haystack = [
+            threat.title,
+            threat.description ?? "",
+            threat.scenario ?? "",
+            threat.rule_id ?? "",
+            threat.knowledge_sources.map((s) => s.id).join(" "),
+          ]
+            .join(" ")
+            .toLocaleLowerCase("tr");
+          if (!haystack.includes(needle)) return false;
+        }
+        return true;
+      }),
+    [data.threats, stride, source, component, search],
+  );
+
+  const table = useReactTable({
+    data: filtered,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
+
+  const components = React.useMemo(
+    () =>
+      Array.from(
+        new Set(data.threats.map((t) => t.component_ref).filter(Boolean)),
+      ) as string[],
+    [data.threats],
+  );
+
+  if (data.threats.length === 0) {
+    return (
+      <EmptyState
+        icon={Filter}
+        title="Tehdit üretilmedi"
+        description="4. adım tamamlandığında kural kataloğunun ve LLM'in ürettiği tehditler burada listelenir."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {note ? (
+        <p className="flex items-start gap-2 rounded-md border border-level-high/40 bg-level-high/10 p-2.5 text-xs">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-level-high" aria-hidden />
+          {note}
+        </p>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Tehdit, kural veya kaynak ara"
+          aria-label="Tehditlerde ara"
+          className="h-8 min-w-[200px] flex-1 rounded-md border border-input bg-surface px-2.5 text-xs"
+        />
+        <select
+          value={stride}
+          onChange={(event) => setStride(event.target.value)}
+          aria-label="STRIDE filtresi"
+          className="h-8 rounded-md border border-input bg-surface px-2 text-xs"
+        >
+          <option value="">Tüm STRIDE</option>
+          {STRIDE_ORDER.map((code) => (
+            <option key={code} value={code}>
+              {code} · {STRIDE_SHORT[code]}
+            </option>
+          ))}
+        </select>
+        <select
+          value={source}
+          onChange={(event) => setSource(event.target.value)}
+          aria-label="Kaynak türü filtresi"
+          className="h-8 rounded-md border border-input bg-surface px-2 text-xs"
+        >
+          <option value="">Tüm kaynaklar</option>
+          {Object.entries(SOURCE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={component}
+          onChange={(event) => setComponent(event.target.value)}
+          aria-label="Bileşen filtresi"
+          className="h-8 max-w-[200px] rounded-md border border-input bg-surface px-2 text-xs"
+        >
+          <option value="">Tüm bileşenler</option>
+          {components.map((id) => (
+            <option key={id} value={id}>
+              {nameOf(id)}
+            </option>
+          ))}
+        </select>
+        {(search || stride || source || component) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearch("");
+              setStride("");
+              setSource("");
+              setComponent("");
+            }}
+          >
+            Filtreleri temizle
+          </Button>
+        )}
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        {filtered.length} / {data.total} tehdit ·{" "}
+        {data.summary.by_source.rule ?? 0} kuraldan,{" "}
+        {data.summary.by_source.llm ?? 0} LLM'den,{" "}
+        {data.summary.by_source.merged ?? 0} birleştirilmiş ·{" "}
+        {data.summary.assumptions} varsayım
+      </p>
+
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="border-b border-border bg-surface-muted text-left text-[11px] text-muted-foreground">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th key={header.id} className="px-3 py-2 font-medium">
+                      {header.isPlaceholder ? null : (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className={cn(
+                            "flex items-center gap-1",
+                            header.column.getCanSort() && "hover:text-foreground",
+                          )}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                          {header.column.getCanSort() ? (
+                            <ArrowUpDown className="h-3 w-3 opacity-50" aria-hidden />
+                          ) : null}
+                        </button>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  onClick={() => setSelected(row.original)}
+                  className="cursor-pointer border-b border-border last:border-0 hover:bg-surface-muted"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-3 py-2 align-top">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <ThreatDrawer
+        threat={selected}
+        documents={documents}
+        componentName={nameOf}
+        onClose={() => setSelected(null)}
+      />
+    </div>
+  );
+}

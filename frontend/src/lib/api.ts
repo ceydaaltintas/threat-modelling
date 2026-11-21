@@ -5,7 +5,9 @@ import type { SystemModelData, SystemModelVersion } from "@/lib/system-model";
 import type {
   AuditEntry,
   DocumentOut,
+  KbSearchResult,
   KbStats,
+  ThreatListResponse,
   Meta,
   ProgressEvent,
   ProjectRow,
@@ -137,20 +139,12 @@ export const api = {
     return request<AuditEntry[]>(`/api/audit${suffix}`);
   },
   kbStats: () => request<KbStats>("/api/kb/stats"),
-  kbSearch: (q: string) =>
-    request<{
-      query: string;
-      mode: string;
-      note: string;
-      results: Array<{
-        id: string;
-        source: string;
-        identifier: string;
-        title: string;
-        url: string | null;
-        license: string | null;
-      }>;
-    }>(`/api/kb/search?q=${encodeURIComponent(q)}`),
+  kbSearch: (q: string, limit = 10) =>
+    request<KbSearchResult>(
+      `/api/kb/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+    ),
+  threats: (runId: string) =>
+    request<ThreatListResponse>(`/api/runs/${runId}/threats`),
 };
 
 export function eventStreamUrl(runId: string): string {
