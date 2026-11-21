@@ -11,7 +11,14 @@ from typing import Protocol, runtime_checkable
 
 
 class LLMError(Exception):
-    """Base class. ``message`` is Turkish and shown to the user."""
+    """Base class. ``message`` is Turkish and shown to the user.
+
+    ``retryable`` marks the errors that usually pass on their own: the
+    provider being busy or the rate limit being hit. The gateway backs off
+    and tries again for those; everything else fails the step immediately.
+    """
+
+    retryable = False
 
     def __init__(self, message: str, *, detail: str | None = None) -> None:
         super().__init__(message)
@@ -24,11 +31,27 @@ class LLMNotConfigured(LLMError):
 
 
 class LLMQuotaExceeded(LLMError):
-    pass
+    """Rate limit or quota (HTTP 429)."""
+
+    retryable = True
+
+
+class LLMBusy(LLMError):
+    """The provider is temporarily overloaded (HTTP 503)."""
+
+    retryable = True
 
 
 class LLMUnavailable(LLMError):
     pass
+
+
+class LLMTruncated(LLMError):
+    """The answer was cut off by the output token limit.
+
+    Dangerous to ignore: a truncated system model can still parse and would
+    silently lose components, so this always fails the step.
+    """
 
 
 class LLMInvalidOutput(LLMError):

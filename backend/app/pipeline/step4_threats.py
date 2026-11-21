@@ -279,12 +279,23 @@ async def run(ctx: RunContext) -> dict[str, int]:
             document_text=document_text[:MAX_DOCUMENT_CHARS],
         )
         try:
+            async def _waiting(attempt: int, delay: float) -> None:
+                await ctx.report(
+                    STEP,
+                    progress_value=0.5,
+                    message=(
+                        f"Model yoğun; {int(delay)} sn sonra yeniden denenecek "
+                        f"({attempt}. deneme)"
+                    ),
+                )
+
             result = await ctx.gateway.generate_json(
                 prompt_name=PROMPT_NAME,
                 system=prompt.system,
                 user=user,
                 schema=LlmThreatList,
                 step_no=STEP.no,
+                on_wait=_waiting,
             )
             llm_rows, llm_stats = _llm_threat_rows(result.threats, model, allowed_ids)
         except LLMError as exc:

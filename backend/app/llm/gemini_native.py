@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 
 from app.llm.base import (
+    LLMBusy,
     LLMNotConfigured,
     LLMQuotaExceeded,
     LLMResponse,
@@ -20,7 +21,9 @@ from app.llm.base import (
 class GeminiNativeClient:
     provider = "gemini_native"
 
-    def __init__(self, *, api_key: str, model: str) -> None:
+    def __init__(
+        self, *, api_key: str, model: str, max_output_tokens: int = 0
+    ) -> None:
         if not api_key:
             raise LLMNotConfigured(
                 "LLM_API_KEY tanımlı değil. Gemini anahtarınızı .env dosyasına "
@@ -33,6 +36,7 @@ class GeminiNativeClient:
             )
         self.api_key = api_key
         self.model = model
+        self.max_output_tokens = max_output_tokens
 
     async def generate(
         self,
@@ -62,6 +66,7 @@ class GeminiNativeClient:
             system_instruction=system,
             temperature=temperature,
             response_mime_type="application/json" if json_output else "text/plain",
+            max_output_tokens=self.max_output_tokens or None,
         )
 
         def _call():
@@ -79,6 +84,12 @@ class GeminiNativeClient:
                 raise LLMQuotaExceeded(
                     "LLM kota sınırına ulaşıldı. Kayıtlı çıktı moduna geçin veya "
                     "60 sn sonra tekrar deneyin.",
+                    detail=message[:500],
+                ) from exc
+            if "503" in message or "unavailable" in lowered or "overload" in lowered:
+                raise LLMBusy(
+                    "Model şu anda yoğun (sağlayıcı 503 döndürdü). Birkaç "
+                    "saniye sonra otomatik olarak yeniden denenecek.",
                     detail=message[:500],
                 ) from exc
             if "api key" in lowered or "401" in message or "403" in message:

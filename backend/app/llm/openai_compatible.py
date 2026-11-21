@@ -14,19 +14,33 @@ import base64
 import httpx
 
 from app.llm.base import (
+    LLMBusy,
     LLMNotConfigured,
     LLMQuotaExceeded,
     LLMResponse,
+    LLMTruncated,
     LLMUnavailable,
 )
 
 REQUEST_TIMEOUT = httpx.Timeout(120.0, connect=15.0)
 
+# Some providers sit behind a bot filter that rejects requests with no
+# User-Agent (Groq returns a Cloudflare 1010 for them). A generic client
+# name is enough; never put anything identifying here.
+USER_AGENT = "threat-modelling-platform/0.1"
+
 
 class OpenAICompatibleClient:
     provider = "openai_compatible"
 
-    def __init__(self, *, base_url: str, api_key: str, model: str) -> None:
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        api_key: str,
+        model: str,
+        max_output_tokens: int = 0,
+    ) -> None:
         if not base_url:
             raise LLMNotConfigured(
                 "LLM_BASE_URL tanımlı değil. .env dosyasında sağlayıcı adresini "
@@ -40,6 +54,9 @@ class OpenAICompatibleClient:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
+        # 0 means "use the provider default", which is often far too low for
+        # a full system model (Groq caps completions at 3072 by default).
+        self.max_output_tokens = max_output_tokens
 
     async def generate(
         self,
@@ -74,8 +91,13 @@ class OpenAICompatibleClient:
         }
         if json_output:
             payload["response_format"] = {"type": "json_object"}
+        if self.max_output_tokens:
+            payload["max_completion_tokens"] = self.max_output_tokens
 
-        headers = {"content-type": "application/json"}
+        headers = {
+            "content-type": "application/json",
+            "user-agent": USER_AGENT,
+        }
         if self.api_key:
             headers["authorization"] = f"Bearer {self.api_key}"
 
@@ -99,6 +121,13 @@ class OpenAICompatibleClient:
                 "60 sn sonra tekrar deneyin.",
                 detail=response.text[:500],
             )
+        if response.status_code in (502, 503, 504):
+            raise LLMBusy(
+                "Model şu anda yoğun (sağlayıcı "
+                f"{response.status_code} döndürdü). Birkaç saniye sonra "
+                "otomatik olarak yeniden denenecek.",
+                detail=response.text[:500],
+            )
         if response.status_code in (401, 403):
             raise LLMNotConfigured(
                 "LLM anahtarı reddedildi. .env dosyasındaki LLM_API_KEY değerini "
@@ -113,11 +142,22 @@ class OpenAICompatibleClient:
 
         body = response.json()
         try:
-            text = body["choices"][0]["message"]["content"] or ""
+            choice = body["choices"][0]
+            text = choice["message"]["content"] or ""
         except (KeyError, IndexError, TypeError) as exc:
             raise LLMUnavailable(
                 "LLM yanıtı beklenen biçimde değil.", detail=str(body)[:500]
             ) from exc
+
+        # A cut-off answer can still parse as JSON and look complete, which
+        # would silently drop half the system model. Fail instead.
+        if choice.get("finish_reason") == "length":
+            raise LLMTruncated(
+                "Model yanıtı token sınırına takıldı ve yarıda kesildi. "
+                ".env içindeki LLM_MAX_OUTPUT_TOKENS değerini yükseltin "
+                "veya dokümanı küçültün.",
+                detail=f"finish_reason=length, model={body.get('model')}",
+            )
 
         usage = body.get("usage") or {}
         return LLMResponse(

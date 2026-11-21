@@ -81,6 +81,17 @@ async def run(ctx: RunContext) -> dict[str, int]:
             page_count=page_count or "bilinmiyor",
             document_text=chunk,
         )
+        async def _waiting(attempt: int, delay: float, _index: int = index) -> None:
+            # The provider is busy; tell the user rather than looking stuck.
+            await ctx.report(
+                STEP,
+                progress_value=(_index - 1) / (len(chunks) + 1),
+                message=(
+                    f"Model yoğun; {int(delay)} sn sonra yeniden denenecek "
+                    f"({attempt}. deneme)"
+                ),
+            )
+
         partials.append(
             await ctx.gateway.generate_json(
                 prompt_name=PROMPT_NAME,
@@ -90,6 +101,7 @@ async def run(ctx: RunContext) -> dict[str, int]:
                 # Images only go with the first chunk; they are the whole doc.
                 images=images if index == 1 else None,
                 step_no=STEP.no,
+                on_wait=_waiting,
             )
         )
 

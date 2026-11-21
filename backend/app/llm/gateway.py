@@ -14,9 +14,11 @@ The LLM never writes to any other table.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import TypeVar
 
@@ -33,6 +35,12 @@ logger = logging.getLogger(__name__)
 # Repair attempts after the first try; the third failure fails the step.
 MAX_REPAIR_ATTEMPTS = 2
 
+# Transient provider errors (429 rate limit, 503 overloaded) are retried
+# with exponential backoff before the step is failed. Free tiers hit both
+# regularly, and a demo must not die on a passing spike.
+MAX_TRANSIENT_RETRIES = 3
+BACKOFF_SECONDS = (4, 12, 30)
+
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
@@ -44,6 +52,8 @@ class LlmUsage:
     cached: int = 0
     tokens: int = 0
     repairs: int = 0
+    # How many times we backed off and retried a transient provider error.
+    waits: int = 0
     # Provider/model actually used, for the report.
     details: dict = field(default_factory=dict)
 
@@ -53,6 +63,7 @@ class LlmUsage:
             "cached": self.cached,
             "tokens": self.tokens,
             "repairs": self.repairs,
+            "waits": self.waits,
             "replay": replay,
         }
 
@@ -86,6 +97,46 @@ class LLMGateway:
     def replay_mode(self) -> str:
         return self.settings.demo_replay
 
+    async def _call_with_backoff(
+        self,
+        *,
+        system: str,
+        user: str,
+        images: list[bytes] | None,
+        temperature: float,
+        json_output: bool,
+        on_wait: Callable[[int, float], Awaitable[None]] | None = None,
+    ) -> LLMResponse:
+        """Call the provider, backing off on transient errors."""
+        last: LLMError | None = None
+        for attempt in range(MAX_TRANSIENT_RETRIES + 1):
+            try:
+                return await self.client.generate(
+                    system=system,
+                    user=user,
+                    images=images,
+                    temperature=temperature,
+                    json_output=json_output,
+                )
+            except LLMError as exc:
+                last = exc
+                if not exc.retryable or attempt == MAX_TRANSIENT_RETRIES:
+                    raise
+                delay = BACKOFF_SECONDS[min(attempt, len(BACKOFF_SECONDS) - 1)]
+                self.usage.waits += 1
+                logger.warning(
+                    "Geçici LLM hatası (%s). %s sn sonra yeniden denenecek "
+                    "(%s/%s).",
+                    type(exc).__name__,
+                    delay,
+                    attempt + 1,
+                    MAX_TRANSIENT_RETRIES,
+                )
+                if on_wait is not None:
+                    await on_wait(attempt + 1, delay)
+                await asyncio.sleep(delay)
+        raise last if last else LLMError("Bilinmeyen LLM hatası.")
+
     async def generate_json(
         self,
         *,
@@ -96,6 +147,7 @@ class LLMGateway:
         images: list[bytes] | None = None,
         step_no: int | None = None,
         temperature: float | None = None,
+        on_wait: Callable[[int, float], Awaitable[None]] | None = None,
     ) -> ModelT:
         """Return a validated instance of ``schema`` or raise ``LLMError``."""
         temperature = (
@@ -143,12 +195,13 @@ class LLMGateway:
         for attempt in range(MAX_REPAIR_ATTEMPTS + 1):
             started = time.perf_counter()
             try:
-                response = await self.client.generate(
+                response = await self._call_with_backoff(
                     system=system,
                     user=conversation_user,
                     images=images,
                     temperature=temperature,
                     json_output=True,
+                    on_wait=on_wait,
                 )
             except LLMError as exc:
                 await self._record(
@@ -245,8 +298,12 @@ class LLMGateway:
                 "yapın."
             )
 
-        response = await self.client.generate(
-            system=system, user=user, temperature=self.settings.llm_temperature
+        response = await self._call_with_backoff(
+            system=system,
+            user=user,
+            images=None,
+            temperature=self.settings.llm_temperature,
+            json_output=False,
         )
         self.usage.calls += 1
         self.usage.tokens += (response.prompt_tokens or 0) + (

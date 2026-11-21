@@ -27,7 +27,9 @@ def build_client(settings: Settings | None = None) -> LLMClient:
 
     if provider == "gemini_native":
         return GeminiNativeClient(
-            api_key=settings.llm_api_key, model=settings.llm_model
+            api_key=settings.llm_api_key,
+            model=settings.llm_model,
+            max_output_tokens=settings.llm_max_output_tokens,
         )
 
     if provider in ("openai_compatible", *KNOWN_BASE_URLS):
@@ -36,6 +38,7 @@ def build_client(settings: Settings | None = None) -> LLMClient:
             base_url=base_url,
             api_key=settings.llm_api_key,
             model=settings.llm_model,
+            max_output_tokens=settings.llm_max_output_tokens,
         )
 
     raise LLMNotConfigured(
