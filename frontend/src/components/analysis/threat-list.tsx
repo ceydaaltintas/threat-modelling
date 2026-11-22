@@ -108,6 +108,7 @@ export function ThreatList({
   const [source, setSource] = React.useState("");
   const [component, setComponent] = React.useState("");
   const [reviewFilter, setReviewFilter] = React.useState("");
+  const [quality, setQuality] = React.useState("");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [checked, setChecked] = React.useState<Set<string>>(new Set());
   const [bulkNote, setBulkNote] = React.useState("");
@@ -133,6 +134,10 @@ export function ThreatList({
         if (source && threat.source !== source) return false;
         if (component && threat.component_ref !== component) return false;
         if (reviewFilter && threat.review_status !== reviewFilter) return false;
+        if (quality === "flagged" && threat.validation_status !== "flagged")
+          return false;
+        if (quality === "assumption" && !threat.is_assumption) return false;
+        if (quality === "evidenced" && threat.is_assumption) return false;
         if (search.trim()) {
           const needle = search.toLocaleLowerCase("tr");
           const haystack = [
@@ -149,7 +154,17 @@ export function ThreatList({
         }
         return true;
       }),
-    [data.threats, stride, level, source, component, reviewFilter, search, nameOf],
+    [
+      data.threats,
+      stride,
+      level,
+      source,
+      component,
+      reviewFilter,
+      quality,
+      search,
+      nameOf,
+    ],
   );
 
   // TanStack drives sorting; the rows are rendered by hand so they can reflow.
@@ -190,7 +205,7 @@ export function ThreatList({
     : null;
   const activeFilters =
     Boolean(search) || Boolean(stride) || Boolean(level) || Boolean(source) ||
-    Boolean(component) || Boolean(reviewFilter);
+    Boolean(component) || Boolean(reviewFilter) || Boolean(quality);
 
   if (data.threats.length === 0) {
     return (
@@ -268,6 +283,22 @@ export function ThreatList({
           aria-label="Tehditlerde ara"
           className="h-8 min-w-0 flex-[2] basis-full rounded-md border border-input bg-surface px-2.5 text-xs lg:basis-0"
         />
+        <Select value={level} onChange={setLevel} label="Risk seviyesi filtresi">
+          <option value="">Tüm seviyeler</option>
+          {LEVELS.filter((value) => (data.summary.by_level?.[value] ?? 0) > 0).map(
+            (value) => (
+              <option key={value} value={value}>
+                {value} ({data.summary.by_level?.[value] ?? 0})
+              </option>
+            ),
+          )}
+        </Select>
+        <Select value={quality} onChange={setQuality} label="Kanıt durumu filtresi">
+          <option value="">Tüm kanıt durumları</option>
+          <option value="evidenced">Kanıtlı</option>
+          <option value="assumption">Varsayım (kanıt yok)</option>
+          <option value="flagged">Doğrulamada işaretli</option>
+        </Select>
         <Select value={stride} onChange={setStride} label="STRIDE filtresi">
           <option value="">Tüm STRIDE</option>
           {STRIDE_ORDER.map((code) => (
@@ -325,6 +356,7 @@ export function ThreatList({
               setSource("");
               setComponent("");
               setReviewFilter("");
+              setQuality("");
             }}
           >
             Temizle
@@ -581,10 +613,10 @@ function ThreatRowItem({
             {errors > 0 ? (
               <span
                 className="flex items-center gap-0.5 text-[11px] text-level-critical"
-                title="Doğrulamada işaretlendi"
+                title={`Doğrulamada ${errors} uyarı: ayrıntıdaki "Doğrulama" bölümüne bakın`}
               >
                 <ShieldAlert className="h-3 w-3" aria-hidden />
-                {errors}
+                İşaretli {errors}
               </span>
             ) : null}
             {threat.review_status !== "pending" ? (

@@ -37,9 +37,9 @@ export function Topbar() {
           replay.ready ? (
             <Badge
               variant="accent"
-              title={`${replay.recorded_calls} kayıtlı yanıt var; aynı istem tekrar sorulmaz.`}
+              title={`Sonuçlar daha önce kaydedilmiş ${replay.recorded_calls} LLM yanıtından geliyor; yeni çağrı yapılmıyor. Canlı çalıştırmak için .env içindeki DEMO_REPLAY değerini false yapın.`}
             >
-              Kayıtlı çıktı · {replay.recorded_calls}
+              Kayıtlı çıktı
             </Badge>
           ) : (
             <Badge
