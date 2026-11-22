@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+from datetime import datetime, timezone
 from typing import Awaitable, Callable
 
 from app.core.config import get_settings
@@ -25,7 +26,9 @@ from app.core.db import SessionLocal
 from app.llm.base import LLMError
 from app.llm.factory import build_client
 from app.llm.gateway import LLMGateway
-from app.models import AnalysisRun
+from sqlalchemy import select
+
+from app.models import AnalysisRun, RunStep
 from app.pipeline import (
     placeholder,
     progress,
@@ -364,3 +367,26 @@ async def stop(run_id: str) -> None:
             pass
     _resume_events.pop(run_id, None)
     _paused_at.pop(run_id, None)
+
+    # With no live task - after a restart, say - cancelling the task cannot
+    # end the run, so close it here. The open step is closed too, otherwise
+    # the rail keeps a spinner on a step nothing is working on.
+    async with SessionLocal() as session:
+        run = await session.get(AnalysisRun, run_id)
+        if run is None or run.status not in ("running", "waiting_user", "pending"):
+            return
+        run.status = "cancelled"
+        run.finished_at = run.finished_at or datetime.now(timezone.utc)
+        steps = (
+            await session.execute(
+                select(RunStep)
+                .where(RunStep.run_id == run_id)
+                .where(RunStep.status.in_(("running", "waiting_user")))
+            )
+        ).scalars().all()
+        for step in steps:
+            step.status = "failed"
+            step.finished_at = step.finished_at or datetime.now(timezone.utc)
+            step.message = "Analiz durduruldu."
+        await session.commit()
+    await progress.publish_run(run_id, "cancelled", "Analiz durduruldu.")

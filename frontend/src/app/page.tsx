@@ -4,13 +4,11 @@ import { ChevronRight, ListChecks, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
-import { levelClasses } from "@/lib/levels";
 import { cn } from "@/lib/utils";
 import type { ProjectRow } from "@/lib/types";
 
@@ -21,6 +19,17 @@ const RUN_STATUS_LABEL: Record<string, string> = {
   done: "Tamamlandı",
   failed: "Hata",
   cancelled: "İptal edildi",
+};
+
+/** The only colour in a row: one dot, so the status column stays readable. */
+const DOT: Record<string, string> = {
+  none: "bg-border",
+  pending: "bg-muted-foreground/50",
+  running: "bg-accent animate-pulse",
+  waiting_user: "bg-level-high",
+  done: "bg-level-low",
+  failed: "bg-level-critical",
+  cancelled: "bg-muted-foreground/50",
 };
 
 export default function ProjectsPage() {
@@ -70,11 +79,22 @@ export default function ProjectsPage() {
           }
         />
       ) : (
-        <ul className="space-y-1.5">
+        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface">
           {projects.map((project) => {
             const status = project.last_run?.status;
             const critical = project.risk_summary.critical;
             const high = project.risk_summary.high;
+            // Risk is a number, not a decoration: one quiet line in its own
+            // column, so every row reads at the same place.
+            const risk =
+              critical || high
+                ? [
+                    critical ? `${critical} kritik` : null,
+                    high ? `${high} yüksek` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "—";
             const row = (
               <>
                 <span className="min-w-0 flex-1">
@@ -88,37 +108,25 @@ export default function ProjectsPage() {
                     {project.sample_key ? " · örnek doküman" : ""}
                   </span>
                 </span>
-                <span className="flex shrink-0 items-center gap-1.5">
-                  {critical > 0 ? (
-                    <Badge className={cn("border", levelClasses.Kritik)}>
-                      {critical} Kritik
-                    </Badge>
-                  ) : null}
-                  {high > 0 ? (
-                    <Badge className={cn("border", levelClasses["Yüksek"])}>
-                      {high} Yüksek
-                    </Badge>
-                  ) : null}
-                  <Badge
-                    variant={
-                      status === "done"
-                        ? "success"
-                        : status === "failed"
-                          ? "danger"
-                          : status
-                            ? "accent"
-                            : "default"
-                    }
-                  >
-                    {status ? RUN_STATUS_LABEL[status] ?? status : "Analiz yok"}
-                  </Badge>
-                  {project.last_run ? (
-                    <ChevronRight
-                      className="h-4 w-4 text-muted-foreground"
-                      aria-hidden
-                    />
-                  ) : null}
+                <span className="hidden w-32 shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:block">
+                  {risk}
                 </span>
+                <span className="flex w-36 shrink-0 items-center justify-end gap-1.5 text-xs">
+                  <span
+                    className={cn("h-1.5 w-1.5 rounded-full", DOT[status ?? "none"])}
+                    aria-hidden
+                  />
+                  <span className="truncate text-muted-foreground">
+                    {status ? RUN_STATUS_LABEL[status] ?? status : "Analiz yok"}
+                  </span>
+                </span>
+                <ChevronRight
+                  className={cn(
+                    "h-4 w-4 shrink-0 text-muted-foreground",
+                    !project.last_run && "invisible",
+                  )}
+                  aria-hidden
+                />
               </>
             );
             return (
@@ -126,14 +134,12 @@ export default function ProjectsPage() {
                 {project.last_run ? (
                   <Link
                     href={`/analiz/${project.last_run.id}`}
-                    className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2.5 transition-colors hover:border-accent/50 hover:bg-surface-muted"
+                    className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface-muted"
                   >
                     {row}
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2.5">
-                    {row}
-                  </div>
+                  <div className="flex items-center gap-3 px-3 py-2.5">{row}</div>
                 )}
               </li>
             );

@@ -121,6 +121,32 @@ export default function AnalysisPage() {
     }
   };
 
+  const cancel = async () => {
+    if (!runId) return;
+    // Stopping loses the steps that have not run yet, so ask first.
+    if (
+      !window.confirm(
+        "Analiz durdurulsun mu? Tamamlanan adımlar kalır; kalan adımlar " +
+          "çalışmaz. Daha sonra kaldığı adımdan yeniden başlatabilirsiniz.",
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      await api.cancelRun(runId);
+      stream.reload();
+      toast({ title: "Analiz durduruldu", tone: "success" });
+    } catch (err) {
+      toast({
+        title: "Analiz durdurulamadı",
+        description: (err as Error).message,
+        tone: "error",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const retry = async (stepNo: number) => {
     if (!runId) return;
     setBusy(true);
@@ -377,6 +403,7 @@ export default function AnalysisPage() {
         status={stream.status}
         llm={stream.llm}
         onRestart={() => retry(1)}
+        onCancel={cancel}
         busy={busy}
         readOnly={readOnly}
       />

@@ -8,7 +8,6 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import {
-  ArrowDownWideNarrow,
   Ban,
   Check,
   ChevronRight,
@@ -229,14 +228,15 @@ export function ThreatList({
         </span>
       </div>
 
-      {/* One row of controls, each narrow enough to fit. */}
-      <div className="flex flex-wrap items-center gap-1.5">
+      {/* A grid, so a long option label widens its column instead of
+          pushing the last control off the edge of the card. */}
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Ara: tehdit, bileşen, kural, kaynak"
           aria-label="Tehditlerde ara"
-          className="h-8 min-w-[180px] flex-1 rounded-md border border-input bg-surface px-2.5 text-xs"
+          className="col-span-2 h-8 w-full rounded-md border border-input bg-surface px-2.5 text-xs lg:col-span-4"
         />
         <Select value={stride} onChange={setStride} label="STRIDE filtresi">
           <option value="">Tüm STRIDE</option>
@@ -276,7 +276,6 @@ export function ThreatList({
           value={(sorting[0]?.id as SortKey) ?? "level"}
           onChange={(value) => setSorting([{ id: value, desc: false }])}
           label="Sıralama"
-          icon
         >
           {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
             <option key={key} value={key}>
@@ -386,34 +385,22 @@ function Select({
   onChange,
   label,
   children,
-  icon,
 }: {
   value: string;
   onChange: (value: string) => void;
   label: string;
   children: React.ReactNode;
-  icon?: boolean;
 }) {
   return (
-    <span className="relative inline-flex items-center">
-      {icon ? (
-        <ArrowDownWideNarrow
-          className="pointer-events-none absolute left-2 h-3 w-3 text-muted-foreground"
-          aria-hidden
-        />
-      ) : null}
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        aria-label={label}
-        className={cn(
-          "h-8 max-w-[170px] rounded-md border border-input bg-surface px-2 text-xs",
-          icon && "pl-6",
-        )}
-      >
-        {children}
-      </select>
-    </span>
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      aria-label={label}
+      title={label}
+      className="h-8 w-full min-w-0 rounded-md border border-input bg-surface px-2 text-xs"
+    >
+      {children}
+    </select>
   );
 }
 

@@ -13,6 +13,7 @@ from app.api import api_router
 from app.core.config import get_settings
 from app.core.db import engine
 from app.kb import loader
+from app.pipeline.orphans import sweep_interrupted_runs
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +38,14 @@ async def lifespan(app: FastAPI):
         logger.info("Bilgi tabani: %s kayit", stats["total"])
     except Exception:  # noqa: BLE001 - the app must still start
         logger.exception("Bilgi tabani yuklenemedi")
+    # A restart kills the pipeline task but not its database row, so a run
+    # left mid-step would wait forever. Say so instead.
+    try:
+        interrupted = await sweep_interrupted_runs()
+        if interrupted:
+            logger.info("Yarida kalan analiz: %s", interrupted)
+    except Exception:  # noqa: BLE001 - the app must still start
+        logger.exception("Yarida kalan analizler isaretlenemedi")
     yield
     await engine.dispose()
 

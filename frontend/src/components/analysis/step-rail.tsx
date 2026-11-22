@@ -146,22 +146,28 @@ export function StepRail({
               </li>
 
               {gate && index < definitions.length - 1 ? (
+                // Not a step: a gate between two steps. A dashed line with
+                // the pause icon on it reads that way; another circle in the
+                // row read as a tenth step.
                 <li
-                  className="flex flex-col items-center gap-1 px-0.5 pt-0.5"
+                  className="relative flex w-6 shrink-0 justify-center self-stretch"
+                  aria-label="Model onayı: analiz burada durur"
                   title="Model onayı: analiz burada durur"
                 >
                   <span
                     className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full border border-dashed",
-                      paused
-                        ? "border-level-high bg-level-high/15 text-level-high"
-                        : "border-border text-muted-foreground",
+                      "absolute inset-y-0 border-l border-dashed",
+                      paused ? "border-level-high" : "border-border",
+                    )}
+                    aria-hidden
+                  />
+                  <span
+                    className={cn(
+                      "relative mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-surface",
+                      paused ? "text-level-high" : "text-muted-foreground/70",
                     )}
                   >
                     <Pause className="h-3 w-3" aria-hidden />
-                  </span>
-                  <span className="text-[10px] leading-tight text-muted-foreground">
-                    onay
                   </span>
                 </li>
               ) : null}

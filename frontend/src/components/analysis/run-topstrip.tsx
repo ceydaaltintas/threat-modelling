@@ -1,6 +1,6 @@
 "use client";
 
-import { Cpu, Database, RotateCcw, Timer } from "lucide-react";
+import { Cpu, RotateCcw, Square, Timer } from "lucide-react";
 import * as React from "react";
 
 import type { LlmUsage } from "@/components/analysis/use-run-stream";
@@ -38,6 +38,7 @@ export function RunTopStrip({
   status,
   llm,
   onRestart,
+  onCancel,
   busy,
   readOnly,
 }: {
@@ -46,6 +47,7 @@ export function RunTopStrip({
   status: RunStatus | "connecting";
   llm: LlmUsage;
   onRestart: () => void;
+  onCancel: () => void;
   busy: boolean;
   readOnly: boolean;
 }) {
@@ -58,6 +60,9 @@ export function RunTopStrip({
   }, [status]);
 
   const elapsed = elapsedBetween(run?.started_at, run?.finished_at);
+  // Stopping only makes sense while something is still going to happen.
+  const active =
+    status === "running" || status === "waiting_user" || status === "pending";
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3">
@@ -94,6 +99,17 @@ export function RunTopStrip({
           <Badge variant="accent" title="Yanıt kayıttan geldi, yeni çağrı yapılmadı">
             {llm.cached} önbellekten
           </Badge>
+        ) : null}
+        {active ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            disabled={busy || readOnly}
+            title="Analizi durdur; kaldığı yerden yeniden çalıştırabilirsiniz"
+          >
+            <Square aria-hidden /> Durdur
+          </Button>
         ) : null}
         <Button
           variant="ghost"
