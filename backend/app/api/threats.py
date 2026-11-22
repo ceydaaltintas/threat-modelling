@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.audit.service import record as audit_record
 from app.core.config import get_settings
 from app.core.db import get_session
-from app.models import AnalysisRun, Threat
+from app.models import AnalysisRun, RunStep, Threat
 from app.risk import Thresholds
 from app.schemas.review import (
     ACTION_STATUS,
@@ -30,6 +30,50 @@ def _actor(request: Request) -> tuple[str, str]:
     actor = request.headers.get(DEMO_ACTOR_HEADER) or "demo@ornekbanka.local"
     role = request.headers.get(DEMO_ROLE_HEADER) or "security_expert"
     return actor, role
+
+
+async def _refresh_review_step(session: AsyncSession, run_id: str) -> None:
+    """Keep step 8's counters in step with the decisions just made.
+
+    The step row is written while the pipeline runs; without this the
+    stepper would keep showing "0 karar verildi" after the expert has
+    decided on half the list.
+    """
+    rows = (
+        await session.execute(
+            select(Threat.review_status, func.count())
+            .where(Threat.run_id == run_id)
+            .group_by(Threat.review_status)
+        )
+    ).all()
+    counts = {status: count for status, count in rows}
+    total = sum(counts.values())
+    pending = counts.get("pending", 0)
+    payload = {
+        "total": total,
+        "pending": pending,
+        "accepted": counts.get("accepted", 0),
+        "rejected": counts.get("rejected", 0),
+        "false_positive": counts.get("false_positive", 0),
+        "edited": counts.get("edited", 0),
+        "decided": total - pending,
+    }
+
+    step = (
+        await session.execute(
+            select(RunStep).where(RunStep.run_id == run_id, RunStep.step_no == 8)
+        )
+    ).scalar_one_or_none()
+    if step is None:
+        return
+    step.counters = payload
+    step.output = payload
+    if step.status == "done":
+        step.message = (
+            f"{payload['decided']}/{payload['total']} tehdit için karar verildi."
+        )
+    elif step.status == "waiting_user":
+        step.message = f"{pending} tehdit uzman kararı bekliyor."
 
 
 def _serialise(threat: Threat) -> dict:
@@ -252,6 +296,7 @@ async def review_threat(
         },
         reason=payload.reason or payload.note,
     )
+    await _refresh_review_step(session, run_id)
     await session.commit()
     await session.refresh(threat)
     return _serialise(threat)
@@ -311,5 +356,6 @@ async def review_threats_bulk(
             reason=payload.note,
         )
 
+    await _refresh_review_step(session, run_id)
     await session.commit()
     return {"updated": len(rows), "review_status": status}

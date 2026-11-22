@@ -36,6 +36,8 @@ export interface RunStreamState {
   connected: boolean;
   error: string | null;
   reload: () => void;
+  /** Re-read the step rows (counters and panel payload) from the API. */
+  refreshSteps: () => Promise<void>;
 }
 
 const EMPTY_LLM: LlmUsage = { calls: 0, cached: 0, tokens: 0, replay: false };
@@ -168,35 +170,33 @@ export function useRunStream(runId: string | null): RunStreamState {
    * lives in the database. Without this, every panel that reads ``output``
    * stays empty until the page is reloaded.
    */
+  const refreshSteps = React.useCallback(async () => {
+    if (!runId) return;
+    try {
+      const value = await api.run(runId);
+      setSteps((current) =>
+        current.map((step) => {
+          const fresh = value.steps.find(
+            (item) => item.step_no === step.step_no,
+          );
+          if (!fresh) return step;
+          return {
+            ...step,
+            output: fresh.output ?? step.output,
+            counters: fresh.counters ?? step.counters,
+          };
+        }),
+      );
+      setRun(value);
+    } catch {
+      /* the stream keeps working; the panel fills on the next completion */
+    }
+  }, [runId]);
+
   React.useEffect(() => {
-    if (!runId || !settled) return;
-    let cancelled = false;
-    api
-      .run(runId)
-      .then((value) => {
-        if (cancelled) return;
-        setSteps((current) =>
-          current.map((step) => {
-            const fresh = value.steps.find(
-              (item) => item.step_no === step.step_no,
-            );
-            if (!fresh) return step;
-            return {
-              ...step,
-              output: fresh.output ?? step.output,
-              counters: fresh.counters ?? step.counters,
-            };
-          }),
-        );
-        setRun(value);
-      })
-      .catch(() => {
-        /* the stream keeps working; the panel fills on the next completion */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [runId, settled]);
+    if (!settled) return;
+    void refreshSteps();
+  }, [settled, refreshSteps]);
 
   React.useEffect(() => {
     if (!runId) return;
@@ -240,7 +240,19 @@ export function useRunStream(runId: string | null): RunStreamState {
       connected,
       error,
       reload: () => setTick((value) => value + 1),
+      refreshSteps,
     }),
-    [run, steps, status, events, llm, pause, placeholder, connected, error],
+    [
+      run,
+      steps,
+      status,
+      events,
+      llm,
+      pause,
+      placeholder,
+      connected,
+      error,
+      refreshSteps,
+    ],
   );
 }

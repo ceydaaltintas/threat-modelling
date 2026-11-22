@@ -569,7 +569,7 @@ function DecisionButton({
       )}
     >
       {isCurrent ? <Check aria-hidden /> : icon}
-      {isCurrent ? `${children} ✓` : children}
+      {children}
     </Button>
   );
 }

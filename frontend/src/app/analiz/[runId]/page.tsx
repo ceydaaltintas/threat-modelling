@@ -167,6 +167,8 @@ export default function AnalysisPage() {
       try {
         await api.reviewThreat(runId, threatId, { action, ...extra });
         await reloadThreats();
+        // The step 8 counters live on the run row; keep them honest.
+        await stream.refreshSteps();
       } catch (err) {
         toast({
           title: "Karar kaydedilemedi",
@@ -177,7 +179,7 @@ export default function AnalysisPage() {
         setBusy(false);
       }
     },
-    [runId, reloadThreats, toast],
+    [runId, reloadThreats, toast, stream],
   );
 
   const decideBulk = React.useCallback(
@@ -193,6 +195,7 @@ export default function AnalysisPage() {
           action,
         });
         await reloadThreats();
+        await stream.refreshSteps();
         toast({
           title: `${result.updated} tehdit güncellendi`,
           description: "Her işlem denetim izine yazıldı.",
@@ -208,7 +211,7 @@ export default function AnalysisPage() {
         setBusy(false);
       }
     },
-    [runId, reloadThreats, toast],
+    [runId, reloadThreats, toast, stream],
   );
 
   const saveModel = async (data: SystemModelData, reason: string) => {
