@@ -249,7 +249,7 @@ export function ThreatDrawer({
 
           {review ? (
             <Section title="Uzman kararı">
-              <ReviewControls threat={threat} review={review} />
+              <ReviewControls key={threat.id} threat={threat} review={review} />
             </Section>
           ) : null}
 
@@ -338,6 +338,21 @@ function ReviewControls({
   );
   const [reason, setReason] = React.useState(threat.expert?.reason ?? "");
 
+  // A note belongs to the decision it was written for. Leaving it in the
+  // box after the decision is recorded let it count as the justification
+  // for the *next* one: accept with a note, and reject was immediately
+  // open without anyone explaining the change.
+  const decide = React.useCallback(
+    async (
+      action: ReviewAction,
+      extra?: { likelihood?: number; impact?: number; reason?: string },
+    ) => {
+      await review.onDecide(threat.id, action, { note, ...extra });
+      setNote("");
+    },
+    [review, threat.id, note],
+  );
+
   const decided = threat.review_status !== "pending";
   // Changing a recorded decision is allowed - the expert may be wrong - but
   // the change is what an auditor will ask about, so it needs a reason.
@@ -399,7 +414,7 @@ function ReviewControls({
           action="accept"
           current={threat.review_status}
           disabled={disabled || needsReason}
-          onClick={() => review.onDecide(threat.id, "accept", { note })}
+          onClick={() => decide("accept")}
           icon={<Check aria-hidden />}
         >
           Kabul et
@@ -408,7 +423,7 @@ function ReviewControls({
           action="reject"
           current={threat.review_status}
           disabled={disabled || needsReason}
-          onClick={() => review.onDecide(threat.id, "reject", { note })}
+          onClick={() => decide("reject")}
         >
           Reddet
         </DecisionButton>
@@ -416,7 +431,7 @@ function ReviewControls({
           action="false_positive"
           current={threat.review_status}
           disabled={disabled || needsReason}
-          onClick={() => review.onDecide(threat.id, "false_positive", { note })}
+          onClick={() => decide("false_positive")}
           icon={<Ban aria-hidden />}
         >
           Yanlış pozitif
@@ -425,6 +440,11 @@ function ReviewControls({
           size="sm"
           variant="ghost"
           disabled={disabled}
+          title={
+            decided
+              ? "Kendi olasılık/etki değerinizi girin; panelde gerekçe zorunludur, kararı geri almanız gerekmez"
+              : "Kendi olasılık/etki değerinizi girin"
+          }
           onClick={() => setEditing((value) => !value)}
         >
           <Pencil aria-hidden /> Seviyeyi düzenle
@@ -434,7 +454,7 @@ function ReviewControls({
             size="sm"
             variant="ghost"
             disabled={disabled || needsReason}
-            onClick={() => review.onDecide(threat.id, "reset", { note })}
+            onClick={() => decide("reset")}
           >
             Kararı geri al
           </Button>
@@ -481,22 +501,31 @@ function ReviewControls({
           <textarea
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="Seviye değişikliği için gerekçe (zorunlu)"
+            placeholder={
+              decided
+                ? "Kararı değiştirme ve seviye gerekçesi (zorunlu)"
+                : "Seviye değişikliği için gerekçe (zorunlu)"
+            }
             aria-label="Seviye değişikliği gerekçesi"
             rows={2}
             className="w-full rounded-md border border-input bg-surface p-2 text-xs"
           />
+          {decided ? (
+            <p className="text-[11px] text-muted-foreground">
+              Bu bulguda{" "}
+              <strong className="font-medium text-foreground">
+                {REVIEW_LABELS[threat.review_status] ?? threat.review_status}
+              </strong>{" "}
+              kararı var. Kaydederseniz karar bu düzenlemeyle değişir; eski
+              karar denetim izinde kalır.
+            </p>
+          ) : null}
           <div className="flex items-center gap-2">
             <Button
               size="sm"
               disabled={disabled || !reason.trim() || !changed}
               onClick={async () => {
-                await review.onDecide(threat.id, "edit", {
-                  likelihood,
-                  impact,
-                  reason,
-                  note,
-                });
+                await decide("edit", { likelihood, impact, reason });
                 setEditing(false);
               }}
             >
