@@ -426,7 +426,7 @@ export function ThreatList({
             threat={threat}
             componentName={nameOf(threat.component_ref)}
             onOpen={() => setSelectedId(threat.id)}
-            selectable={Boolean(review)}
+            selectable={Boolean(review) && !review?.readOnly}
             checked={checked.has(threat.id)}
             onToggle={() => toggle(threat.id)}
           />

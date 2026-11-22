@@ -241,6 +241,29 @@ def _expert_record(
     return record
 
 
+# Step 9 writes the decisions into the PDF, Excel and JSON files. A decision
+# made after that silently makes those files wrong: the report says "1 kabul"
+# while the screen says "5 kabul", and whoever holds the PDF cannot tell.
+# The way to change a decision is to re-run step 8, which marks the report
+# stale and regenerates it.
+REPORT_IS_FINAL = (
+    "Rapor üretildikten sonra karar değiştirilemez; indirilmiş rapor yanlış "
+    "duruma düşer. Değişiklik için 8. adımı yeniden çalıştırın, rapor da "
+    "yenilenir."
+)
+
+
+async def _report_already_written(session: AsyncSession, run_id: str) -> bool:
+    status = (
+        await session.execute(
+            select(RunStep.status).where(
+                RunStep.run_id == run_id, RunStep.step_no == 9
+            )
+        )
+    ).scalar_one_or_none()
+    return status == "done"
+
+
 # Changing a decision that is already recorded is legitimate - an expert may
 # be wrong - but in a bank's audit trail the *change* is the thing worth
 # justifying. The first decision may carry a note; a later one must.
@@ -284,6 +307,9 @@ async def review_threat(
         medium=settings.risk_threshold_medium,
         high=settings.risk_threshold_high,
     )
+
+    if await _report_already_written(session, run_id):
+        raise HTTPException(status_code=409, detail=REPORT_IS_FINAL)
 
     if _requires_change_reason(
         threat.review_status, payload.action, payload.reason or payload.note
@@ -348,6 +374,9 @@ async def review_threats_bulk(
     ).scalars().all()
     if not rows:
         raise HTTPException(status_code=404, detail="Seçilen tehdit bulunamadı.")
+
+    if await _report_already_written(session, run_id):
+        raise HTTPException(status_code=409, detail=REPORT_IS_FINAL)
 
     status = ACTION_STATUS[payload.action]
     decided = [

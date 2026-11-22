@@ -22,6 +22,7 @@ import { useRunStream } from "@/components/analysis/use-run-stream";
 import { useMeta } from "@/components/providers/meta-provider";
 import { useRole } from "@/components/providers/role-provider";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
@@ -366,19 +367,41 @@ export default function AnalysisPage() {
       );
     }
     if (stepNo === 8 && threats) {
+      // Once step 9 has written the report, a new decision would make the
+      // downloaded files wrong without saying so. Re-running step 8 is the
+      // way through: it marks the report stale and regenerates it.
+      const reportWritten = stepStatus(9) === "done";
       return (
-        <ThreatList
-          data={threats}
-          documents={documents}
-          componentNames={componentNames}
+        <div className="space-y-3">
+          {reportWritten ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-surface-muted p-3">
+              <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                Rapor üretildi, kararlar dosyalara yazıldı. Karar değiştirmek
+                için 8. adımı yeniden çalıştırın; rapor da yenilenir.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy || readOnly}
+                onClick={() => retry(8)}
+              >
+                8. adımı yeniden çalıştır
+              </Button>
+            </div>
+          ) : null}
+          <ThreatList
+            data={threats}
+            documents={documents}
+            componentNames={componentNames}
             step={8}
-          review={{
-            readOnly,
-            busy,
-            onDecide: decide,
-            onBulk: decideBulk,
-          }}
-        />
+            review={{
+              readOnly: readOnly || reportWritten,
+              busy,
+              onDecide: decide,
+              onBulk: decideBulk,
+            }}
+          />
+        </div>
       );
     }
     if (stepNo === 9) {
