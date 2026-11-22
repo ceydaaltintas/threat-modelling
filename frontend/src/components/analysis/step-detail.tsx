@@ -78,6 +78,22 @@ export function StepDetail({
             <span className="text-muted-foreground">{definition.no}.</span>{" "}
             {definition.name}
           </h2>
+          {/* On the heading's own line, not a row of its own: a line of
+              numbers above the content was one more thing to read before
+              reaching the content. */}
+          {shown.length > 0 ? (
+            <span className="text-xs text-muted-foreground">
+              {shown.map(([key, value], index) => (
+                <React.Fragment key={key}>
+                  {index > 0 ? " · " : ""}
+                  <strong className="font-semibold tabular-nums text-foreground">
+                    {value}
+                  </strong>{" "}
+                  {definition.counter_labels[key] ?? key}
+                </React.Fragment>
+              ))}
+            </span>
+          ) : null}
           {duration !== null && step?.status === "done" ? (
             <span className="text-[11px] text-muted-foreground">
               {formatDuration(duration)}
@@ -97,27 +113,6 @@ export function StepDetail({
           </button>
         </div>
 
-        {shown.length > 0 ? (
-          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-            {shown.map(([key, value]) => (
-              <span key={key}>
-                <strong className="font-semibold tabular-nums text-foreground">
-                  {value}
-                </strong>{" "}
-                {definition.counter_labels[key] ?? key}
-              </span>
-            ))}
-            {folded.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setOpen(true)}
-                className="text-[11px] text-muted-foreground underline-offset-2 hover:text-accent hover:underline"
-              >
-                +{folded.length} sayı
-              </button>
-            ) : null}
-          </p>
-        ) : null}
 
         {open ? (
           <div className="rounded-md border border-border bg-surface-muted p-3 text-xs text-muted-foreground">
