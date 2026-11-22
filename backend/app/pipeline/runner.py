@@ -230,6 +230,10 @@ async def _wait_for_user(ctx: RunContext, step: StepDefinition, reason: str) -> 
             "message": "Devam ediliyor.",
         },
     )
+    # The run is no longer waiting on anyone: say so on the stream as well,
+    # or the status badge stays on "Kullanıcı bekleniyor" for the rest of
+    # the run.
+    await progress.publish_run(ctx.run_id, "running", "Analiz sürüyor.")
 
 
 async def _pipeline(run_id: str, *, from_step: int = 1) -> None:

@@ -141,6 +141,9 @@ export function useRunStream(runId: string | null): RunStreamState {
 
     if (event.type === "resume" || event.type === "pause_skipped") {
       setPause(null);
+      // Clearing the pause is not enough: the run is running again, and the
+      // status badge must say so even if the run event is missed.
+      setStatus((current) => (current === "waiting_user" ? "running" : current));
     }
 
     if (event.type === "step" && event.status === "waiting_user" && event.step) {
