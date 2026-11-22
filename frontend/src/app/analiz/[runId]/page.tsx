@@ -197,8 +197,11 @@ export default function AnalysisPage() {
     setBusy(true);
     try {
       await api.retryStep(runId, stepNo);
-      // Re-running a step is the same kind of move: follow the pipeline.
-      setPinned(false);
+      // Show the step being re-run, and stay there. Following the pipeline
+      // here jumped to the report: the retry resets the later steps, but
+      // until the new state arrives the newest "done" step is still 9.
+      setSelected(stepNo);
+      setPinned(true);
       stream.reload();
       toast({
         title: `${stepNo}. adım yeniden çalıştırılıyor`,
