@@ -116,9 +116,9 @@ export function RunTopStrip({
           size="sm"
           onClick={onRestart}
           disabled={busy || readOnly}
-          title="Analizi baştan çalıştır"
+          title="Tüm analizi 1. adımdan baştan çalıştırır; mevcut sonuçlar ve kararlar silinir"
         >
-          <RotateCcw aria-hidden /> Yeniden
+          <RotateCcw aria-hidden /> Baştan çalıştır
         </Button>
       </div>
     </div>

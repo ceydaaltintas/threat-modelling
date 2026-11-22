@@ -171,6 +171,29 @@ export default function AnalysisPage() {
     }
   };
 
+  const decidedCount = () =>
+    Object.entries(threats?.summary.by_review ?? {})
+      .filter(([status]) => status !== "pending")
+      .reduce((total, [, value]) => total + (value as number), 0);
+
+  // The top strip's button re-runs the whole analysis from step 1. It used
+  // to be labelled "Yeniden" next to the step rail, where it read as
+  // "re-run this step", and it asked nothing before throwing the run away.
+  const restart = async () => {
+    if (!runId) return;
+    const decided = decidedCount();
+    if (
+      !window.confirm(
+        "Analiz 1. adımdan baştan çalıştırılacak: doküman yeniden okunur, " +
+          "tehditler, riskler ve önlemler sıfırdan üretilir" +
+          (decided > 0 ? `, verdiğiniz ${decided} uzman kararı silinir` : "") +
+          ". Devam edilsin mi?",
+      )
+    )
+      return;
+    await runRetry(1);
+  };
+
   const retry = async (stepNo: number) => {
     if (!runId) return;
     // Step 4 deletes the threat rows and generates them again, so every
@@ -194,6 +217,11 @@ export default function AnalysisPage() {
       )
         return;
     }
+    await runRetry(stepNo);
+  };
+
+  const runRetry = async (stepNo: number) => {
+    if (!runId) return;
     setBusy(true);
     try {
       await api.retryStep(runId, stepNo);
@@ -485,7 +513,7 @@ export default function AnalysisPage() {
         projectName={stream.run?.project_name ?? "Analiz yükleniyor"}
         status={stream.status}
         llm={stream.llm}
-        onRestart={() => retry(1)}
+        onRestart={restart}
         onCancel={cancel}
         busy={busy}
         readOnly={readOnly}
