@@ -44,16 +44,20 @@ async def test_meta_never_returns_the_api_key(client: httpx.AsyncClient) -> None
     assert isinstance(body["llm_configured"], bool)
 
 
-async def test_samples_endpoint_lists_three_scenarios(
+async def test_samples_endpoint_lists_every_bundled_scenario(
     client: httpx.AsyncClient,
 ) -> None:
     async with client:
         response = await client.get("/api/samples")
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 3
+    assert len(body) == 4
     assert {s["doc_code"] for s in body} == {
         "MB-TRF-AD-007",
         "KRD-APP-SA-003",
         "OB-PLT-SA-001",
+        "POS-ACQ-AD-012",
     }
+    # Every listed scenario must have its file, or the screen offers a
+    # document that cannot be opened.
+    assert all(s["available"] for s in body)

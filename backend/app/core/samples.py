@@ -75,6 +75,18 @@ SAMPLE_SCENARIOS: tuple[SampleScenario, ...] = (
         focus="Kimlik doğrulama ve yetkilendirme",
         filename="03_acik_bankacilik_api_platformu.pdf",
     ),
+    SampleScenario(
+        key="pos-odeme-kabul",
+        title="Üye İşyeri POS ve Ödeme Kabul Platformu",
+        doc_code="POS-ACQ-AD-012",
+        summary=(
+            "POS ve sanal POS üzerinden kart işlemlerinin alınması; "
+            "tokenizasyon ve HSM, dolandırıcılık skoru, kart şeması "
+            "bağlantısı, üye işyeri portalı ve webhook bildirimleri."
+        ),
+        focus="Kart verisi ve üçüncü taraf bildirimleri",
+        filename="04_uye_isyeri_pos_odeme_kabul.pdf",
+    ),
 )
 
 

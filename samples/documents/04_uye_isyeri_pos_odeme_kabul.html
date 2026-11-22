@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Üye İşyeri POS ve Ödeme Kabul Platformu — Mimari Tasarım Dokümanı</title>
+<style>
+  @page {
+    size: A4; margin: 16mm 15mm 14mm 15mm;
+    @top-left { content: "Örnek Banka A.Ş.  |  Ödeme Sistemleri – Mimari Yönetişim"; font-family:"DejaVu Sans"; font-size:7pt; color:#6b7280; }
+    @top-right { content: "POS-ACQ-AD-012  |  Sürüm 0.8 (Taslak)"; font-family:"DejaVu Sans"; font-size:7pt; color:#6b7280; }
+    @bottom-left { content: "Dahili – Bu doküman kurgusal bir örnektir; gerçek bir kurumu veya sistemi temsil etmez."; font-family:"DejaVu Sans"; font-size:6.5pt; color:#9ca3af; }
+    @bottom-right { content: "Sayfa " counter(page); font-family:"DejaVu Sans"; font-size:7pt; color:#6b7280; }
+  }
+  body { font-family:"DejaVu Sans", sans-serif; font-size:9pt; color:#111827; line-height:1.4; }
+  h1 { font-size:16pt; margin:0 0 1mm; }
+  .sub { font-size:10pt; color:#374151; margin:0 0 4mm; }
+  h2 { font-size:10.5pt; margin:5mm 0 1.5mm; color:#0f3d6b; page-break-after:avoid; }
+  p { margin:0 0 2mm; }
+  table { width:100%; border-collapse:collapse; margin:0 0 3mm; font-size:8pt; }
+  th { background:#eef2f7; text-align:left; }
+  th, td { border:0.5pt solid #cbd5e1; padding:1.2mm 1.6mm; vertical-align:top; }
+  ul { margin:0 0 2.5mm; padding-left:4.5mm; }
+  li { margin-bottom:0.8mm; }
+  .head { width:100%; border:0.5pt solid #cbd5e1; font-size:8pt; margin-bottom:4mm; }
+</style>
+</head>
+<body>
+
+<h1>Üye İşyeri POS ve Ödeme Kabul Platformu</h1>
+<p class="sub">Mimari Tasarım Dokümanı</p>
+
+<table class="head">
+  <tr><th>Doküman no</th><td>POS-ACQ-AD-012</td><th>Sahip</th><td>Ödeme Sistemleri Mimari Ekibi</td></tr>
+  <tr><th>Sürüm / durum</th><td>0.8 (Taslak)</td><th>Sınıflandırma</th><td>Dahili</td></tr>
+</table>
+
+<h2>1. Amaç ve kapsam</h2>
+<p>Bu doküman, Örnek Banka A.Ş.'nin üye işyerlerine sunduğu POS ve sanal POS ödeme kabul
+platformunun hedef mimarisini tanımlar. Kapsam; fiziksel POS terminallerinden ve e-ticaret
+sitelerinden gelen kart işlemlerinin alınması, yetkilendirilmesi, kart şemalarına iletilmesi ve
+üye işyerine hak ediş (settlement) olarak aktarılmasıdır. Kredi kartı başvuru süreçleri ve
+bireysel internet şubesi kapsam dışıdır. Günlük ortalama işlem sayısı 4,3 milyondur; yılbaşı ve
+kampanya dönemlerinde yoğunluk iki katına çıkar.</p>
+
+<h2>2. Genel mimari</h2>
+<p>Sistem beş güven bölgesine ayrılmıştır: İnternet (üye işyeri siteleri, POS terminalleri ve
+üye işyeri yetkilileri), DMZ (WAF ve Ödeme API Geçidi), Uygulama Bölgesi (Kubernetes üzerindeki
+servisler), Kart Veri Bölgesi (tokenizasyon ve HSM) ve Üçüncü Taraf (kart şemaları, kimlik
+doğrulama sağlayıcısı). Kart Veri Bölgesi'ne yalnızca Tokenizasyon Servisi üzerinden erişilir;
+diğer servisler açık kart numarasını görmez.</p>
+
+<h2>3. Bileşenler</h2>
+<table>
+  <tr><th>Bileşen</th><th>Açıklama</th><th>Teknoloji</th><th>Bölge</th></tr>
+  <tr><td>POS Terminali</td><td>Üye işyerindeki fiziksel cihaz; kart okur, PIN alır, işlemi platforma iletir.</td><td>Android POS, TLS istemcisi</td><td>İnternet (saha cihazı)</td></tr>
+  <tr><td>Sanal POS Arayüzü</td><td>E-ticaret sitelerinin ödeme sayfasını açtığı web bileşeni; kart bilgisi bu sayfada alınır.</td><td>JavaScript, Nginx</td><td>İnternet</td></tr>
+  <tr><td>WAF ve Ödeme API Geçidi</td><td>Tüm dış istekleri karşılar, TLS sonlandırır, üye işyeri kimliğini doğrular.</td><td>Kurumsal WAF, Kong</td><td>DMZ</td></tr>
+  <tr><td>Yetkilendirme Servisi</td><td>İşlemi doğrular, limit ve dolandırıcılık kontrolünü çağırır, kart şemasına iletir.</td><td>Java 17, Spring Boot</td><td>Uygulama</td></tr>
+  <tr><td>Tokenizasyon Servisi</td><td>Kart numarasını (PAN) token'a çevirir; şifreleme anahtarları HSM'de tutulur.</td><td>Java, HSM (PKCS#11)</td><td>Kart Veri</td></tr>
+  <tr><td>Dolandırıcılık Skor Servisi</td><td>Tutar, cihaz, üye işyeri ve saat bilgisine göre risk skoru üretir. Senkron HTTP çağrısı.</td><td>Python, FastAPI</td><td>Uygulama</td></tr>
+  <tr><td>Hak Ediş Servisi</td><td>Günlük işlemleri netleştirir, komisyonu düşer, üye işyeri IBAN'ına transfer talimatı oluşturur.</td><td>Java, Spring Batch</td><td>Uygulama</td></tr>
+  <tr><td>Üye İşyeri Portalı</td><td>Üye işyeri yetkililerinin işlemleri görüntülediği, iade başlattığı ve hak ediş raporu indirdiği web uygulaması.</td><td>React, Spring Boot</td><td>İnternet'e açık</td></tr>
+  <tr><td>Webhook Servisi</td><td>İşlem sonucunu üye işyerinin kendi sunucusuna HTTP POST ile bildirir.</td><td>Node.js</td><td>Uygulama</td></tr>
+  <tr><td>İşlem Veritabanı</td><td>İşlem kayıtları, token'lar, iade kayıtları, üye işyeri tanımları.</td><td>PostgreSQL 15 (TDE açık)</td><td>Veri</td></tr>
+  <tr><td>Raporlama Veri Ambarı</td><td>Analitik ekiplerin kullandığı, gecelik ETL ile beslenen kopya.</td><td>Snowflake</td><td>Veri</td></tr>
+  <tr><td>Operasyon Paneli</td><td>Banka operasyon ekibinin işlem arama, iade ve üye işyeri askıya alma işlemlerini yaptığı iç panel.</td><td>React, Spring Boot</td><td>Uygulama (yönetim)</td></tr>
+  <tr><td>Kart Şeması Bağlantısı</td><td>Visa ve Mastercard yetkilendirme ağlarına giden bağlantı.</td><td>ISO 8583, özel hat</td><td>Üçüncü Taraf</td></tr>
+  <tr><td>Merkezi Log Platformu</td><td>Uygulama ve denetim loglarının toplandığı platform.</td><td>ELK</td><td>Uygulama (yönetim)</td></tr>
+</table>
+
+<h2>4. Veri akışları</h2>
+<table>
+  <tr><th>No</th><th>Kaynak → Hedef</th><th>Protokol</th><th>Taşınan veri</th></tr>
+  <tr><td>A1</td><td>POS Terminali → WAF ve Ödeme API Geçidi</td><td>HTTPS (TLS 1.2)</td><td>Kart numarası, tutar, terminal kimliği</td></tr>
+  <tr><td>A2</td><td>Sanal POS Arayüzü → WAF ve Ödeme API Geçidi</td><td>HTTPS</td><td>Kart numarası, CVV, tutar, sipariş kimliği</td></tr>
+  <tr><td>A3</td><td>Ödeme API Geçidi → Yetkilendirme Servisi</td><td>HTTP</td><td>İşlem isteği, üye işyeri kimliği</td></tr>
+  <tr><td>A4</td><td>Yetkilendirme Servisi → Tokenizasyon Servisi</td><td>mTLS</td><td>Kart numarası (PAN)</td></tr>
+  <tr><td>A5</td><td>Yetkilendirme Servisi → Dolandırıcılık Skor Servisi</td><td>HTTP</td><td>Tutar, token, cihaz bilgisi</td></tr>
+  <tr><td>A6</td><td>Yetkilendirme Servisi → Kart Şeması Bağlantısı</td><td>ISO 8583 / özel hat</td><td>Yetkilendirme mesajı</td></tr>
+  <tr><td>A7</td><td>Webhook Servisi → Üye İşyeri Sunucusu</td><td>HTTPS</td><td>İşlem sonucu, sipariş kimliği, tutar</td></tr>
+  <tr><td>A8</td><td>Hak Ediş Servisi → Çekirdek Bankacılık</td><td>Kuyruk (MQ)</td><td>Üye işyeri IBAN'ı, tutar</td></tr>
+  <tr><td>A9</td><td>İşlem Veritabanı → Raporlama Veri Ambarı</td><td>Gecelik ETL</td><td>İşlem kayıtları, üye işyeri bilgileri, token</td></tr>
+  <tr><td>A10</td><td>Üye İşyeri Portalı → Ödeme API Geçidi</td><td>HTTPS</td><td>İade talebi, rapor isteği</td></tr>
+</table>
+
+<h2>5. Kimlik doğrulama ve yetkilendirme</h2>
+<p>Üye işyeri yetkilileri portala e-posta adresi ve parola ile giriş yapar. Portalda çok faktörlü
+doğrulama bulunmamaktadır; ilerleyen sürümlerde değerlendirilecektir. Operasyon Paneli'ne erişim
+kurumsal dizin (LDAP) üzerinden yapılır ve çok faktörlü doğrulama uygulanmaktadır. POS terminalleri
+platforma terminal sertifikası ile bağlanır. Sanal POS çağrılarında üye işyeri, işyeri numarası ve
+API anahtarı ile tanınır; API anahtarı üye işyeri kuruluşunda e-posta ile iletilmektedir. İade
+işlemi portalda tek bir yetkili tarafından onay gerekmeden başlatılabilir.</p>
+
+<h2>6. Veri saklama ve sınıflandırma</h2>
+<p>Kart numarası İşlem Veritabanı'nda açık olarak saklanmaz; yalnızca token ve kartın son dört
+hanesi tutulur. Şifreleme anahtarları HSM'de üretilir ve saklanır. Üye işyeri kuruluş kayıtlarında
+yetkili kişinin TCKN'si ve işyeri IBAN'ı bulunmaktadır. Raporlama Veri Ambarı'nda hangi alanların
+maskelendiği bu dokümanda belirtilmemiştir. İşlem kayıtları on yıl saklanmakta, bu sürenin sonunda
+silinmesi için tanımlanmış bir süreç bulunmamaktadır.</p>
+
+<h2>7. Üçüncü taraf entegrasyonları</h2>
+<p>Kart şemalarına bağlantı özel hat üzerinden yapılır. Webhook Servisi'nin üye işyeri sunucusuna
+gönderdiği bildirimler imzalanmamaktadır; üye işyeri bildirimin bankadan geldiğini yalnızca kaynak
+IP adresine bakarak doğrulayabilmektedir. Webhook hedef adresi üye işyeri tarafından portaldan
+serbestçe girilebilmekte, girilen adres için bir doğrulama yapılmamaktadır. Dolandırıcılık Skor
+Servisi'nin kesintisi hâlinde işlemler skor alınmadan onaylanmaya devam eder.</p>
+
+<h2>8. İzleme, loglama ve dayanıklılık</h2>
+<p>Uygulama logları Merkezi Log Platformu'nda toplanır. Ödeme API Geçidi'nde üye işyeri başına istek
+sınırlaması uygulanmamaktadır; kapasite planlaması altyapı tarafında yapılmaktadır. Yetkilendirme
+Servisi loglarında tam kart numarasının maskelenmesi ilerleyen dönemde planlanmaktadır. Operasyon
+Paneli'nde yapılan iade ve askıya alma işlemleri için ayrı bir denetim kaydı tutulmamaktadır.
+Sistem iki veri merkezinde aktif-aktif çalışır.</p>
+
+<h2>9. Açık konular</h2>
+<ul>
+  <li>Raporlama Veri Ambarı'ndaki kart ve kimlik alanlarının maskeleme politikası kararlaştırılmamıştır.</li>
+  <li>Üye işyeri portalında çok faktörlü doğrulamanın hangi sürümde devreye alınacağı netleşmemiştir.</li>
+  <li>Webhook imzalama yöntemi (HMAC veya mTLS) için değerlendirme sürmektedir.</li>
+  <li>POS terminallerindeki uygulama güncellemelerinin imzalanma süreci bu dokümanda tanımlanmamıştır.</li>
+</ul>
+
+</body>
+</html>
