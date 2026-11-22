@@ -3,9 +3,7 @@
 import { ScrollText } from "lucide-react";
 import * as React from "react";
 
-import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
@@ -16,6 +14,13 @@ const ACTION_LABEL: Record<string, string> = {
   run_created: "Analiz oluşturuldu",
   run_resumed: "Analize devam edildi",
   run_cancelled: "Analiz iptal edildi",
+  step_retried: "Adım yeniden çalıştırıldı",
+  system_model_edited: "Sistem modeli düzenlendi",
+  threat_accept: "Tehdit kabul edildi",
+  threat_reject: "Tehdit reddedildi",
+  threat_false_positive: "Yanlış pozitif işaretlendi",
+  threat_edit: "Tehdit seviyesi değiştirildi",
+  threat_reset: "Karar geri alındı",
 };
 
 const ROLE_LABEL: Record<string, string> = {
@@ -24,6 +29,7 @@ const ROLE_LABEL: Record<string, string> = {
   system: "Sistem",
 };
 
+/** Each entry is one line: who, when, what, and why if a reason was given. */
 export default function AuditPage() {
   const [entries, setEntries] = React.useState<AuditEntry[] | null>(null);
   const [filter, setFilter] = React.useState("");
@@ -35,79 +41,87 @@ export default function AuditPage() {
   const rows = (entries ?? []).filter((entry) => {
     if (!filter.trim()) return true;
     const needle = filter.toLocaleLowerCase("tr");
-    return (
-      entry.actor.toLocaleLowerCase("tr").includes(needle) ||
-      entry.action.toLocaleLowerCase("tr").includes(needle) ||
-      (ACTION_LABEL[entry.action] ?? "").toLocaleLowerCase("tr").includes(needle)
-    );
+    return [
+      entry.actor,
+      entry.action,
+      ACTION_LABEL[entry.action] ?? "",
+      entry.reason ?? "",
+      JSON.stringify(entry.new_value ?? {}),
+    ]
+      .join(" ")
+      .toLocaleLowerCase("tr")
+      .includes(needle);
   });
 
   return (
-    <>
-      <PageHeader
-        title="Denetim izi"
-        description="Kim, ne zaman, neyi değiştirdi."
-      />
-
-      <input
-        value={filter}
-        onChange={(event) => setFilter(event.target.value)}
-        placeholder="Kullanıcı veya işlem ara"
-        aria-label="Denetim izinde ara"
-        className="h-9 w-full max-w-sm rounded-md border border-input bg-surface px-3 text-sm"
-      />
+    <div className="mx-auto w-full max-w-4xl space-y-4 py-2">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Denetim izi</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Kim, ne zaman, neyi değiştirdi.
+          </p>
+        </div>
+        <input
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+          placeholder="Kullanıcı, işlem veya gerekçe ara"
+          aria-label="Denetim izinde ara"
+          className="h-9 w-full max-w-xs rounded-md border border-input bg-surface px-3 text-sm"
+        />
+      </div>
 
       {entries === null ? (
-        <SkeletonRows rows={5} />
+        <SkeletonRows rows={6} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={ScrollText}
-          title="Denetim kaydı yok"
-          description="Bir analiz başlattığınızda ya da bir tehdit kararı verdiğinizde kayıtlar burada görünür."
+          title={filter ? "Eşleşen kayıt yok" : "Denetim kaydı yok"}
+          description={
+            filter
+              ? "Aramayı değiştirin."
+              : "Analiz başlattığınızda ya da bir tehdit kararı verdiğinizde kayıtlar burada görünür."
+          }
         />
       ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border bg-surface-muted text-left text-xs text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Zaman</th>
-                  <th className="px-4 py-2.5 font-medium">Kullanıcı</th>
-                  <th className="px-4 py-2.5 font-medium">Rol</th>
-                  <th className="px-4 py-2.5 font-medium">İşlem</th>
-                  <th className="px-4 py-2.5 font-medium">Nesne</th>
-                  <th className="px-4 py-2.5 font-medium">Yeni değer</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((entry) => (
-                  <tr key={entry.id} className="border-b border-border last:border-0">
-                    <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
-                      {formatDateTime(entry.at)}
-                    </td>
-                    <td className="px-4 py-2.5">{entry.actor}</td>
-                    <td className="px-4 py-2.5">
-                      <Badge variant="outline">
-                        {ROLE_LABEL[entry.actor_role] ?? entry.actor_role}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      {ACTION_LABEL[entry.action] ?? entry.action}
-                    </td>
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground">
-                      {entry.object_type}
-                      {entry.object_id ? ` · ${entry.object_id.slice(0, 8)}` : ""}
-                    </td>
-                    <td className="max-w-xs truncate px-4 py-2.5 font-mono text-[11px] text-muted-foreground">
-                      {entry.new_value ? JSON.stringify(entry.new_value) : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <>
+          <p className="text-xs text-muted-foreground">
+            {rows.length} kayıt · kayıtlar yalnızca eklenir, değiştirilmez
+          </p>
+          <ul className="space-y-1">
+            {rows.map((entry) => (
+              <li
+                key={entry.id}
+                className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+              >
+                <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                  {formatDateTime(entry.at)}
+                </span>
+                <span className="font-medium">
+                  {ACTION_LABEL[entry.action] ?? entry.action}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {entry.actor}
+                </span>
+                <Badge variant="outline">
+                  {ROLE_LABEL[entry.actor_role] ?? entry.actor_role}
+                </Badge>
+                {entry.reason ? (
+                  <span className="w-full text-xs text-muted-foreground">
+                    Gerekçe: {entry.reason}
+                  </span>
+                ) : null}
+                {!entry.reason &&
+                typeof entry.new_value?.title === "string" ? (
+                  <span className="w-full truncate text-xs text-muted-foreground">
+                    {entry.new_value.title as string}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
-    </>
+    </div>
   );
 }

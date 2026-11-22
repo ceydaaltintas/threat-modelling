@@ -1,21 +1,13 @@
 "use client";
 
-import { FileUp, Play, Sparkles, UploadCloud } from "lucide-react";
+import { FileText, Loader2, Play, UploadCloud, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { PageHeader } from "@/components/layout/page-header";
 import { useMeta } from "@/components/providers/meta-provider";
 import { useRole } from "@/components/providers/role-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
@@ -24,36 +16,36 @@ import { cn } from "@/lib/utils";
 
 const ACCEPTED = ".pdf,.docx,.md,.txt,.png,.jpg,.jpeg";
 
+/**
+ * Starting an analysis is one action: give it a document.
+ *
+ * The bundled sample documents are a demo aid, not part of the product, so
+ * they sit behind a quiet link instead of taking half the screen.
+ */
 export default function NewAnalysisPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { meta } = useMeta();
   const { readOnly } = useRole();
 
-  const [samples, setSamples] = React.useState<SampleScenario[] | null>(null);
-  const [selectedSample, setSelectedSample] = React.useState<string | null>(null);
   const [files, setFiles] = React.useState<File[]>([]);
   const [dragging, setDragging] = React.useState(false);
   const [autoContinue, setAutoContinue] = React.useState(false);
   const [starting, setStarting] = React.useState(false);
 
-  React.useEffect(() => {
-    api
-      .samples()
-      .then(setSamples)
-      .catch((err: Error) =>
-        toast({ title: "Örnek senaryolar yüklenemedi", description: err.message, tone: "error" }),
-      );
-  }, [toast]);
+  const [showSamples, setShowSamples] = React.useState(false);
+  const [samples, setSamples] = React.useState<SampleScenario[] | null>(null);
+  const [selectedSample, setSelectedSample] = React.useState<string | null>(null);
 
-  const onDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragging(false);
-    const dropped = Array.from(event.dataTransfer.files);
-    if (dropped.length > 0) {
-      setFiles(dropped);
-      setSelectedSample(null);
-    }
+  React.useEffect(() => {
+    if (!showSamples || samples) return;
+    api.samples().then(setSamples).catch(() => setSamples([]));
+  }, [showSamples, samples]);
+
+  const addFiles = (incoming: File[]) => {
+    if (incoming.length === 0) return;
+    setFiles((current) => [...current, ...incoming]);
+    setSelectedSample(null);
   };
 
   const start = async () => {
@@ -79,203 +71,215 @@ export default function NewAnalysisPage() {
     }
   };
 
-  const canStart = (selectedSample !== null || files.length > 0) && !readOnly;
+  const chosenSample = samples?.find((item) => item.key === selectedSample);
+  const canStart = (files.length > 0 || selectedSample !== null) && !readOnly;
 
   return (
-    <>
-      <PageHeader
-        title="Yeni analiz"
-        description="Doküman yükleyin veya örnek senaryo seçin."
-      />
+    <div className="mx-auto w-full max-w-3xl space-y-5 py-2">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Yeni analiz</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Mimari dokümanı yükleyin; sistem modelini çıkarıp tehditleri üretelim.
+        </p>
+      </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1.1fr_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Doküman yükle</CardTitle>
-            <CardDescription>
-              PDF, DOCX, MD, TXT, PNG/JPG · çoklu dosya
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div
-              onDragOver={(event) => {
-                event.preventDefault();
-                setDragging(true);
-              }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={onDrop}
-              className={cn(
-                "flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors",
-                dragging
-                  ? "border-accent bg-accent-subtle"
-                  : "border-border bg-surface-muted",
-              )}
+      <div
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragging(false);
+          addFiles(Array.from(event.dataTransfer.files));
+        }}
+        className={cn(
+          "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-14 text-center transition-colors",
+          dragging
+            ? "border-accent bg-accent-subtle"
+            : "border-border bg-surface hover:border-accent/40",
+        )}
+      >
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted">
+          <UploadCloud className="h-6 w-6 text-accent" aria-hidden />
+        </span>
+        <div>
+          <p className="text-sm font-medium">
+            Dokümanı buraya sürükleyip bırakın
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            PDF, DOCX, MD, TXT, PNG veya JPG · birden fazla dosya olabilir
+          </p>
+        </div>
+        <label className="cursor-pointer">
+          <span className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-surface px-4 text-sm font-medium hover:bg-surface-muted">
+            Dosya seç
+          </span>
+          <input
+            type="file"
+            multiple
+            accept={ACCEPTED}
+            className="sr-only"
+            onChange={(event) => addFiles(Array.from(event.target.files ?? []))}
+          />
+        </label>
+      </div>
+
+      {files.length > 0 ? (
+        <ul className="space-y-1.5">
+          {files.map((file, index) => (
+            <li
+              key={`${file.name}-${index}`}
+              className="flex items-center gap-2.5 rounded-md border border-border bg-surface px-3 py-2"
             >
-              <UploadCloud className="h-7 w-7 text-muted-foreground" aria-hidden />
-              <p className="text-sm font-medium">
-                Dosyaları buraya sürükleyip bırakın
-              </p>
-              <p className="text-xs text-muted-foreground">veya</p>
-              <label className="cursor-pointer">
-                <span className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-surface px-4 text-sm hover:bg-surface-muted">
-                  <FileUp className="h-4 w-4" aria-hidden /> Dosya seç
-                </span>
-                <input
-                  type="file"
-                  multiple
-                  accept={ACCEPTED}
-                  className="sr-only"
-                  onChange={(event) => {
-                    const picked = Array.from(event.target.files ?? []);
-                    if (picked.length > 0) {
-                      setFiles(picked);
-                      setSelectedSample(null);
-                    }
-                  }}
-                />
-              </label>
-            </div>
+              <FileText className="h-4 w-4 shrink-0 text-accent" aria-hidden />
+              <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {formatBytes(file.size)}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setFiles((current) => current.filter((_, i) => i !== index))
+                }
+                aria-label={`${file.name} dosyasını kaldır`}
+                className="rounded p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
-            {files.length > 0 ? (
-              <ul className="space-y-1.5 text-sm">
-                {files.map((file) => (
-                  <li
-                    key={file.name}
-                    className="flex items-center justify-between rounded-md border border-border px-3 py-2"
-                  >
-                    <span className="truncate">{file.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatBytes(file.size)}
-                    </span>
+      {chosenSample ? (
+        <div className="flex items-center gap-2.5 rounded-md border border-accent/40 bg-accent-subtle px-3 py-2">
+          <FileText className="h-4 w-4 shrink-0 text-accent" aria-hidden />
+          <span className="min-w-0 flex-1 truncate text-sm">
+            {chosenSample.title}
+            <span className="ml-2 text-xs text-muted-foreground">
+              örnek doküman
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectedSample(null)}
+            aria-label="Örnek dokümanı kaldır"
+            className="rounded p-1 text-muted-foreground hover:bg-surface hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={autoContinue}
+            onChange={(event) => setAutoContinue(event.target.checked)}
+            className="h-4 w-4 rounded border-input"
+          />
+          Model onayını atla, baştan sona çalıştır
+        </label>
+
+        <Button onClick={start} disabled={!canStart || starting} size="lg">
+          {starting ? (
+            <Loader2 className="animate-spin" aria-hidden />
+          ) : (
+            <Play aria-hidden />
+          )}
+          {starting ? "Başlatılıyor…" : "Analizi başlat"}
+        </Button>
+      </div>
+
+      {readOnly ? (
+        <p className="text-xs text-muted-foreground">
+          Yönetici rolü salt okunurdur; analiz başlatmak için Güvenlik Uzmanı
+          rolüne geçin.
+        </p>
+      ) : null}
+
+      {/* Demo aid, kept out of the way. */}
+      <div className="border-t border-border pt-3 text-center">
+        {showSamples ? (
+          <div className="space-y-2 text-left">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium">Örnek doküman seç</p>
+              <button
+                type="button"
+                onClick={() => setShowSamples(false)}
+                className="text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                Kapat
+              </button>
+            </div>
+            {samples === null ? (
+              <p className="text-xs text-muted-foreground">Yükleniyor…</p>
+            ) : (
+              <ul className="grid gap-1.5 sm:grid-cols-3">
+                {samples.map((sample) => (
+                  <li key={sample.key}>
+                    <button
+                      type="button"
+                      disabled={!sample.available}
+                      onClick={() => {
+                        setSelectedSample(sample.key);
+                        setFiles([]);
+                        setShowSamples(false);
+                      }}
+                      className={cn(
+                        "w-full rounded-md border border-border p-2 text-left text-xs hover:border-accent/50 hover:bg-surface-muted disabled:opacity-40",
+                        selectedSample === sample.key &&
+                          "border-accent bg-accent-subtle",
+                      )}
+                    >
+                      <span className="block truncate font-medium">
+                        {sample.title}
+                      </span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        {sample.focus}
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>
-            ) : null}
-
-            <p className="rounded-md bg-surface-muted p-3 text-xs text-muted-foreground">
-              Yüklenen dosyalardan metin çıkarılır ve sistem modeli LLM ile
-              oluşturulur. Dosyalar yalnızca bu bilgisayarda saklanır; gerçek
-              banka verisi yüklemeyin.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Örnek senaryo seç</CardTitle>
-            <CardDescription>
-              Üç kurgusal banka dokümanı. Gerçek banka verisi içermezler.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {samples === null ? (
-              <p className="text-sm text-muted-foreground">Yükleniyor…</p>
-            ) : (
-              samples.map((sample) => {
-                const active = selectedSample === sample.key;
-                return (
-                  <button
-                    key={sample.key}
-                    type="button"
-                    onClick={() => {
-                      setSelectedSample(sample.key);
-                      setFiles([]);
-                    }}
-                    aria-pressed={active}
-                    className={cn(
-                      "w-full rounded-lg border p-3 text-left transition-colors",
-                      active
-                        ? "border-accent bg-accent-subtle"
-                        : "border-border hover:bg-surface-muted",
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium">{sample.title}</p>
-                      <Badge variant="outline">{sample.doc_code}</Badge>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {sample.summary}
-                    </p>
-                    <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <Sparkles className="h-3 w-3" aria-hidden />
-                      Vurgu: {sample.focus}
-                      {sample.available ? (
-                        <span>· {formatBytes(sample.size_bytes)}</span>
-                      ) : (
-                        <span className="text-level-critical">
-                          · dosya bulunamadı
-                        </span>
-                      )}
-                    </p>
-                  </button>
-                );
-              })
             )}
-          </CardContent>
-        </Card>
+            <p className="text-[11px] text-muted-foreground">
+              Bu dokümanlar kurgusaldır; gerçek banka verisi içermezler.
+            </p>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowSamples(true)}
+            className="text-xs text-muted-foreground underline-offset-4 hover:text-accent hover:underline"
+          >
+            Elinizde doküman yok mu? Demo için örnek doküman kullanın
+          </button>
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ayar özeti</CardTitle>
-          <CardDescription>
-            Bu değerler ortam değişkenlerinden okunur; API anahtarı hiçbir ekranda
-            gösterilmez.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <dl className="grid gap-4 text-sm sm:grid-cols-4">
-            <div>
-              <dt className="text-xs text-muted-foreground">LLM sağlayıcı</dt>
-              <dd>{meta?.llm_provider ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Model</dt>
-              <dd>{meta?.llm_model || "README'den seçilecek"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">API anahtarı</dt>
-              <dd>
-                {meta?.llm_configured ? (
-                  <Badge variant="success">Tanımlı</Badge>
-                ) : (
-                  <Badge variant="warning">Tanımsız</Badge>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Kayıtlı çıktı modu</dt>
-              <dd>{meta?.demo_replay ?? "—"}</dd>
-            </div>
-          </dl>
+      {meta && !meta.llm_configured ? (
+        <p className="rounded-md border border-level-high/40 bg-level-high/10 p-2.5 text-xs">
+          LLM anahtarı tanımlı değil. Sistem modeli çıkarımı (2. adım) bu
+          durumda hata verecek; Ayarlar ekranına bakın.
+        </p>
+      ) : null}
 
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={autoContinue}
-              onChange={(event) => setAutoContinue(event.target.checked)}
-              className="h-4 w-4 rounded border-input"
-            />
-            Otomatik devam (model onayı duraklamasını atla)
-          </label>
-
-          <div className="flex items-center gap-3">
-            <Button onClick={start} disabled={!canStart || starting} size="lg">
-              <Play aria-hidden /> {starting ? "Başlatılıyor…" : "Analizi başlat"}
-            </Button>
-            {readOnly ? (
-              <p className="text-xs text-muted-foreground">
-                Yönetici rolü salt okunurdur; analiz başlatmak için Güvenlik Uzmanı
-                rolüne geçin.
-              </p>
-            ) : !canStart ? (
-              <p className="text-xs text-muted-foreground">
-                Devam etmek için bir dosya yükleyin veya örnek senaryo seçin.
-              </p>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
-    </>
+      {files.length > 0 || selectedSample ? (
+        <p className="text-center text-[11px] text-muted-foreground">
+          Dosyalar yalnızca bu bilgisayarda saklanır. Ücretsiz LLM
+          katmanlarında gerçek müşteri verisi kullanmayın.
+          {meta?.llm_model ? (
+            <>
+              {" "}
+              Model: <Badge variant="default">{meta.llm_model}</Badge>
+            </>
+          ) : null}
+        </p>
+      ) : null}
+    </div>
   );
 }
