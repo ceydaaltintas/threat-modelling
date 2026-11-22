@@ -59,7 +59,7 @@ export default function DashboardPage() {
     <>
       <PageHeader
         title="Özet panosu"
-        description="Tamamlanan bir analizin tehdit dağılımı, risk ısı haritası ve en kritik bulguları."
+        description="Bir analizin özeti."
         actions={
           runs.length > 0 ? (
             <select

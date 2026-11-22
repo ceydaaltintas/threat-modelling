@@ -24,7 +24,7 @@ export function EventLog({
   events: ProgressEvent[];
   connected: boolean;
 }) {
-  const [open, setOpen] = React.useState(true);
+  const [open, setOpen] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   // Scroll the log itself, not the page: scrollIntoView would drag the whole
@@ -36,7 +36,7 @@ export function EventLog({
 
   return (
     <section className="rounded-lg border border-border bg-surface">
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3 px-4 py-2">
         <div className="flex items-center gap-2">
           <Radio
             className={cn(
@@ -45,12 +45,9 @@ export function EventLog({
             )}
             aria-hidden
           />
-          <h2 className="text-sm font-medium">Canlı olay günlüğü</h2>
-          <Badge variant={connected ? "success" : "default"}>
-            {connected ? "Bağlı (SSE)" : "Bağlantı bekleniyor"}
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            {events.length} olay
+          <h2 className="text-xs font-medium">Olay günlüğü</h2>
+          <span className="text-[11px] text-muted-foreground">
+            {events.length} olay{connected ? "" : " · bağlantı bekleniyor"}
           </span>
         </div>
         <button
@@ -61,11 +58,11 @@ export function EventLog({
         >
           {open ? (
             <>
-              Daralt <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+              Gizle <ChevronDown className="h-3.5 w-3.5" aria-hidden />
             </>
           ) : (
             <>
-              Genişlet <ChevronUp className="h-3.5 w-3.5" aria-hidden />
+              Göster <ChevronUp className="h-3.5 w-3.5" aria-hidden />
             </>
           )}
         </button>

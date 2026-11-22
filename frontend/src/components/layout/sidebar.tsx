@@ -82,38 +82,28 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
+              title={item.hint}
               className={cn(
-                "flex items-start gap-2.5 rounded-md px-2.5 py-2 transition-colors",
+                "flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors",
                 active
                   ? "bg-accent-subtle text-accent"
                   : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
               )}
             >
-              <item.icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-              <span className="min-w-0">
-                <span
-                  className={cn(
-                    "block text-sm leading-tight",
-                    active && "font-medium",
-                  )}
-                >
-                  {item.label}
-                </span>
-                <span className="block text-[11px] leading-tight opacity-70">
-                  {item.hint}
-                </span>
+              <item.icon className="h-4 w-4 shrink-0" aria-hidden />
+              <span className={cn("text-sm", active && "font-medium")}>
+                {item.label}
               </span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
+      <div className="border-t border-border px-5 py-2.5 text-[11px] text-muted-foreground">
         <p className="flex items-center gap-1.5">
-          <FileSearch className="h-3.5 w-3.5" aria-hidden />
-          Sürüm {meta?.version ?? "—"}
+          <FileSearch className="h-3 w-3" aria-hidden />
+          Örnek Banka A.Ş. · demo · {meta?.version ?? "—"}
         </p>
-        <p className="mt-1">Örnek Banka A.Ş. · Demo</p>
       </div>
     </aside>
   );

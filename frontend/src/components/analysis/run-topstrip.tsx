@@ -66,34 +66,43 @@ export function RunTopStrip({
           <h1 className="truncate text-base font-semibold">{projectName}</h1>
           <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
         </div>
-        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-          {run?.id ?? "—"}
+        <p
+          className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground/70"
+          title={run?.id ?? ""}
+        >
+          {run?.id ? `${run.id.slice(0, 8)}…` : "—"}
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <span
+          className="flex items-center gap-1.5"
+          title="Analizin başlangıcından bu yana geçen süre"
+        >
           <Timer className="h-3.5 w-3.5" aria-hidden />
-          Geçen süre: <strong className="text-foreground">{formatDuration(elapsed)}</strong>
+          <strong className="text-foreground">{formatDuration(elapsed)}</strong>
         </span>
-        <span className="flex items-center gap-1.5">
+        <span
+          className="flex items-center gap-1.5"
+          title={`${formatNumber(llm.calls)} LLM çağrısı, ${formatNumber(llm.tokens)} token`}
+        >
           <Cpu className="h-3.5 w-3.5" aria-hidden />
-          LLM çağrısı: <strong className="text-foreground">{formatNumber(llm.calls)}</strong>
+          <strong className="text-foreground">{formatNumber(llm.calls)}</strong>
+          <span>çağrı</span>
         </span>
-        <span className="flex items-center gap-1.5">
-          <Database className="h-3.5 w-3.5" aria-hidden />
-          Token: <strong className="text-foreground">{formatNumber(llm.tokens)}</strong>
-        </span>
-        {llm.cached > 0 || llm.replay ? (
-          <Badge variant="accent">Önbellekten ({llm.cached})</Badge>
+        {llm.cached > 0 ? (
+          <Badge variant="accent" title="Yanıt kayıttan geldi, yeni çağrı yapılmadı">
+            {llm.cached} önbellekten
+          </Badge>
         ) : null}
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={onRestart}
           disabled={busy || readOnly}
+          title="Analizi baştan çalıştır"
         >
-          <RotateCcw aria-hidden /> Yeniden çalıştır
+          <RotateCcw aria-hidden /> Yeniden
         </Button>
       </div>
     </div>

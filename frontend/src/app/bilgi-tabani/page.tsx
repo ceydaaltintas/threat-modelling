@@ -55,7 +55,7 @@ export default function KnowledgeBasePage() {
     <>
       <PageHeader
         title="Bilgi tabanı"
-        description="Tehdit ve önlem üretiminde kullanılan kaynaklar. Her bilgi kimliğiyle ve atfıyla gösterilir."
+        description="Tehdit ve önlem üretiminde kullanılan kaynaklar."
       />
 
       <div className="grid gap-4 sm:grid-cols-4">

@@ -38,7 +38,7 @@ export default function ProjectsPage() {
     <>
       <PageHeader
         title="Projeler"
-        description="Her proje, bir mimari dokümandan üretilmiş bir tehdit modeli analizidir."
+        description="Her satır bir mimari dokümandan üretilmiş analizdir."
         actions={
           <Link href="/analiz/yeni">
             <Button>

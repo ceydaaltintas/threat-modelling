@@ -1,129 +1,22 @@
 "use client";
 
-import {
-  BookOpen,
-  CircleCheck,
-  FileText,
-  Hammer,
-  ListChecks,
-  Network,
-  RefreshCw,
-  ShieldCheck,
-  Sigma,
-  UserCheck,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { ChevronDown, Info, ListChecks, RefreshCw } from "lucide-react";
 import * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatDateTime } from "@/lib/format";
-import type { Performer, RunStep, StepInfo } from "@/lib/types";
-
-// Turkish locative suffix for a phase number: 1'de, 3'te, 4'te, 5'te...
-// The ending follows the number's spelling (üç, dört, beş end voiceless).
-const LOCATIVE: Record<number, string> = {
-  0: "'da",
-  1: "'de",
-  2: "'de",
-  3: "'te",
-  4: "'te",
-  5: "'te",
-};
-
-function phaseIn(phase: number): string {
-  return `Aşama ${phase}${LOCATIVE[phase] ?? "'de"}`;
-}
-
-const PERFORMER_LABEL: Record<Performer, string> = {
-  code: "Sistem hesabı",
-  llm: "AI önerisi",
-  "code+llm": "Kod + AI",
-  human: "Uzman onayı",
-};
-
-const STEP_ICON: Record<number, LucideIcon> = {
-  1: FileText,
-  2: Network,
-  3: BookOpen,
-  4: Hammer,
-  5: ShieldCheck,
-  6: Sigma,
-  7: ListChecks,
-  8: UserCheck,
-  9: CircleCheck,
-};
+import { elapsedBetween, formatDateTime, formatDuration } from "@/lib/format";
+import type { RunStep, StepInfo } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 /**
- * What each panel will contain once the matching phase is implemented.
- * Shown verbatim in phase 0 so nobody mistakes the shell for finished work.
+ * The header above a step's output.
+ *
+ * Deliberately one line plus chips: the long explanation of what the step
+ * does is behind a disclosure, because it is read once and then never
+ * again, while the output below is read every time.
  */
-const PANEL_PLAN: Record<number, { phase: number; contents: string[] }> = {
-  1: {
-    phase: 1,
-    contents: [
-      "Doküman önizlemesi ve sayfa gezgini",
-      "Çıkarılan metin uzunluğu ve tespit edilen bölümler",
-    ],
-  },
-  2: {
-    phase: 1,
-    contents: [
-      "DFD diyagramı (güven bölgeleri, bileşen ikonları, şifresiz akışlar kesikli)",
-      "Düzenlenebilir bileşen ve akış tabloları",
-      "“Dokümanda belirtilmemiş” ve “Varsayımlar” listeleri",
-      "Öğeye tıklandığında kanıt alıntısı",
-    ],
-  },
-  3: {
-    phase: 2,
-    contents: [
-      "Bileşen başına getirilen bilgi kaynakları (kimlik, başlık, skor)",
-    ],
-  },
-  4: {
-    phase: 2,
-    contents: [
-      "Tehdit tablosu (seviye, STRIDE, kaynak türü, doğrulama durumu)",
-      "Filtre çubuğu ve satır çekmecesi",
-    ],
-  },
-  5: {
-    phase: 3,
-    contents: ["Doğrulama notları ve işaretlenen tehditler"],
-  },
-  6: {
-    phase: 3,
-    contents: [
-      "Risk kırılımı (olasılık/etki düzeltmeleri sayısal olarak)",
-      "AI önerisi / Sistem hesabı karşılaştırması",
-    ],
-  },
-  7: {
-    phase: 3,
-    contents: ["Önlem metinleri ve kontrol eşlemeleri (ISO, NIST, ASVS)"],
-  },
-  8: {
-    phase: 4,
-    contents: [
-      "Kabul / reddet / düzenle / yanlış pozitif ve toplu işlem çubuğu",
-      "Seviye değişikliği için zorunlu gerekçe",
-    ],
-  },
-  9: {
-    phase: 4,
-    contents: ["Rapor önizlemesi ve PDF / Excel / JSON indirme"],
-  },
-};
-
 export function StepDetail({
   definition,
   step,
@@ -133,7 +26,6 @@ export function StepDetail({
   onRetry,
   busy,
   readOnly,
-  buildPhase,
   content,
 }: {
   definition: StepInfo | null;
@@ -144,23 +36,25 @@ export function StepDetail({
   onRetry: () => void;
   busy: boolean;
   readOnly: boolean;
-  buildPhase: number;
-  /** The step's real output panel, when that step is implemented. */
   content?: React.ReactNode;
 }) {
+  const [open, setOpen] = React.useState(false);
+
   if (!definition) {
     return (
       <EmptyState
         icon={ListChecks}
         title="Adım seçilmedi"
-        description="Soldaki adım göstergesinden bir adıma tıklayın; o adımın çıktısı burada görünür."
+        description="Yukarıdan bir adıma tıklayın."
       />
     );
   }
 
-  const Icon = STEP_ICON[definition.no] ?? ListChecks;
-  const plan = PANEL_PLAN[definition.no];
-  const counters = Object.entries(step?.counters ?? {});
+  const counters = Object.entries(step?.counters ?? {}).filter(
+    ([, value]) => typeof value === "number",
+  );
+  const duration = elapsedBetween(step?.started_at, step?.finished_at);
+  const failed = step?.status === "failed";
 
   const resumeLabel =
     pauseReason === "expert_review"
@@ -169,112 +63,100 @@ export function StepDetail({
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-md bg-accent-subtle text-accent">
-                <Icon className="h-4 w-4" aria-hidden />
-              </span>
-              <div>
-                <CardTitle>
-                  {definition.no}. {definition.name}
-                </CardTitle>
-                <CardDescription className="mt-1 max-w-2xl">
-                  {definition.description}
-                </CardDescription>
-              </div>
-            </div>
-            <Badge variant="outline">{PERFORMER_LABEL[definition.performer]}</Badge>
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h2 className="text-base font-semibold">
+            <span className="text-muted-foreground">{definition.no}.</span>{" "}
+            {definition.name}
+          </h2>
+          {duration !== null && step?.status === "done" ? (
+            <span className="text-[11px] text-muted-foreground">
+              {formatDuration(duration)}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            className="flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-accent"
+          >
+            Ne yapar?
+            <ChevronDown
+              className={cn("h-3 w-3 transition-transform", open && "rotate-180")}
+              aria-hidden
+            />
+          </button>
+        </div>
+
+        {counters.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {counters.map(([key, value]) => (
+              <Badge key={key} variant="default">
+                <span className="font-semibold tabular-nums">{value}</span>{" "}
+                {definition.counter_labels[key] ?? key}
+              </Badge>
+            ))}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <dl className="grid gap-3 text-sm sm:grid-cols-3">
-            <div>
-              <dt className="text-xs text-muted-foreground">Başlangıç</dt>
-              <dd>{formatDateTime(step?.started_at)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Bitiş</dt>
-              <dd>{formatDateTime(step?.finished_at)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Son mesaj</dt>
-              <dd className="hyphenate">{step?.message ?? "—"}</dd>
-            </div>
-          </dl>
+        ) : null}
 
-          {counters.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {counters.map(([key, value]) => (
-                <Badge key={key} variant="accent">
-                  {value} {definition.counter_labels[key] ?? key}
-                </Badge>
-              ))}
-            </div>
-          ) : null}
+        {open ? (
+          <div className="rounded-md border border-border bg-surface-muted p-3 text-xs text-muted-foreground">
+            <p>{definition.description}</p>
+            <p className="mt-1.5">
+              Başlangıç: {formatDateTime(step?.started_at)} · Bitiş:{" "}
+              {formatDateTime(step?.finished_at)} · Yapan:{" "}
+              {
+                {
+                  code: "Sistem (kod)",
+                  llm: "Yapay zekâ",
+                  "code+llm": "Kod ve yapay zekâ",
+                  human: "Güvenlik uzmanı",
+                }[definition.performer]
+              }
+            </p>
+          </div>
+        ) : null}
+      </div>
 
-          {step?.status === "failed" ? (
-            <div className="space-y-2 rounded-md border border-level-critical/40 bg-level-critical/10 p-3 text-sm">
-              <p className="font-medium text-level-critical">
-                Bu adım hata ile durdu.
-              </p>
-              <p className="text-muted-foreground">
-                {step.message ?? "Ayrıntı için olay günlüğüne bakın."}
-              </p>
-              <Button variant="outline" size="sm" onClick={onRetry} disabled={readOnly}>
-                <RefreshCw aria-hidden /> Bu adımı yeniden dene
-              </Button>
-            </div>
-          ) : null}
-
-          {paused ? (
-            <div className="space-y-2 rounded-md border border-level-high/40 bg-level-high/10 p-3 text-sm">
-              <p className="font-medium">Bu adım sizi bekliyor.</p>
-              <p className="text-muted-foreground">
-                {pauseReason === "expert_review"
-                  ? "Tehditleri inceleyip kararınızı verdikten sonra analize devam edin."
-                  : "Sistem modelini inceleyin, gerekiyorsa düzenleyin ve devam edin."}
-              </p>
-              <Button onClick={onResume} disabled={busy || readOnly}>
-                {resumeLabel}
-              </Button>
-              {readOnly ? (
-                <p className="text-xs text-muted-foreground">
-                  Yönetici rolü salt okunurdur; devam etmek için Güvenlik Uzmanı
-                  rolüne geçin.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      {content ?? null}
-
-      {content === undefined && plan && buildPhase < plan.phase ? (
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle className="text-sm">
-              Bu panel {phaseIn(plan.phase)} dolacak
-            </CardTitle>
-            <CardDescription>
-              Bu adımın akışı, süresi ve olay günlüğü gerçektir; çıktısı henüz
-              örnek veridir.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-1.5 text-sm text-muted-foreground">
-              {plan.contents.map((item) => (
-                <li key={item} className="flex gap-2">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+      {failed ? (
+        <div className="space-y-2 rounded-md border border-level-critical/40 bg-level-critical/10 p-3">
+          <p className="text-sm font-medium text-level-critical">
+            Bu adım hata ile durdu
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {step?.message ?? "Ayrıntı için olay günlüğüne bakın."}
+          </p>
+          <Button variant="outline" size="sm" onClick={onRetry} disabled={readOnly}>
+            <RefreshCw aria-hidden /> Bu adımı yeniden dene
+          </Button>
+        </div>
       ) : null}
+
+      {paused ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-level-high/40 bg-level-high/10 p-3">
+          <p className="min-w-0 flex-1 text-sm">
+            {pauseReason === "expert_review"
+              ? "Tehditleri inceleyin, sonra devam edin."
+              : "Sistem modelini inceleyin, gerekiyorsa düzenleyin."}
+          </p>
+          <Button onClick={onResume} disabled={busy || readOnly}>
+            {resumeLabel}
+          </Button>
+          {readOnly ? (
+            <p className="w-full text-[11px] text-muted-foreground">
+              Yönetici rolü salt okunurdur; devam etmek için Güvenlik Uzmanı
+              rolüne geçin.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {content ?? (
+        <p className="flex items-center gap-2 rounded-md border border-dashed border-border p-4 text-xs text-muted-foreground">
+          <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Bu adım tamamlandığında çıktısı burada görünecek.
+        </p>
+      )}
     </div>
   );
 }

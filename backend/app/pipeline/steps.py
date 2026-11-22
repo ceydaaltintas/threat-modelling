@@ -85,9 +85,10 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
         ),
         performer="code+llm",
         counter_labels={
-            "rule_threats": "kuraldan",
-            "llm_threats": "LLM'den",
             "threats": "tehdit",
+            "rule_threats": "kuraldan",
+            "llm_threats": "AI'dan",
+            "merged": "birleştirilmiş",
         },
     ),
     StepDefinition(

@@ -46,7 +46,7 @@ export default function AuditPage() {
     <>
       <PageHeader
         title="Denetim izi"
-        description="Kim, ne zaman, neyi değiştirdi. Kayıtlar eklenir; hiçbir zaman güncellenmez veya silinmez."
+        description="Kim, ne zaman, neyi değiştirdi."
       />
 
       <input

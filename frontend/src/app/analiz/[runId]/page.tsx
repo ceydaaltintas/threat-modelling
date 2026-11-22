@@ -16,7 +16,7 @@ import {
 import { ThreatList } from "@/components/analysis/threat-list";
 import { RunTopStrip } from "@/components/analysis/run-topstrip";
 import { StepDetail } from "@/components/analysis/step-detail";
-import { Stepper } from "@/components/analysis/stepper";
+import { StepRail } from "@/components/analysis/step-rail";
 import { SystemModelPanel } from "@/components/analysis/system-model-panel";
 import { useRunStream } from "@/components/analysis/use-run-stream";
 import { useMeta } from "@/components/providers/meta-provider";
@@ -383,60 +383,33 @@ export default function AnalysisPage() {
         </Card>
       ) : null}
 
-      {stream.placeholder ? (
-        <div className="flex items-center gap-2 rounded-md border border-dashed border-border bg-surface px-3 py-2 text-xs text-muted-foreground">
-          <Badge variant="warning">Örnek veri</Badge>
-          1–7. adımlar gerçek dokümanı işler. 8. ve 9. adımlar henüz örnek
-          veri üretir; gerçek çıktı Aşama 4&apos;te gelecek.
-        </div>
-      ) : null}
+      {metaLoading || definitions.length === 0 ? (
+        <Skeleton className="h-24 w-full" />
+      ) : (
+        <StepRail
+          definitions={definitions}
+          steps={stream.steps}
+          selected={selected}
+          onSelect={(no) => {
+            setSelected(no);
+            setPinned(true);
+          }}
+          modelApprovalAfterStep={meta?.model_approval_after_step ?? 2}
+          pauseStep={stream.pause?.step ?? null}
+        />
+      )}
 
-      <div className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <div className="space-y-1.5">
-          <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Analiz adımları
-          </p>
-          <p className="px-1 text-[11px] text-muted-foreground">
-            Bir adıma tıklayın; o adımın çıktısı sağda açılır.
-          </p>
-          <Card className="h-fit p-2">
-          {metaLoading || definitions.length === 0 ? (
-            <div className="space-y-2 p-2">
-              {Array.from({ length: 9 }).map((_, index) => (
-                <Skeleton key={index} className="h-14 w-full" />
-              ))}
-            </div>
-          ) : (
-            <Stepper
-              definitions={definitions}
-              steps={stream.steps}
-              selected={selected}
-              onSelect={(no) => {
-                setSelected(no);
-                setPinned(true);
-              }}
-              modelApprovalAfterStep={meta?.model_approval_after_step ?? 2}
-              pauseStep={stream.pause?.step ?? null}
-            />
-          )}
-          </Card>
-        </div>
-
-        <div className="min-w-0 space-y-5">
-          <StepDetail
-            definition={definition}
-            step={step}
-            paused={pausedHere}
-            pauseReason={stream.pause?.reason ?? null}
-            onResume={resume}
-            onRetry={() => retry(selected ?? 1)}
-            busy={busy}
-            readOnly={readOnly}
-            buildPhase={meta?.build_phase ?? 0}
-            content={panelFor(selected)}
-          />
-        </div>
-      </div>
+      <StepDetail
+        definition={definition}
+        step={step}
+        paused={pausedHere}
+        pauseReason={stream.pause?.reason ?? null}
+        onResume={resume}
+        onRetry={() => retry(selected ?? 1)}
+        busy={busy}
+        readOnly={readOnly}
+        content={panelFor(selected)}
+      />
 
       <EventLog events={stream.events} connected={stream.connected} />
     </>

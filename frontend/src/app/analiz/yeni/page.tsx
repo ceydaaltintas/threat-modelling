@@ -85,7 +85,7 @@ export default function NewAnalysisPage() {
     <>
       <PageHeader
         title="Yeni analiz"
-        description="Bir mimari doküman yükleyin ya da hazır örnek senaryolardan birini seçin."
+        description="Doküman yükleyin veya örnek senaryo seçin."
       />
 
       <div className="grid gap-5 lg:grid-cols-[1.1fr_1fr]">

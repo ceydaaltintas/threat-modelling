@@ -39,7 +39,7 @@ export default function SettingsPage() {
     <>
       <PageHeader
         title="Ayarlar"
-        description="Bu değerler ortam değişkenlerinden (.env) okunur. API anahtarı hiçbir ekranda gösterilmez."
+        description="Ortam değişkenlerinden okunur; API anahtarı gösterilmez."
       />
 
       <div className="grid gap-5 lg:grid-cols-2">

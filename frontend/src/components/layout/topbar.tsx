@@ -22,14 +22,14 @@ export function Topbar() {
         <span className="font-medium text-foreground md:hidden">
           {meta?.app_name ?? "Tehdit Modelleme Platformu"}
         </span>
-        {meta?.app_env === "development" ? (
-          <Badge variant="outline">Geliştirme ortamı</Badge>
-        ) : null}
+        {/* Only state what changes how the product behaves right now. */}
         {replayOn ? (
-          <Badge variant="accent">Kayıtlı çıktı modu: {meta?.demo_replay}</Badge>
-        ) : null}
-        {meta && meta.build_phase < 5 ? (
-          <Badge variant="warning">Aşama {meta.build_phase} yapısı</Badge>
+          <Badge
+            variant="accent"
+            title="LLM yanıtları daha önce kaydedilmiş çağrılardan geliyor; yeni çağrı yapılmıyor."
+          >
+            Kayıtlı çıktı
+          </Badge>
         ) : null}
       </div>
 
