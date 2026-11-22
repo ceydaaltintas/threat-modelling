@@ -52,16 +52,16 @@ export function StepDetail({
   const counters = Object.entries(step?.counters ?? {}).filter(
     ([, value]) => typeof value === "number",
   );
-  // Most of these say the same thing twice: on step 8, "78 tehdit" plus
-  // "1 karar verildi" plus "77 bekleyen" plus the breakdown of that 1 is
-  // one fact written four ways. The first counter is the step's own total;
-  // after it, only what is not zero is worth a word, and the rest moves
-  // into "Ne yapar?" rather than disappearing.
-  const headline = counters.slice(0, 1);
-  const rest = counters.slice(1);
-  const notable = rest.filter(([, value]) => value !== 0).slice(0, 2);
-  const folded = rest.filter(([key]) => !notable.some(([k]) => k === key));
-  const shown = [...headline, ...notable];
+  // Two numbers, no more. On step 8 the counters were "78 tehdit", "1 karar
+  // verildi", "77 bekleyen" and the breakdown of that 1: one fact written
+  // four ways, and 78 = 1 + 77 is arithmetic the reader had to do. The
+  // step's own total, plus the largest thing left, says it. The rest is in
+  // the panel below - hiding it behind a disclosure only moved the clutter.
+  const [total, ...rest] = counters;
+  const largest = rest
+    .filter(([, value]) => value !== 0)
+    .sort(([, a], [, b]) => b - a)[0];
+  const shown = [total, largest].filter(Boolean) as [string, number][];
   const duration = elapsedBetween(step?.started_at, step?.finished_at);
   const failed = step?.status === "failed";
 
@@ -129,18 +129,6 @@ export function StepDetail({
                 }[definition.performer]
               }
             </p>
-            {folded.length > 0 ? (
-              <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                {folded.map(([key, value]) => (
-                  <span key={key}>
-                    <strong className="font-semibold tabular-nums">
-                      {value}
-                    </strong>{" "}
-                    {definition.counter_labels[key] ?? key}
-                  </span>
-                ))}
-              </p>
-            ) : null}
           </div>
         ) : null}
       </div>
