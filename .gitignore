@@ -18,6 +18,7 @@ venv/
 node_modules/
 .next/
 out/
+*.tsbuildinfo
 .turbo/
 npm-debug.log*
 yarn-error.log*
