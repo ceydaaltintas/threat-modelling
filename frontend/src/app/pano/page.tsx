@@ -9,12 +9,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { formatDateTime, formatNumber } from "@/lib/format";
-import { LEVELS, levelClasses, levelForScore, type Level } from "@/lib/levels";
+import { LEVELS, levelClasses, type Level } from "@/lib/levels";
 import { REVIEW_LABELS, STRIDE_SHORT } from "@/lib/threats";
 import type { DashboardData, DashboardRun } from "@/lib/types";
+import { RiskHeatmap } from "@/components/analysis/risk-heatmap";
 import { cn } from "@/lib/utils";
 
-const SCALE = [1, 2, 3, 4, 5];
 
 /** One analysis, summarised for someone who will not open the detail. */
 export default function DashboardPage() {
@@ -133,46 +133,8 @@ export default function DashboardPage() {
               <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Risk ısı haritası
               </h2>
-              <div className="flex gap-1.5 rounded-md border border-border bg-surface p-3">
-                <div className="flex flex-col justify-between py-0.5 text-[10px] text-muted-foreground">
-                  {[...SCALE].reverse().map((value) => (
-                    <span key={value} className="h-9 leading-9">
-                      {value}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex-1">
-                  <div className="grid grid-cols-5 gap-1">
-                    {[...SCALE].reverse().map((impact) =>
-                      SCALE.map((likelihood) => {
-                        const count =
-                          data.heatmap?.[`${likelihood}x${impact}`] ?? 0;
-                        const level = levelForScore(impact * likelihood, thresholds);
-                        return (
-                          <div
-                            key={`${impact}-${likelihood}`}
-                            title={`Olasılık ${likelihood} × Etki ${impact} = ${impact * likelihood} (${level}) · ${count} tehdit`}
-                            className={cn(
-                              "flex h-9 items-center justify-center rounded border text-[11px] font-medium",
-                              levelClasses[level],
-                              count === 0 && "opacity-30",
-                            )}
-                          >
-                            {count || ""}
-                          </div>
-                        );
-                      }),
-                    )}
-                  </div>
-                  <div className="mt-1 grid grid-cols-5 gap-1 text-center text-[10px] text-muted-foreground">
-                    {SCALE.map((value) => (
-                      <span key={value}>{value}</span>
-                    ))}
-                  </div>
-                  <p className="mt-0.5 text-center text-[10px] text-muted-foreground">
-                    olasılık → · dikey: etki
-                  </p>
-                </div>
+              <div className="rounded-md border border-border bg-surface p-3">
+                <RiskHeatmap heatmap={data.heatmap} thresholds={thresholds} />
               </div>
             </section>
 

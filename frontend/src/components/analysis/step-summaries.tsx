@@ -11,9 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { LEVELS, levelClasses, levelForScore } from "@/lib/levels";
+import { LEVELS, levelClasses } from "@/lib/levels";
 import { formatNumber } from "@/lib/format";
 import type { MitigationOutput, RiskOutput, ValidationOutput } from "@/lib/types";
+import { RiskHeatmap } from "@/components/analysis/risk-heatmap";
 import { cn } from "@/lib/utils";
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
@@ -55,8 +56,6 @@ export function ValidationSummary({ output }: { output: ValidationOutput }) {
 
 /** Step 6: level distribution and the 5x5 heat map of computed scores. */
 export function RiskSummary({ output }: { output: RiskOutput }) {
-  const scale = [1, 2, 3, 4, 5];
-  const max = Math.max(1, ...Object.values(output.heatmap ?? {}));
 
   return (
     <Card>
@@ -92,59 +91,11 @@ export function RiskSummary({ output }: { output: RiskOutput }) {
         </div>
 
         <div>
-          <div className="flex gap-1.5">
-            {/* The same row height and gap as the grid. "self-start" is
-                load bearing: as a stretched flex child this column grew to
-                cover the x axis labels too, and its rows spread with it, so
-                every label sat a little below its row. */}
-            <div className="grid gap-1 self-start text-[10px] text-muted-foreground">
-              {[...scale].reverse().map((value) => (
-                <span
-                  key={value}
-                  className="flex h-8 items-center justify-end pr-0.5"
-                >
-                  {value}
-                </span>
-              ))}
-            </div>
-            <div className="flex-1">
-              <div className="grid grid-cols-5 gap-1">
-                {[...scale].reverse().map((impact) =>
-                  scale.map((likelihood) => {
-                    const count = output.heatmap?.[`${likelihood}x${impact}`] ?? 0;
-                    const level = levelForScore(
-                      impact * likelihood,
-                      output.thresholds,
-                    );
-                    return (
-                      <div
-                        key={`${impact}-${likelihood}`}
-                        title={`Olasılık ${likelihood} × Etki ${impact} = ${
-                          impact * likelihood
-                        } (${level}) · ${count} tehdit`}
-                        className={cn(
-                          "flex h-8 items-center justify-center rounded border text-[11px] font-medium",
-                          levelClasses[level],
-                          count === 0 && "opacity-35",
-                        )}
-                        style={count > 0 ? { opacity: 0.5 + (count / max) * 0.5 } : undefined}
-                      >
-                        {count || ""}
-                      </div>
-                    );
-                  }),
-                )}
-              </div>
-              <div className="mt-1 grid grid-cols-5 gap-1 text-center text-[10px] text-muted-foreground">
-                {scale.map((value) => (
-                  <span key={value}>{value}</span>
-                ))}
-              </div>
-              <p className="mt-0.5 text-center text-[10px] text-muted-foreground">
-                Yatay: olasılık · Dikey: etki
-              </p>
-            </div>
-          </div>
+          <RiskHeatmap
+            heatmap={output.heatmap}
+            thresholds={output.thresholds}
+            size="sm"
+          />
         </div>
       </CardContent>
     </Card>
