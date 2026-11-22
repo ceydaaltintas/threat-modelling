@@ -129,6 +129,10 @@ export default function AnalysisPage() {
     setBusy(true);
     try {
       await api.resumeRun(runId);
+      // "Devam et" means take me along: clicking a step earlier pinned the
+      // screen to it, so without this the run moved on to the report while
+      // the panel sat on the review step looking unchanged.
+      setPinned(false);
       toast({ title: "Analize devam ediliyor", tone: "success" });
     } catch (err) {
       toast({
@@ -193,6 +197,8 @@ export default function AnalysisPage() {
     setBusy(true);
     try {
       await api.retryStep(runId, stepNo);
+      // Re-running a step is the same kind of move: follow the pipeline.
+      setPinned(false);
       stream.reload();
       toast({
         title: `${stepNo}. adım yeniden çalıştırılıyor`,
