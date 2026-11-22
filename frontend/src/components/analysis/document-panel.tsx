@@ -24,6 +24,10 @@ export function DocumentPanel({ documents }: { documents: DocumentOut[] }) {
   // be scrolled to it: switching the page alone did nothing visible when the
   // heading was already on the page being shown.
   const [target, setTarget] = React.useState<number | null>(null);
+  // A heading near the end of the page cannot be scrolled to the top -
+  // there is nothing below it - so it lands at the bottom of the box and a
+  // faint highlight there looks like nothing happened. Flash it instead.
+  const [flash, setFlash] = React.useState(false);
   const textRef = React.useRef<HTMLPreElement>(null);
   const markRef = React.useRef<HTMLElement>(null);
 
@@ -49,6 +53,9 @@ export function DocumentPanel({ documents }: { documents: DocumentOut[] }) {
     const mark = markRef.current;
     if (!box || !mark) return;
     box.scrollTop = Math.max(0, mark.offsetTop - box.offsetTop - 24);
+    setFlash(true);
+    const timer = window.setTimeout(() => setFlash(false), 1200);
+    return () => window.clearTimeout(timer);
   }, [target, page, activeIndex]);
 
   if (!document) {
@@ -168,7 +175,11 @@ export function DocumentPanel({ documents }: { documents: DocumentOut[] }) {
                   {pageText.slice(0, offset)}
                   <mark
                     ref={markRef}
-                    className="rounded bg-accent-subtle px-0.5 font-medium text-accent"
+                    className={cn(
+                      "rounded px-1 py-0.5 font-semibold transition-shadow",
+                      "bg-accent/20 text-accent",
+                      flash && "ring-2 ring-accent",
+                    )}
                   >
                     {pageText.slice(offset, headingEnd)}
                   </mark>
