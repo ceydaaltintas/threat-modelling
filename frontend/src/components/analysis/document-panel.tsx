@@ -20,6 +20,12 @@ import { cn } from "@/lib/utils";
 export function DocumentPanel({ documents }: { documents: DocumentOut[] }) {
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [page, setPage] = React.useState(1);
+  // Absolute offset of the heading the reader asked to see, so the text can
+  // be scrolled to it: switching the page alone did nothing visible when the
+  // heading was already on the page being shown.
+  const [target, setTarget] = React.useState<number | null>(null);
+  const textRef = React.useRef<HTMLPreElement>(null);
+  const markRef = React.useRef<HTMLElement>(null);
 
   const document = documents[activeIndex];
   const pages = React.useMemo(
@@ -31,7 +37,19 @@ export function DocumentPanel({ documents }: { documents: DocumentOut[] }) {
     [document],
   );
 
-  React.useEffect(() => setPage(1), [activeIndex]);
+  React.useEffect(() => {
+    setPage(1);
+    setTarget(null);
+  }, [activeIndex]);
+
+  // Scroll the text box itself, never the page: scrollIntoView would drag
+  // the whole analysis screen away from the section list that was clicked.
+  React.useEffect(() => {
+    const box = textRef.current;
+    const mark = markRef.current;
+    if (!box || !mark) return;
+    box.scrollTop = Math.max(0, mark.offsetTop - box.offsetTop - 24);
+  }, [target, page, activeIndex]);
 
   if (!document) {
     return (
@@ -49,6 +67,19 @@ export function DocumentPanel({ documents }: { documents: DocumentOut[] }) {
     ? text.slice(current.start, current.end)
     : text.slice(0, 4000);
   const pageCount = pages.length || 1;
+
+  // Where the heading sits inside the slice currently on screen.
+  const offset =
+    target !== null && current && target >= current.start && target < current.end
+      ? target - current.start
+      : null;
+  const headingEnd =
+    offset === null
+      ? null
+      : (() => {
+          const nl = pageText.indexOf("\n", offset);
+          return nl === -1 ? pageText.length : nl;
+        })();
 
   return (
     <div className="space-y-4">
@@ -124,8 +155,26 @@ export function DocumentPanel({ documents }: { documents: DocumentOut[] }) {
                 {document.extraction_note}
               </p>
             ) : null}
-            <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-surface-muted/40 p-3 font-sans text-xs leading-relaxed">
-              {pageText.trim() || "Bu sayfada metin katmanı bulunamadı."}
+            <pre
+              ref={textRef}
+              className="max-h-[520px] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-surface-muted/40 p-3 font-sans text-xs leading-relaxed"
+            >
+              {!pageText.trim() ? (
+                "Bu sayfada metin katmanı bulunamadı."
+              ) : offset === null || headingEnd === null ? (
+                pageText
+              ) : (
+                <>
+                  {pageText.slice(0, offset)}
+                  <mark
+                    ref={markRef}
+                    className="rounded bg-accent-subtle px-0.5 font-medium text-accent"
+                  >
+                    {pageText.slice(offset, headingEnd)}
+                  </mark>
+                  {pageText.slice(headingEnd)}
+                </>
+              )}
             </pre>
           </CardContent>
         </Card>
@@ -145,7 +194,10 @@ export function DocumentPanel({ documents }: { documents: DocumentOut[] }) {
                 <li key={`${section.number}-${section.start}`}>
                   <button
                     type="button"
-                    onClick={() => setPage(section.page)}
+                    onClick={() => {
+                      setPage(section.page);
+                      setTarget(section.start);
+                    }}
                     className="flex w-full items-start gap-2 rounded px-1.5 py-1 text-left text-xs hover:bg-surface-muted"
                   >
                     <Badge variant="outline" className="shrink-0">
