@@ -120,6 +120,12 @@ export function ThreatList({
   const bulkDecided = selectedRows.filter(
     (item) => item.review_status !== "pending",
   ).length;
+  // Decisions are worth filtering wherever they are visible, not only on the
+  // step that records them: on the report step "show me what is still
+  // waiting" is the first thing anyone asks.
+  const anyDecision = Object.entries(data?.summary.by_review ?? {}).some(
+    ([status, count]) => status !== "pending" && (count as number) > 0,
+  );
 
   const nameOf = React.useCallback(
     (id: string | null) => (id ? componentNames[id] ?? id : "Sistem geneli"),
@@ -323,7 +329,7 @@ export function ThreatList({
             </option>
           ))}
         </Select>
-        {review ? (
+        {review || anyDecision ? (
           <Select value={reviewFilter} onChange={setReviewFilter} label="Karar filtresi">
             <option value="">Tüm kararlar</option>
             {Object.entries(REVIEW_LABELS).map(([value, label]) => (
