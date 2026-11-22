@@ -336,7 +336,6 @@ function ReviewControls({
   const [impact, setImpact] = React.useState(
     threat.expert?.impact ?? computed?.impact ?? 3,
   );
-  const [reason, setReason] = React.useState(threat.expert?.reason ?? "");
 
   // A note belongs to the decision it was written for. Leaving it in the
   // box after the decision is recorded let it count as the justification
@@ -385,15 +384,25 @@ function ReviewControls({
           value={note}
           onChange={(event) => setNote(event.target.value)}
           placeholder={
-            decided
-              ? "Kararı değiştirme gerekçesi (zorunlu)"
-              : "Karar notu (isteğe bağlı)"
+            editing
+              ? "Seviye değişikliği gerekçesi (zorunlu)"
+              : decided
+                ? "Kararı değiştirme gerekçesi (zorunlu)"
+                : "Karar notu (isteğe bağlı)"
           }
-          aria-label={decided ? "Kararı değiştirme gerekçesi" : "Karar notu"}
+          aria-label={
+            editing
+              ? "Seviye değişikliği gerekçesi"
+              : decided
+                ? "Kararı değiştirme gerekçesi"
+                : "Karar notu"
+          }
           rows={2}
           className={cn(
             "w-full rounded-md border bg-surface p-2 text-xs",
-            needsReason ? "border-level-high" : "border-input",
+            needsReason || (editing && !note.trim())
+              ? "border-level-high"
+              : "border-input",
           )}
         />
       )}
@@ -448,12 +457,7 @@ function ReviewControls({
               ? "Kendi olasılık/etki değerinizi girin; kayıtlı karar bu düzenlemeyle değişir"
               : "Kendi olasılık/etki değerinizi girin"
           }
-          onClick={() => {
-            // Carry the reason already typed above into the panel rather
-            // than asking for the same sentence twice.
-            setReason((value) => value || note);
-            setEditing((value) => !value);
-          }}
+          onClick={() => setEditing((value) => !value)}
         >
           <Pencil aria-hidden /> Seviyeyi düzenle
         </Button>
@@ -506,18 +510,6 @@ function ReviewControls({
               {computed ? ` (sistem hesabı: ${computed.score})` : ""}
             </span>
           </div>
-          <textarea
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            placeholder={
-              decided
-                ? "Kararı değiştirme ve seviye gerekçesi (zorunlu)"
-                : "Seviye değişikliği için gerekçe (zorunlu)"
-            }
-            aria-label="Seviye değişikliği gerekçesi"
-            rows={2}
-            className="w-full rounded-md border border-input bg-surface p-2 text-xs"
-          />
           {decided ? (
             <p className="text-[11px] text-muted-foreground">
               Bu bulguda{" "}
@@ -531,9 +523,9 @@ function ReviewControls({
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              disabled={disabled || !reason.trim() || !changed}
+              disabled={disabled || !note.trim() || !changed}
               onClick={async () => {
-                await decide("edit", { likelihood, impact, reason });
+                await decide("edit", { likelihood, impact, reason: note });
                 setEditing(false);
               }}
             >
@@ -542,9 +534,10 @@ function ReviewControls({
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
               Vazgeç
             </Button>
-            {!reason.trim() ? (
+            {!note.trim() ? (
               <span className="text-[11px] text-level-high">
-                Gerekçe zorunludur.
+                Yukarıdaki kutuya gerekçe yazın; seviye değişikliğinde
+                zorunludur.
               </span>
             ) : !changed ? (
               <span className="text-[11px] text-muted-foreground">
