@@ -39,6 +39,8 @@ export function ThreatDrawer({
   step?: number;
   review?: {
     readOnly: boolean;
+    /** Why nothing can be decided, when that is not the viewer's role. */
+    readOnlyReason?: string;
     busy: boolean;
     onDecide: (
       threatId: string,
@@ -360,32 +362,38 @@ function ReviewControls({
         </p>
       ) : null}
 
-      <textarea
-        value={note}
-        onChange={(event) => setNote(event.target.value)}
-        placeholder={
-          decided
-            ? "Kararı değiştirme gerekçesi (zorunlu)"
-            : "Karar notu (isteğe bağlı)"
-        }
-        aria-label={decided ? "Kararı değiştirme gerekçesi" : "Karar notu"}
-        rows={2}
-        className={cn(
-          "w-full rounded-md border bg-surface p-2 text-xs",
-          needsReason ? "border-level-high" : "border-input",
-        )}
-      />
+      {/* Nothing typed here could be saved while the panel is read only,
+          and a box that takes text it then throws away is worse than no
+          box at all. */}
+      {review.readOnly ? null : (
+        <textarea
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder={
+            decided
+              ? "Kararı değiştirme gerekçesi (zorunlu)"
+              : "Karar notu (isteğe bağlı)"
+          }
+          aria-label={decided ? "Kararı değiştirme gerekçesi" : "Karar notu"}
+          rows={2}
+          className={cn(
+            "w-full rounded-md border bg-surface p-2 text-xs",
+            needsReason ? "border-level-high" : "border-input",
+          )}
+        />
+      )}
 
       {/* The decision that is already recorded is shown as current, not
           offered again: re-accepting an accepted threat does nothing but
           add a confusing second audit entry. */}
-      {needsReason ? (
+      {needsReason && !review.readOnly ? (
         <p className="text-[11px] text-level-high">
           Bu bulguda karar zaten kayıtlı. Değiştirmek için önce gerekçe yazın;
           eski karar denetim izinde kalır.
         </p>
       ) : null}
 
+      {review.readOnly ? null : (
       <div className="flex flex-wrap gap-2">
         <DecisionButton
           action="accept"
@@ -432,8 +440,9 @@ function ReviewControls({
           </Button>
         ) : null}
       </div>
+      )}
 
-      {editing ? (
+      {editing && !review.readOnly ? (
         <div className="space-y-2 rounded-md border border-border p-3">
           <div className="flex flex-wrap items-center gap-3 text-xs">
             <label className="flex items-center gap-1.5">
@@ -511,8 +520,8 @@ function ReviewControls({
 
       {review.readOnly ? (
         <p className="text-[11px] text-muted-foreground">
-          Yönetici rolü salt okunurdur; karar vermek için Güvenlik Uzmanı
-          rolüne geçin.
+          {review.readOnlyReason ??
+            "Yönetici rolü salt okunurdur; karar vermek için Güvenlik Uzmanı rolüne geçin."}
         </p>
       ) : null}
     </div>

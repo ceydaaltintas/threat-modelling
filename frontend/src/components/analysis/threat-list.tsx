@@ -56,6 +56,7 @@ const SORT_LABELS: Record<SortKey, string> = {
 
 export interface ReviewHandlers {
   readOnly: boolean;
+  readOnlyReason?: string;
   busy: boolean;
   onDecide: (
     threatId: string,

@@ -396,6 +396,10 @@ export default function AnalysisPage() {
             step={8}
             review={{
               readOnly: readOnly || reportWritten,
+              readOnlyReason:
+                !readOnly && reportWritten
+                  ? "Rapor üretildi; karar değiştirmek için 8. adımı yeniden çalıştırın."
+                  : undefined,
               busy,
               onDecide: decide,
               onBulk: decideBulk,
