@@ -106,6 +106,25 @@ export default function AnalysisPage() {
 
   const resume = async () => {
     if (!runId) return;
+    // Review is not mandatory - undecided threats keep the system score and
+    // the report says so. Sailing past the whole review in one click with no
+    // word about it is another matter, so say what is being skipped.
+    if (stream.pause?.reason === "expert_review") {
+      const counters = stream.steps.find((item) => item.step_no === 8)?.counters;
+      const pending = Number(counters?.pending ?? 0);
+      const decided = Number(counters?.decided ?? 0);
+      if (
+        pending > 0 &&
+        !window.confirm(
+          (decided === 0
+            ? `Hiçbir tehdit için uzman kararı vermediniz. ${pending} bulgu`
+            : `${pending} bulgu için karar vermediniz; bunlar`) +
+            " sistem puanıyla raporlanacak ve raporda \u201cuzman kararı" +
+            " verilmedi\u201d olarak geçecek. Devam edilsin mi?",
+        )
+      )
+        return;
+    }
     setBusy(true);
     try {
       await api.resumeRun(runId);

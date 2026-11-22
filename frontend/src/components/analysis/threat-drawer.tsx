@@ -192,54 +192,22 @@ export function ThreatDrawer({
           ) : null}
 
           {upTo(6) ? (
-          <>
-          <Section title="Risk kırılımı (Sistem hesabı)">
+          <Section title="Risk">
             <RiskBreakdown threat={threat} />
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              <strong className="font-medium text-foreground">
+                Uzman onayı:
+              </strong>{" "}
+              {threat.expert?.level
+                ? `${threat.expert.score} · ${threat.expert.level}`
+                : threat.review_status === "pending"
+                  ? "bekliyor"
+                  : REVIEW_LABELS[threat.review_status] ?? threat.review_status}
+              {threat.expert?.at
+                ? ` · ${threat.expert.by} · ${formatDateTime(threat.expert.at)}`
+                : ""}
+            </p>
           </Section>
-
-          <Section title="Değerler">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <ValueBox
-                label="AI önerisi"
-                value={
-                  threat.ai_proposed?.likelihood && threat.ai_proposed?.impact
-                    ? `O${threat.ai_proposed.likelihood} × E${threat.ai_proposed.impact}`
-                    : "—"
-                }
-                note={threat.ai_proposed?.rationale ?? undefined}
-              />
-              <ValueBox
-                label="Sistem hesabı"
-                value={
-                  threat.system_calc
-                    ? `${threat.system_calc.score} · ${threat.system_calc.level}`
-                    : "Hesaplanmadı"
-                }
-                note={
-                  threat.rule_context
-                    ? `Taban: O${threat.rule_context.base_likelihood} × E${threat.rule_context.base_impact}`
-                    : "STRIDE varsayılan tabanı"
-                }
-              />
-              <ValueBox
-                label="Uzman onayı"
-                value={
-                  threat.expert?.level
-                    ? `${threat.expert.score} · ${threat.expert.level}`
-                    : threat.review_status === "pending"
-                      ? "Bekliyor"
-                      : REVIEW_LABELS[threat.review_status] ??
-                        threat.review_status
-                }
-                note={
-                  threat.expert?.at
-                    ? `${threat.expert.by} · ${formatDateTime(threat.expert.at)}`
-                    : undefined
-                }
-              />
-            </div>
-          </Section>
-          </>
           ) : null}
 
           {upTo(7) ? (
@@ -349,29 +317,6 @@ function Section({
     </section>
   );
 }
-
-function ValueBox({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: string;
-  note?: string;
-}) {
-  return (
-    <div className="rounded-md border border-border p-2.5">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-0.5 text-sm font-medium">{value}</p>
-      {note ? (
-        <p className="mt-0.5 text-[11px] text-muted-foreground">{note}</p>
-      ) : null}
-    </div>
-  );
-}
-
 
 function ReviewControls({
   threat,
