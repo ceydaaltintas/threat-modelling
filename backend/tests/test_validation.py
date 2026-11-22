@@ -182,3 +182,32 @@ def test_every_note_code_has_a_turkish_label() -> None:
     for note in notes:
         assert note["label"] == NOTE_LABELS[note["code"]]
         assert note["severity"] in {"error", "warning", "info"}
+
+
+# --- A quote the document does not contain is not evidence ------------
+
+
+def test_quote_missing_from_the_document_is_reported() -> None:
+    from app.pipeline.step5_validation import unverified_quotes
+
+    evidence = [
+        {"quote": "Transfer Servisi limitleri kontrol eder", "page": 1},
+        # What the model has actually returned: a line out of its own prompt.
+        {"quote": "id=a6 | Yetkilendirme Servisi → Kart Şeması Bağlantısı "
+                  "| protokol=ISO 8583 | şifreli=unknown", "page": 1},
+    ]
+    document = "transfer servisi limitleri kontrol eder ve cekirdege iletir"
+
+    dropped = unverified_quotes(evidence, document)
+
+    assert len(dropped) == 1
+    assert dropped[0].startswith("id=a6")
+
+
+def test_a_quote_that_is_in_the_document_is_kept() -> None:
+    from app.pipeline.step5_validation import unverified_quotes
+
+    document = "transfer servisi limitleri kontrol eder ve cekirdege iletir"
+    evidence = [{"quote": "limitleri kontrol eder", "page": 1}]
+
+    assert unverified_quotes(evidence, document) == []

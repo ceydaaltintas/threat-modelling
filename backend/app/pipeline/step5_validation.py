@@ -52,7 +52,9 @@ NOTE_LABELS = {
     "unknown_knowledge_id": "Kaynak kimliği bilgi tabanında bulunamadı",
     "no_knowledge_id": "Hiç kaynak kimliği yok",
     "missing_field": "Zorunlu alan boş",
-    "evidence_not_found": "Kanıt alıntısı dokümanda bulunamadı",
+    "evidence_not_found": (
+        "Kanıt alıntısı dokümanda bulunamadı; kanıt listesinden çıkarıldı"
+    ),
     "no_evidence": "Kanıt yok; varsayım olarak işaretlendi",
     "duplicate": "Başka bir tehditle büyük ölçüde aynı",
     "unknown_mitigation": "Önlem kataloğunda olmayan önlem",
@@ -95,6 +97,22 @@ class ThreatView:
     mitigation_ids: list[str]
 
 
+def unverified_quotes(evidence: list[dict], document_text: str) -> list[str]:
+    """Quotes that do not appear in the document.
+
+    A quote that is not in the document is not evidence. The model has been
+    seen quoting the system-model summary out of its own prompt - which reads
+    like a finding but is the platform talking to itself - so these are
+    reported and then removed rather than shown under "Kanıt".
+    """
+    return [
+        item["quote"]
+        for item in evidence
+        if len(item.get("quote", "")) >= MIN_QUOTE_CHARS
+        and _normalise(item["quote"]) not in document_text
+    ]
+
+
 def validate_threat(
     threat: ThreatView,
     *,
@@ -105,7 +123,11 @@ def validate_threat(
     mitigation_catalog: set[str],
     seen: list[tuple[str, str, str]],
 ) -> list[dict]:
-    """Run every check and return the notes. Nothing is ever dropped.
+    """Run every check and return the notes.
+
+    Findings are never dropped here; only a quote the document does not
+    contain is (by the caller, using ``unverified_quotes``), because such a
+    quote is not evidence of anything.
 
     ``document_text`` must already be normalised; ``seen`` accumulates
     (component, flow, title) of the threats checked so far and is appended to.
@@ -146,14 +168,14 @@ def validate_threat(
     if not threat.evidence:
         notes.append(_note("no_evidence", severity="info"))
     else:
-        unverified = [
-            item["quote"]
-            for item in threat.evidence
-            if len(item.get("quote", "")) >= MIN_QUOTE_CHARS
-            and _normalise(item["quote"]) not in document_text
-        ]
+        unverified = unverified_quotes(threat.evidence, document_text)
         if unverified:
-            notes.append(_note("evidence_not_found", unverified[0][:120], "error"))
+            # The quote is removed from the evidence list, so the note has to
+            # carry all of it: truncating here would lose the only remaining
+            # record of what the model claimed.
+            notes.append(
+                _note("evidence_not_found", " | ".join(unverified)[:1500], "error")
+            )
 
     # 6 - duplicates on the same element
     key = (threat.component_ref or "", threat.flow_ref or "")
@@ -283,6 +305,17 @@ async def run(ctx: RunContext) -> dict[str, int]:
                 for note in (threat.validation_notes or [])
                 if note.get("code") == "rule_context"
             ]
+            # An unverified quote is removed here, not just flagged: leaving
+            # it under "Kanıt" presents a sentence the document never
+            # contained as if it were proof. The note keeps its text.
+            dropped = set(unverified_quotes(threat.evidence or [], haystack))
+            if dropped:
+                threat.evidence = [
+                    item
+                    for item in (threat.evidence or [])
+                    if item.get("quote") not in dropped
+                ]
+
             blocking = [n for n in notes if n["severity"] in ("error", "warning")]
             threat.validation_notes = carried + notes
             threat.validation_status = "flagged" if blocking else "ok"
