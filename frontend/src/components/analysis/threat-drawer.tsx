@@ -439,13 +439,21 @@ function ReviewControls({
         <Button
           size="sm"
           variant="ghost"
-          disabled={disabled}
+          // Editing the level is a decision like any other, so once one is
+          // recorded this button follows the same rule as the rest: no
+          // change without a reason.
+          disabled={disabled || needsReason}
           title={
             decided
-              ? "Kendi olasılık/etki değerinizi girin; panelde gerekçe zorunludur, kararı geri almanız gerekmez"
+              ? "Kendi olasılık/etki değerinizi girin; kayıtlı karar bu düzenlemeyle değişir"
               : "Kendi olasılık/etki değerinizi girin"
           }
-          onClick={() => setEditing((value) => !value)}
+          onClick={() => {
+            // Carry the reason already typed above into the panel rather
+            // than asking for the same sentence twice.
+            setReason((value) => value || note);
+            setEditing((value) => !value);
+          }}
         >
           <Pencil aria-hidden /> Seviyeyi düzenle
         </Button>
