@@ -468,6 +468,7 @@ export function ThreatList({
             selectable={Boolean(review) && !review?.readOnly}
             checked={checked.has(threat.id)}
             onToggle={() => toggle(threat.id)}
+            step={step}
           />
         ))}
         {rows.length === 0 ? (
@@ -521,6 +522,7 @@ function ThreatRowItem({
   selectable,
   checked,
   onToggle,
+  step,
 }: {
   threat: ThreatRow;
   componentName: string;
@@ -528,6 +530,7 @@ function ThreatRowItem({
   selectable: boolean;
   checked: boolean;
   onToggle: () => void;
+  step?: number;
 }) {
   const calc = threat.system_calc;
   const expertLevel = threat.expert?.level;
@@ -536,6 +539,11 @@ function ThreatRowItem({
   const errors = threat.validation_notes.filter(
     (note) => note.severity === "error",
   ).length;
+  // Validation runs at step 5 and review at step 8. Before those, the row
+  // was showing marks whose reason the drawer does not yet display, so the
+  // reader saw "İşaretli 1" with nowhere to find out why.
+  const shows = (producedAtStep: number) =>
+    step === undefined || step >= producedAtStep;
 
   return (
     <li>
@@ -616,7 +624,7 @@ function ThreatRowItem({
                 {threat.evidence.length} kanıt
               </span>
             )}
-            {errors > 0 ? (
+            {errors > 0 && shows(5) ? (
               <span
                 className="flex items-center gap-0.5 text-[11px] text-level-critical"
                 title={`Doğrulamada ${errors} uyarı: ayrıntıdaki "Doğrulama" bölümüne bakın`}
@@ -625,7 +633,7 @@ function ThreatRowItem({
                 İşaretli {errors}
               </span>
             ) : null}
-            {threat.review_status !== "pending" ? (
+            {threat.review_status !== "pending" && shows(8) ? (
               <Badge
                 variant={
                   threat.review_status === "accepted" ||
