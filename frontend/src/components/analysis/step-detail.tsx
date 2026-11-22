@@ -52,6 +52,16 @@ export function StepDetail({
   const counters = Object.entries(step?.counters ?? {}).filter(
     ([, value]) => typeof value === "number",
   );
+  // Most of these say the same thing twice: on step 8, "78 tehdit" plus
+  // "1 karar verildi" plus "77 bekleyen" plus the breakdown of that 1 is
+  // one fact written four ways. The first counter is the step's own total;
+  // after it, only what is not zero is worth a word, and the rest moves
+  // into "Ne yapar?" rather than disappearing.
+  const headline = counters.slice(0, 1);
+  const rest = counters.slice(1);
+  const notable = rest.filter(([, value]) => value !== 0).slice(0, 2);
+  const folded = rest.filter(([key]) => !notable.some(([k]) => k === key));
+  const shown = [...headline, ...notable];
   const duration = elapsedBetween(step?.started_at, step?.finished_at);
   const failed = step?.status === "failed";
 
@@ -87,23 +97,25 @@ export function StepDetail({
           </button>
         </div>
 
-        {counters.length > 0 ? (
-          // Seven boxed badges in a row read as seven buttons and tire the
-          // eye; the numbers are what matters, so only they carry weight.
+        {shown.length > 0 ? (
           <p className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-            {counters.map(([key, value]) => (
+            {shown.map(([key, value]) => (
               <span key={key}>
-                <strong
-                  className={cn(
-                    "font-semibold tabular-nums",
-                    value === 0 ? "text-muted-foreground" : "text-foreground",
-                  )}
-                >
+                <strong className="font-semibold tabular-nums text-foreground">
                   {value}
                 </strong>{" "}
                 {definition.counter_labels[key] ?? key}
               </span>
             ))}
+            {folded.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="text-[11px] text-muted-foreground underline-offset-2 hover:text-accent hover:underline"
+              >
+                +{folded.length} sayı
+              </button>
+            ) : null}
           </p>
         ) : null}
 
@@ -122,6 +134,18 @@ export function StepDetail({
                 }[definition.performer]
               }
             </p>
+            {folded.length > 0 ? (
+              <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                {folded.map(([key, value]) => (
+                  <span key={key}>
+                    <strong className="font-semibold tabular-nums">
+                      {value}
+                    </strong>{" "}
+                    {definition.counter_labels[key] ?? key}
+                  </span>
+                ))}
+              </p>
+            ) : null}
           </div>
         ) : null}
       </div>

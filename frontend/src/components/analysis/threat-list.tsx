@@ -210,14 +210,16 @@ export function ThreatList({
 
       {/* Level counts first: this is what people scan for. */}
       <div className="flex flex-wrap items-center gap-2">
-        {LEVELS.map((value) => {
+        {/* A level nothing fell into is not a filter: it cannot be clicked
+            and says only that the level exists. */}
+        {LEVELS.filter((value) => (data.summary.by_level?.[value] ?? 0) > 0).map(
+          (value) => {
           const count = data.summary.by_level?.[value] ?? 0;
           const active = level === value;
           return (
             <button
               key={value}
               type="button"
-              disabled={count === 0}
               onClick={() => setLevel(active ? "" : value)}
               aria-pressed={active}
               className={cn(
@@ -236,7 +238,8 @@ export function ThreatList({
               </span>
             </button>
           );
-        })}
+        },
+        )}
         <span className="text-xs text-muted-foreground">
           · {data.summary.assumptions} varsayım
           {data.summary.flagged ? ` · ${data.summary.flagged} işaretli` : ""}
