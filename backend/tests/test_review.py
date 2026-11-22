@@ -80,3 +80,36 @@ def test_bulk_accepts_a_list_of_ids() -> None:
         threat_ids=["a", "b", "c"], action="accept", note="Toplu kabul"
     )
     assert len(request.threat_ids) == 3
+
+
+# --- Changing a decision that is already recorded ----------------------
+
+
+def test_a_first_decision_needs_no_reason() -> None:
+    from app.api.threats import _requires_change_reason
+
+    assert _requires_change_reason("pending", "accept", None) is False
+
+
+def test_changing_a_decision_without_a_reason_is_refused() -> None:
+    from app.api.threats import _requires_change_reason
+
+    assert _requires_change_reason("accepted", "reject", None) is True
+    assert _requires_change_reason("accepted", "reject", "   ") is True
+    assert _requires_change_reason("accepted", "reset", None) is True
+
+
+def test_changing_a_decision_with_a_reason_is_allowed() -> None:
+    from app.api.threats import _requires_change_reason
+
+    assert (
+        _requires_change_reason("accepted", "reject", "kanıt yanlış okunmuş")
+        is False
+    )
+
+
+def test_repeating_the_same_decision_is_not_a_change() -> None:
+    """Re-accepting an accepted threat changes nothing, so it needs nothing."""
+    from app.api.threats import _requires_change_reason
+
+    assert _requires_change_reason("accepted", "accept", None) is False

@@ -336,6 +336,10 @@ function ReviewControls({
   );
   const [reason, setReason] = React.useState(threat.expert?.reason ?? "");
 
+  const decided = threat.review_status !== "pending";
+  // Changing a recorded decision is allowed - the expert may be wrong - but
+  // the change is what an auditor will ask about, so it needs a reason.
+  const needsReason = decided && note.trim() === "";
   const disabled = review.readOnly || review.busy;
   const changed =
     likelihood !== (computed?.likelihood ?? 0) ||
@@ -343,32 +347,50 @@ function ReviewControls({
 
   return (
     <div className="space-y-3">
-      {threat.expert?.note || threat.expert?.reason ? (
+      {decided ? (
         <p className="rounded-md bg-surface-muted p-2.5 text-xs">
           <strong>
             {REVIEW_LABELS[threat.review_status] ?? threat.review_status}
-          </strong>{" "}
-          — {threat.expert.reason || threat.expert.note}
+          </strong>
+          {threat.expert?.by ? ` · ${threat.expert.by}` : ""}
+          {threat.expert?.at ? ` · ${formatDateTime(threat.expert.at)}` : ""}
+          {threat.expert?.reason || threat.expert?.note
+            ? ` — ${threat.expert.reason || threat.expert.note}`
+            : ""}
         </p>
       ) : null}
 
       <textarea
         value={note}
         onChange={(event) => setNote(event.target.value)}
-        placeholder="Karar notu (isteğe bağlı)"
-        aria-label="Karar notu"
+        placeholder={
+          decided
+            ? "Kararı değiştirme gerekçesi (zorunlu)"
+            : "Karar notu (isteğe bağlı)"
+        }
+        aria-label={decided ? "Kararı değiştirme gerekçesi" : "Karar notu"}
         rows={2}
-        className="w-full rounded-md border border-input bg-surface p-2 text-xs"
+        className={cn(
+          "w-full rounded-md border bg-surface p-2 text-xs",
+          needsReason ? "border-level-high" : "border-input",
+        )}
       />
 
       {/* The decision that is already recorded is shown as current, not
           offered again: re-accepting an accepted threat does nothing but
           add a confusing second audit entry. */}
+      {needsReason ? (
+        <p className="text-[11px] text-level-high">
+          Bu bulguda karar zaten kayıtlı. Değiştirmek için önce gerekçe yazın;
+          eski karar denetim izinde kalır.
+        </p>
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
         <DecisionButton
           action="accept"
           current={threat.review_status}
-          disabled={disabled}
+          disabled={disabled || needsReason}
           onClick={() => review.onDecide(threat.id, "accept", { note })}
           icon={<Check aria-hidden />}
         >
@@ -377,7 +399,7 @@ function ReviewControls({
         <DecisionButton
           action="reject"
           current={threat.review_status}
-          disabled={disabled}
+          disabled={disabled || needsReason}
           onClick={() => review.onDecide(threat.id, "reject", { note })}
         >
           Reddet
@@ -385,7 +407,7 @@ function ReviewControls({
         <DecisionButton
           action="false_positive"
           current={threat.review_status}
-          disabled={disabled}
+          disabled={disabled || needsReason}
           onClick={() => review.onDecide(threat.id, "false_positive", { note })}
           icon={<Ban aria-hidden />}
         >
@@ -399,12 +421,12 @@ function ReviewControls({
         >
           <Pencil aria-hidden /> Seviyeyi düzenle
         </Button>
-        {threat.review_status !== "pending" ? (
+        {decided ? (
           <Button
             size="sm"
             variant="ghost"
-            disabled={disabled}
-            onClick={() => review.onDecide(threat.id, "reset")}
+            disabled={disabled || needsReason}
+            onClick={() => review.onDecide(threat.id, "reset", { note })}
           >
             Kararı geri al
           </Button>

@@ -241,6 +241,23 @@ def _expert_record(
     return record
 
 
+# Changing a decision that is already recorded is legitimate - an expert may
+# be wrong - but in a bank's audit trail the *change* is the thing worth
+# justifying. The first decision may carry a note; a later one must.
+CHANGE_NEEDS_REASON = (
+    "Daha önce verilmiş bir kararı değiştiriyorsunuz; gerekçe yazmanız "
+    "gerekir."
+)
+
+
+def _requires_change_reason(current: str, action: str, reason: str | None) -> bool:
+    if current == "pending":
+        return False
+    if ACTION_STATUS.get(action) == current and action != "edit":
+        return False
+    return not (reason or "").strip()
+
+
 @router.post("/{threat_id}/review")
 async def review_threat(
     run_id: str,
@@ -267,6 +284,11 @@ async def review_threat(
         medium=settings.risk_threshold_medium,
         high=settings.risk_threshold_high,
     )
+
+    if _requires_change_reason(
+        threat.review_status, payload.action, payload.reason or payload.note
+    ):
+        raise HTTPException(status_code=400, detail=CHANGE_NEEDS_REASON)
 
     old = {
         "review_status": threat.review_status,
@@ -328,6 +350,22 @@ async def review_threats_bulk(
         raise HTTPException(status_code=404, detail="Seçilen tehdit bulunamadı.")
 
     status = ACTION_STATUS[payload.action]
+    decided = [
+        threat
+        for threat in rows
+        if _requires_change_reason(
+            threat.review_status, payload.action, payload.note
+        )
+    ]
+    if decided:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Seçimde daha önce karar verilmiş {len(decided)} bulgu var. "
+                "Kararı değiştirmek için gerekçe yazın."
+            ),
+        )
+
     now = datetime.now(tz=timezone.utc).isoformat()
     for threat in rows:
         old = {"review_status": threat.review_status, "expert": threat.expert}
