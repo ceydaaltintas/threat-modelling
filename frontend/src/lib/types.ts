@@ -274,6 +274,8 @@ export interface ThreatListResponse {
     by_source: Record<string, number>;
     by_stride: Record<string, number>;
     by_level?: Record<string, number>;
+    /** Decision counts, keyed by review_status. The API has always sent it. */
+    by_review?: Record<string, number>;
     assumptions: number;
     flagged?: number;
   };

@@ -169,6 +169,27 @@ export default function AnalysisPage() {
 
   const retry = async (stepNo: number) => {
     if (!runId) return;
+    // Step 4 deletes the threat rows and generates them again, so every
+    // expert decision goes with them -- and rightly so: a decision made
+    // against the old risk and evidence does not belong to a new threat.
+    // Re-running 1-3 reaches step 4 as well. Losing an afternoon of review
+    // without a word is the part that is wrong, so say it first.
+    if (stepNo <= 4) {
+      const counts = threats?.summary.by_review ?? {};
+      const decided = Object.entries(counts)
+        .filter(([status]) => status !== "pending")
+        .reduce((total, [, value]) => total + (value as number), 0);
+      if (
+        decided > 0 &&
+        !window.confirm(
+          `${stepNo}. adım yeniden çalışınca tehditler sıfırdan üretilir ve ` +
+            `verdiğiniz ${decided} uzman kararı silinir; yeni tehditler ` +
+            `eskisiyle aynı olmayabilir. Kararların kaydı denetim izinde ` +
+            `kalır. Devam edilsin mi?`,
+        )
+      )
+        return;
+    }
     setBusy(true);
     try {
       await api.retryStep(runId, stepNo);
