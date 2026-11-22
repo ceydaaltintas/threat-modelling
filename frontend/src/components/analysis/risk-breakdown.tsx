@@ -51,6 +51,16 @@ export function RiskBreakdown({ threat }: { threat: ThreatRow }) {
         items={calc.breakdown.filter((item) => item.field === "impact")}
       />
 
+      {/* "taban" on its own does not say where the number came from. */}
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        <strong className="font-medium text-foreground">Taban:</strong>{" "}
+        {threat.rule_id
+          ? `bu kuralın (${threat.rule_id}) kataloğundaki başlangıç değeri`
+          : `bu STRIDE türü için varsayılan başlangıç değeri`}
+        , dokümandan bağımsız. Altındaki düzeltmeler dokümanda bulunana göre
+        yapılır.
+      </p>
+
       {/* Only LLM-proposed threats carry a proposal; a rule threat has none,
           and an empty box said nothing. */}
       {ai?.likelihood && ai?.impact ? (

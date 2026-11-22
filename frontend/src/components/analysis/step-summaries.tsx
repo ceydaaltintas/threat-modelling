@@ -93,9 +93,16 @@ export function RiskSummary({ output }: { output: RiskOutput }) {
 
         <div>
           <div className="flex gap-1.5">
-            <div className="flex flex-col justify-between py-0.5 text-[10px] text-muted-foreground">
+            {/* The same row height and gap as the grid. "self-start" is
+                load bearing: as a stretched flex child this column grew to
+                cover the x axis labels too, and its rows spread with it, so
+                every label sat a little below its row. */}
+            <div className="grid gap-1 self-start text-[10px] text-muted-foreground">
               {[...scale].reverse().map((value) => (
-                <span key={value} className="h-8 leading-8">
+                <span
+                  key={value}
+                  className="flex h-8 items-center justify-end pr-0.5"
+                >
                   {value}
                 </span>
               ))}
@@ -134,7 +141,7 @@ export function RiskSummary({ output }: { output: RiskOutput }) {
                 ))}
               </div>
               <p className="mt-0.5 text-center text-[10px] text-muted-foreground">
-                Olasılık → (dikey: etki)
+                Yatay: olasılık · Dikey: etki
               </p>
             </div>
           </div>

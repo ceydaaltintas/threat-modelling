@@ -340,7 +340,7 @@ export function ThreatList({
         {data.summary.by_source.merged ?? 0} birleştirilmiş
       </p>
 
-      {review && checked.size > 0 ? (
+      {review && !review.readOnly && checked.size > 0 ? (
         <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-md border border-accent/40 bg-accent-subtle px-3 py-2">
           <span className="text-xs font-medium">
             {checked.size} seçildi
@@ -409,7 +409,7 @@ export function ThreatList({
         </div>
       ) : null}
 
-      {review && rows.length > 0 ? (
+      {review && !review.readOnly && rows.length > 0 ? (
         <button
           type="button"
           onClick={() => setChecked(new Set(rows.map((threat) => threat.id)))}
