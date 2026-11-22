@@ -1,20 +1,28 @@
 "use client";
 
 import { Moon, Sun, UserCog } from "lucide-react";
+import * as React from "react";
 
 import { useMeta } from "@/components/providers/meta-provider";
 import { ROLE_LABELS, useRole } from "@/components/providers/role-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { DemoRole } from "@/lib/types";
+import { api } from "@/lib/api";
+import type { DemoRole, ReplayStatus } from "@/lib/types";
 
 export function Topbar() {
   const { theme, toggle } = useTheme();
   const { role, setRole } = useRole();
   const { meta } = useMeta();
+  const [replay, setReplay] = React.useState<ReplayStatus | null>(null);
 
   const replayOn = meta?.demo_replay && meta.demo_replay !== "false";
+
+  React.useEffect(() => {
+    if (!replayOn) return;
+    api.replayStatus().then(setReplay).catch(() => setReplay(null));
+  }, [replayOn]);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-5">
@@ -22,14 +30,25 @@ export function Topbar() {
         <span className="font-medium text-foreground md:hidden">
           {meta?.app_name ?? "Tehdit Modelleme Platformu"}
         </span>
-        {/* Only state what changes how the product behaves right now. */}
-        {replayOn ? (
-          <Badge
-            variant="accent"
-            title="LLM yanıtları daha önce kaydedilmiş çağrılardan geliyor; yeni çağrı yapılmıyor."
-          >
-            Kayıtlı çıktı
-          </Badge>
+        {/* Only state what changes how the product behaves right now - and
+            say plainly when the mode is on but there is nothing recorded, so
+            nobody thinks the demo is running offline when it is not. */}
+        {replayOn && replay ? (
+          replay.ready ? (
+            <Badge
+              variant="accent"
+              title={`${replay.recorded_calls} kayıtlı yanıt var; aynı istem tekrar sorulmaz.`}
+            >
+              Kayıtlı çıktı · {replay.recorded_calls}
+            </Badge>
+          ) : (
+            <Badge
+              variant="warning"
+              title="Kayıtlı çıktı modu açık ama henüz kayıt yok; çağrılar canlı yapılır. scripts/seed_demo.py ile kayıt üretebilirsiniz."
+            >
+              Kayıt yok · canlı çağrı
+            </Badge>
+          )
         ) : null}
       </div>
 
