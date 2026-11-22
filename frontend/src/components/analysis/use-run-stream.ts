@@ -61,6 +61,9 @@ export function useRunStream(runId: string | null): RunStreamState {
   const [connected, setConnected] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [tick, setTick] = React.useState(0);
+  // Steps that have reported a terminal status. Their panel payload only
+  // exists in the database, so each completion triggers one snapshot fetch.
+  const [settled, setSettled] = React.useState("");
 
   // Initial snapshot from the database, so the step list exists before the
   // first event arrives.
@@ -86,6 +89,19 @@ export function useRunStream(runId: string | null): RunStreamState {
 
   const applyEvent = React.useCallback((event: ProgressEvent) => {
     if (event.placeholder) setPlaceholder(true);
+
+    if (
+      event.type === "step" &&
+      event.step &&
+      (event.status === "done" || event.status === "failed")
+    ) {
+      // Remember it; the effect below pulls the step's output.
+      setSettled((current) =>
+        current.includes(`|${event.step}:${event.status}`)
+          ? current
+          : `${current}|${event.step}:${event.status}`,
+      );
+    }
 
     if (event.type === "step" && event.step) {
       setSteps((current) =>
@@ -143,6 +159,44 @@ export function useRunStream(runId: string | null): RunStreamState {
       return next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
     });
   }, []);
+
+  /**
+   * Pull the authoritative step rows after each completion.
+   *
+   * The event stream carries progress, not payloads: a step's ``output``
+   * (retrieved knowledge, risk distribution, report files) can be large and
+   * lives in the database. Without this, every panel that reads ``output``
+   * stays empty until the page is reloaded.
+   */
+  React.useEffect(() => {
+    if (!runId || !settled) return;
+    let cancelled = false;
+    api
+      .run(runId)
+      .then((value) => {
+        if (cancelled) return;
+        setSteps((current) =>
+          current.map((step) => {
+            const fresh = value.steps.find(
+              (item) => item.step_no === step.step_no,
+            );
+            if (!fresh) return step;
+            return {
+              ...step,
+              output: fresh.output ?? step.output,
+              counters: fresh.counters ?? step.counters,
+            };
+          }),
+        );
+        setRun(value);
+      })
+      .catch(() => {
+        /* the stream keeps working; the panel fills on the next completion */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [runId, settled]);
 
   React.useEffect(() => {
     if (!runId) return;

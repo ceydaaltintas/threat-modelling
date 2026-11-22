@@ -395,30 +395,36 @@ function ReviewControls({
         className="w-full rounded-md border border-input bg-surface p-2 text-xs"
       />
 
+      {/* The decision that is already recorded is shown as current, not
+          offered again: re-accepting an accepted threat does nothing but
+          add a confusing second audit entry. */}
       <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
+        <DecisionButton
+          action="accept"
+          current={threat.review_status}
           disabled={disabled}
           onClick={() => review.onDecide(threat.id, "accept", { note })}
+          icon={<Check aria-hidden />}
         >
-          <Check aria-hidden /> Kabul et
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
+          Kabul et
+        </DecisionButton>
+        <DecisionButton
+          action="reject"
+          current={threat.review_status}
           disabled={disabled}
           onClick={() => review.onDecide(threat.id, "reject", { note })}
         >
           Reddet
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
+        </DecisionButton>
+        <DecisionButton
+          action="false_positive"
+          current={threat.review_status}
           disabled={disabled}
           onClick={() => review.onDecide(threat.id, "false_positive", { note })}
+          icon={<Ban aria-hidden />}
         >
-          <Ban aria-hidden /> Yanlış pozitif
-        </Button>
+          Yanlış pozitif
+        </DecisionButton>
         <Button
           size="sm"
           variant="ghost"
@@ -522,5 +528,48 @@ function ReviewControls({
         </p>
       ) : null}
     </div>
+  );
+}
+
+
+const DECISION_STATUS: Record<string, string> = {
+  accept: "accepted",
+  reject: "rejected",
+  false_positive: "false_positive",
+};
+
+/** A decision button that shows itself as current instead of repeating. */
+function DecisionButton({
+  action,
+  current,
+  disabled,
+  onClick,
+  icon,
+  children,
+}: {
+  action: "accept" | "reject" | "false_positive";
+  current: string;
+  disabled: boolean;
+  onClick: () => void;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const isCurrent = DECISION_STATUS[action] === current;
+  return (
+    <Button
+      size="sm"
+      variant={action === "accept" && !isCurrent ? "default" : "outline"}
+      disabled={disabled || isCurrent}
+      aria-pressed={isCurrent}
+      title={isCurrent ? "Bu karar zaten verildi" : undefined}
+      onClick={onClick}
+      className={cn(
+        isCurrent &&
+          "border-level-low/50 bg-level-low/10 text-level-low opacity-100",
+      )}
+    >
+      {isCurrent ? <Check aria-hidden /> : icon}
+      {isCurrent ? `${children} ✓` : children}
+    </Button>
   );
 }
