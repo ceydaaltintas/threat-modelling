@@ -46,6 +46,7 @@ class GeminiNativeClient:
         images: list[bytes] | None = None,
         temperature: float = 0.2,
         json_output: bool = False,
+        max_output_tokens: int | None = None,
     ) -> LLMResponse:
         # Imported lazily so the container starts even without the SDK.
         try:
@@ -66,7 +67,11 @@ class GeminiNativeClient:
             system_instruction=system,
             temperature=temperature,
             response_mime_type="application/json" if json_output else "text/plain",
-            max_output_tokens=self.max_output_tokens or None,
+            max_output_tokens=(
+                self.max_output_tokens if max_output_tokens is None
+                else max_output_tokens
+            )
+            or None,
         )
 
         def _call():

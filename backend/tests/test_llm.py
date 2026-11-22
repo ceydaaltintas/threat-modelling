@@ -247,3 +247,59 @@ async def test_text_generation_honours_strict_mode(monkeypatch) -> None:
 
     with pytest.raises(LLMError):
         await gateway.generate_text(prompt_name="t", system="s", user="u")
+
+
+async def test_too_large_request_is_retried_with_a_shorter_prompt(monkeypatch) -> None:
+    """A 413 shrinks the prompt rather than losing the step."""
+    from app.llm.base import LLMResponse, LLMTooLarge
+
+    class Picky:
+        provider = "picky"
+        model = "picky-1"
+
+        def __init__(self) -> None:
+            self.seen: list[int] = []
+
+        async def generate(self, *, system, user, images, temperature,
+                           json_output, max_output_tokens=None) -> LLMResponse:
+            self.seen.append(len(user))
+            if len(user) > 6000:
+                raise LLMTooLarge("çok büyük", max_output_tokens=max_output_tokens)
+            return LLMResponse(text=json.dumps({"name": "a", "count": 1}))
+
+    client = Picky()
+    gateway = _gateway(client)
+    _silence_recording(monkeypatch, gateway)
+
+    result = await gateway.generate_json(
+        prompt_name="t",
+        system="s",
+        user="x" * 40_000,
+        schema=Tiny,
+        shrink_user=lambda budget: "x" * budget,
+    )
+
+    assert result.count == 1
+    assert client.seen[0] == 40_000
+    # Each rejection halves the prompt until the provider accepts it.
+    assert client.seen[-1] <= 6000
+    assert gateway.usage.shrinks >= 1
+
+
+async def test_too_large_request_fails_when_the_caller_cannot_shrink(monkeypatch) -> None:
+    from app.llm.base import LLMTooLarge
+
+    class Always:
+        provider = "p"
+        model = "m"
+
+        async def generate(self, **_kwargs):
+            raise LLMTooLarge("çok büyük")
+
+    gateway = _gateway(Always())
+    _silence_recording(monkeypatch, gateway)
+
+    with pytest.raises(LLMTooLarge):
+        await gateway.generate_json(
+            prompt_name="t", system="s", user="u", schema=Tiny
+        )

@@ -44,6 +44,9 @@ DUPLICATE_RATIO = 0.82
 # Document text handed to the model; the system model carries the structure.
 MAX_DOCUMENT_CHARS = 18_000
 MAX_KNOWLEDGE_BLOCKS = 40
+# Retrieved knowledge is the other half of this prompt; without a cap a
+# broad document can push the whole request past the provider's limit.
+MAX_KNOWLEDGE_CHARS = 24_000
 
 
 def _normalise(value: str) -> str:
@@ -272,12 +275,26 @@ async def run(ctx: RunContext) -> dict[str, int]:
         )
         prompt = load_prompt(PROMPT_NAME)
         known = "\n".join(f"- {item['title']}" for item in rule_rows) or "(yok)"
-        user = prompt.render(
-            system_model=_model_summary(model),
-            known_threats=known,
-            knowledge_blocks=knowledge_text or "(kaynak getirilemedi)",
-            document_text=document_text[:MAX_DOCUMENT_CHARS],
-        )
+        summary = _model_summary(model)
+
+        def _build(doc_chars: int, knowledge_chars: int) -> str:
+            return prompt.render(
+                system_model=summary,
+                known_threats=known,
+                knowledge_blocks=knowledge_text[:knowledge_chars]
+                or "(kaynak getirilemedi)",
+                document_text=document_text[:doc_chars],
+            )
+
+        user = _build(MAX_DOCUMENT_CHARS, MAX_KNOWLEDGE_CHARS)
+
+        def _shrink(budget: int) -> str:
+            # The system model and the rule findings are what the step is
+            # reasoning about, so the document excerpt and the retrieved
+            # knowledge give way first - in that order.
+            fixed = len(_build(0, 0))
+            room = max(0, budget - fixed)
+            return _build(int(room * 0.6), int(room * 0.4))
         try:
             async def _waiting(attempt: int, delay: float) -> None:
                 await ctx.report(
@@ -296,6 +313,7 @@ async def run(ctx: RunContext) -> dict[str, int]:
                 schema=LlmThreatList,
                 step_no=STEP.no,
                 on_wait=_waiting,
+                shrink_user=_shrink,
             )
             llm_rows, llm_stats = _llm_threat_rows(result.threats, model, allowed_ids)
         except LLMError as exc:

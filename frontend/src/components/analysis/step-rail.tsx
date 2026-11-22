@@ -106,6 +106,9 @@ export function StepRail({
           const isSelected = selected === definition.no;
           const paused = pauseStep === definition.no;
           const gate = definition.no === modelApprovalAfterStep;
+          // A step that has not started has nothing to show, and opening it
+          // would offer actions on data the pipeline has not produced yet.
+          const reachable = status !== "pending";
 
           return (
             <React.Fragment key={definition.no}>
@@ -113,11 +116,17 @@ export function StepRail({
                 <button
                   type="button"
                   onClick={() => onSelect(definition.no)}
+                  disabled={!reachable}
                   aria-current={isSelected ? "step" : undefined}
-                  title={`${definition.no}. ${definition.name} — ${STATUS_TEXT[status]}`}
+                  title={
+                    reachable
+                      ? `${definition.no}. ${definition.name} — ${STATUS_TEXT[status]}`
+                      : `${definition.no}. ${definition.name} — henüz çalışmadı`
+                  }
                   className={cn(
                     "flex w-full flex-col items-center gap-1 rounded-md px-1 py-1 transition-colors",
                     isSelected ? "bg-accent-subtle" : "hover:bg-surface-muted",
+                    !reachable && "cursor-not-allowed opacity-55 hover:bg-transparent",
                   )}
                 >
                   <Marker status={status} index={definition.no} />

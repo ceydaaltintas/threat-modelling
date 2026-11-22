@@ -18,6 +18,7 @@ from app.llm.base import (
     LLMNotConfigured,
     LLMQuotaExceeded,
     LLMResponse,
+    LLMTooLarge,
     LLMTruncated,
     LLMUnavailable,
 )
@@ -66,7 +67,13 @@ class OpenAICompatibleClient:
         images: list[bytes] | None = None,
         temperature: float = 0.2,
         json_output: bool = False,
+        max_output_tokens: int | None = None,
     ) -> LLMResponse:
+        budget = (
+            self.max_output_tokens
+            if max_output_tokens is None
+            else max_output_tokens
+        )
         content: list[dict] | str
         if images:
             content = [{"type": "text", "text": user}]
@@ -91,8 +98,8 @@ class OpenAICompatibleClient:
         }
         if json_output:
             payload["response_format"] = {"type": "json_object"}
-        if self.max_output_tokens:
-            payload["max_completion_tokens"] = self.max_output_tokens
+        if budget:
+            payload["max_completion_tokens"] = budget
 
         headers = {
             "content-type": "application/json",
@@ -120,6 +127,15 @@ class OpenAICompatibleClient:
                 "LLM kota sınırına ulaşıldı. Kayıtlı çıktı moduna geçin veya "
                 "60 sn sonra tekrar deneyin.",
                 detail=response.text[:500],
+            )
+        if response.status_code == 413:
+            raise LLMTooLarge(
+                "İstek sağlayıcının boyut sınırını aştı (HTTP 413). Yanıt "
+                "bütçesi küçültülerek yeniden denenecek; sürerse .env "
+                "içindeki LLM_MAX_OUTPUT_TOKENS değerini düşürün veya daha "
+                "küçük bir doküman kullanın.",
+                detail=response.text[:500],
+                max_output_tokens=budget,
             )
         if response.status_code in (502, 503, 504):
             raise LLMBusy(

@@ -30,6 +30,7 @@ class StubClient:
         images: list[bytes] | None = None,
         temperature: float = 0.2,
         json_output: bool = False,
+        max_output_tokens: int | None = None,
     ) -> LLMResponse:
         index = min(len(self.calls), len(self._responses) - 1)
         self.calls.append({"system": system, "user": user, "images": len(images or [])})

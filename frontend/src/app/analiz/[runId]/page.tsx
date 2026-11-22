@@ -250,6 +250,13 @@ export default function AnalysisPage() {
     stream.steps.find((item) => item.step_no === stepNo)?.output ?? null;
 
   const panelFor = (stepNo: number | null): React.ReactNode | undefined => {
+    // Never show a step's output before that step has run: the data would
+    // belong to an earlier state of the pipeline, and step 8 would offer
+    // decisions on threats whose risk and mitigations are not final.
+    if (stepNo === null) return undefined;
+    const own = stream.steps.find((item) => item.step_no === stepNo);
+    if (!own || own.status === "pending") return undefined;
+
     if (stepNo === 1 && documents.length > 0) {
       return <DocumentPanel documents={documents} />;
     }

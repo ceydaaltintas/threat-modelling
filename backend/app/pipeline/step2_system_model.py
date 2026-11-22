@@ -76,11 +76,21 @@ async def run(ctx: RunContext) -> dict[str, int]:
                 else "Sistem modeli çıkarılıyor"
             ),
         )
-        user = prompt.render(
-            document_title=title,
-            page_count=page_count or "bilinmiyor",
-            document_text=chunk,
-        )
+        def _build(text: str) -> str:
+            return prompt.render(
+                document_title=title,
+                page_count=page_count or "bilinmiyor",
+                document_text=text,
+            )
+
+        user = _build(chunk)
+
+        def _shrink(budget: int, _chunk: str = chunk) -> str:
+            # A chunk the provider calls too large is cut down rather than
+            # dropped: a shorter excerpt still yields components and flows.
+            room = max(0, budget - len(_build("")))
+            return _build(_chunk[:room])
+
         async def _waiting(attempt: int, delay: float, _index: int = index) -> None:
             # The provider is busy; tell the user rather than looking stuck.
             await ctx.report(
@@ -102,6 +112,7 @@ async def run(ctx: RunContext) -> dict[str, int]:
                 images=images if index == 1 else None,
                 step_no=STEP.no,
                 on_wait=_waiting,
+                shrink_user=_shrink,
             )
         )
 

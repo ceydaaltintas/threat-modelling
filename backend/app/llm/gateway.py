@@ -26,7 +26,13 @@ from pydantic import BaseModel, ValidationError
 
 from app.core.config import Settings, get_settings
 from app.core.db import SessionLocal
-from app.llm.base import LLMClient, LLMError, LLMInvalidOutput, LLMResponse
+from app.llm.base import (
+    LLMClient,
+    LLMError,
+    LLMInvalidOutput,
+    LLMResponse,
+    LLMTooLarge,
+)
 from app.llm.json_utils import extract_json
 from app.models import LlmCall
 
@@ -41,6 +47,16 @@ MAX_REPAIR_ATTEMPTS = 2
 MAX_TRANSIENT_RETRIES = 3
 BACKOFF_SECONDS = (4, 12, 30)
 
+# When the provider says the request is too large, halve the output budget
+# and try again rather than failing the step outright.
+MAX_SHRINK_ATTEMPTS = 2
+MIN_OUTPUT_TOKENS = 2048
+# Halving the answer budget does not help when what is too large is the
+# request itself, so a caller that can rebuild its prompt shorter gets asked
+# to do so before the step gives up.
+MAX_INPUT_SHRINKS = 3
+MIN_USER_CHARS = 4_000
+
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
@@ -54,6 +70,8 @@ class LlmUsage:
     repairs: int = 0
     # How many times we backed off and retried a transient provider error.
     waits: int = 0
+    # How many times the output budget had to be reduced to fit.
+    shrinks: int = 0
     # Provider/model actually used, for the report.
     details: dict = field(default_factory=dict)
 
@@ -64,6 +82,7 @@ class LlmUsage:
             "tokens": self.tokens,
             "repairs": self.repairs,
             "waits": self.waits,
+            "shrinks": self.shrinks,
             "replay": replay,
         }
 
@@ -107,8 +126,16 @@ class LLMGateway:
         json_output: bool,
         on_wait: Callable[[int, float], Awaitable[None]] | None = None,
     ) -> LLMResponse:
-        """Call the provider, backing off on transient errors."""
+        """Call the provider, backing off on transient errors.
+
+        Two kinds of retry happen here: a wait-and-retry for a busy or rate
+        limited provider, and a shrink-and-retry when the request is too
+        large for the provider's limit.
+        """
         last: LLMError | None = None
+        budget: int | None = None
+        shrinks = 0
+
         for attempt in range(MAX_TRANSIENT_RETRIES + 1):
             try:
                 return await self.client.generate(
@@ -117,7 +144,23 @@ class LLMGateway:
                     images=images,
                     temperature=temperature,
                     json_output=json_output,
+                    max_output_tokens=budget,
                 )
+            except LLMTooLarge as exc:
+                last = exc
+                current = budget or exc.max_output_tokens or 0
+                smaller = max(MIN_OUTPUT_TOKENS, current // 2) if current else 0
+                if shrinks >= MAX_SHRINK_ATTEMPTS or smaller >= current or not smaller:
+                    raise
+                shrinks += 1
+                budget = smaller
+                self.usage.shrinks += 1
+                logger.warning(
+                    "İstek çok büyük; yanıt bütçesi %s token'a düşürülüp "
+                    "yeniden denenecek.",
+                    smaller,
+                )
+                continue
             except LLMError as exc:
                 last = exc
                 if not exc.retryable or attempt == MAX_TRANSIENT_RETRIES:
@@ -148,8 +191,62 @@ class LLMGateway:
         step_no: int | None = None,
         temperature: float | None = None,
         on_wait: Callable[[int, float], Awaitable[None]] | None = None,
+        shrink_user: Callable[[int], str] | None = None,
     ) -> ModelT:
-        """Return a validated instance of ``schema`` or raise ``LLMError``."""
+        """Return a validated instance of ``schema`` or raise ``LLMError``.
+
+        ``shrink_user`` lets a caller rebuild its prompt to fit a character
+        budget. When the provider rejects the request as too large and the
+        answer budget cannot usefully be cut any further, the prompt is
+        rebuilt at half the size and the call is tried again.
+        """
+        attempt_user = user
+        for shrink in range(MAX_INPUT_SHRINKS + 1):
+            try:
+                return await self._generate_json_once(
+                    prompt_name=prompt_name,
+                    system=system,
+                    user=attempt_user,
+                    schema=schema,
+                    images=images,
+                    step_no=step_no,
+                    temperature=temperature,
+                    on_wait=on_wait,
+                )
+            except LLMTooLarge:
+                smaller = max(MIN_USER_CHARS, len(attempt_user) // 2)
+                if (
+                    shrink_user is None
+                    or shrink >= MAX_INPUT_SHRINKS
+                    or smaller >= len(attempt_user)
+                ):
+                    raise
+                rebuilt = shrink_user(smaller)
+                if len(rebuilt) >= len(attempt_user):
+                    raise
+                self.usage.shrinks += 1
+                logger.warning(
+                    "İstek çok büyük; istem %s karakterden %s karaktere "
+                    "düşürülüp yeniden denenecek.",
+                    len(attempt_user),
+                    len(rebuilt),
+                )
+                attempt_user = rebuilt
+        raise LLMTooLarge("İstek sağlayıcının boyut sınırını aşıyor.")
+
+    async def _generate_json_once(
+        self,
+        *,
+        prompt_name: str,
+        system: str,
+        user: str,
+        schema: type[ModelT],
+        images: list[bytes] | None = None,
+        step_no: int | None = None,
+        temperature: float | None = None,
+        on_wait: Callable[[int, float], Awaitable[None]] | None = None,
+    ) -> ModelT:
+        """One attempt at a fixed prompt size: replay, repair, record."""
         temperature = (
             self.settings.llm_temperature if temperature is None else temperature
         )

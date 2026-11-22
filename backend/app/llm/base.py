@@ -46,6 +46,24 @@ class LLMUnavailable(LLMError):
     pass
 
 
+class LLMTooLarge(LLMError):
+    """The request exceeded the provider's size limit (HTTP 413).
+
+    Carries the output budget that was used, so the caller can retry with a
+    smaller one before giving up.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        detail: str | None = None,
+        max_output_tokens: int = 0,
+    ) -> None:
+        super().__init__(message, detail=detail)
+        self.max_output_tokens = max_output_tokens
+
+
 class LLMTruncated(LLMError):
     """The answer was cut off by the output token limit.
 
@@ -81,4 +99,5 @@ class LLMClient(Protocol):
         images: list[bytes] | None = None,
         temperature: float = 0.2,
         json_output: bool = False,
+        max_output_tokens: int | None = None,
     ) -> LLMResponse: ...
