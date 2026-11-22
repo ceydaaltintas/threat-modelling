@@ -100,7 +100,7 @@ export function StepRail({
   return (
     <div className="rounded-lg border border-border bg-surface px-3 py-2.5">
       <ol className="flex items-start gap-0.5" aria-label="Analiz adımları">
-        {definitions.map((definition, index) => {
+        {definitions.map((definition) => {
           const step = byNo.get(definition.no);
           const status: StepStatus = step?.status ?? "pending";
           const isSelected = selected === definition.no;
@@ -119,9 +119,10 @@ export function StepRail({
                   disabled={!reachable}
                   aria-current={isSelected ? "step" : undefined}
                   title={
-                    reachable
+                    (reachable
                       ? `${definition.no}. ${definition.name} — ${STATUS_TEXT[status]}`
-                      : `${definition.no}. ${definition.name} — henüz çalışmadı`
+                      : `${definition.no}. ${definition.name} — henüz çalışmadı`) +
+                    (gate ? " · ardından model onayı için durur" : "")
                   }
                   className={cn(
                     "flex w-full flex-col items-center gap-1 rounded-md px-1 py-1 transition-colors",
@@ -129,7 +130,25 @@ export function StepRail({
                     !reachable && "cursor-not-allowed opacity-55 hover:bg-transparent",
                   )}
                 >
-                  <Marker status={status} index={definition.no} />
+                  <span className="relative">
+                    <Marker status={status} index={definition.no} />
+                    {gate ? (
+                      // The approval stop belongs to the step it follows.
+                      // On its own between two steps it had nothing to
+                      // attach to and read as stray furniture.
+                      <span
+                        className={cn(
+                          "absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-surface",
+                          paused
+                            ? "bg-level-high text-white"
+                            : "bg-muted-foreground/60 text-surface",
+                        )}
+                        aria-hidden
+                      >
+                        <Pause className="h-2 w-2" />
+                      </span>
+                    ) : null}
+                  </span>
                   <span
                     className={cn(
                       "w-full truncate text-center text-[11px] leading-tight",
@@ -145,32 +164,6 @@ export function StepRail({
                 </button>
               </li>
 
-              {gate && index < definitions.length - 1 ? (
-                // Not a step: a gate between two steps. A dashed line with
-                // the pause icon on it reads that way; another circle in the
-                // row read as a tenth step.
-                <li
-                  className="relative flex w-6 shrink-0 justify-center self-stretch"
-                  aria-label="Model onayı: analiz burada durur"
-                  title="Model onayı: analiz burada durur"
-                >
-                  <span
-                    className={cn(
-                      "absolute inset-y-0 border-l border-dashed",
-                      paused ? "border-level-high" : "border-border",
-                    )}
-                    aria-hidden
-                  />
-                  <span
-                    className={cn(
-                      "relative mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-surface",
-                      paused ? "text-level-high" : "text-muted-foreground/70",
-                    )}
-                  >
-                    <Pause className="h-3 w-3" aria-hidden />
-                  </span>
-                </li>
-              ) : null}
             </React.Fragment>
           );
         })}
