@@ -6,23 +6,17 @@ import * as React from "react";
 import { useMeta } from "@/components/providers/meta-provider";
 import { ROLE_LABELS, useRole } from "@/components/providers/role-provider";
 import { useTheme } from "@/components/providers/theme-provider";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
-import type { DemoRole, ReplayStatus } from "@/lib/types";
+import type { DemoRole } from "@/lib/types";
 
 export function Topbar() {
   const { theme, toggle } = useTheme();
   const { role, setRole } = useRole();
   const { meta } = useMeta();
-  const [replay, setReplay] = React.useState<ReplayStatus | null>(null);
-
-  const replayOn = meta?.demo_replay && meta.demo_replay !== "false";
-
-  React.useEffect(() => {
-    if (!replayOn) return;
-    api.replayStatus().then(setReplay).catch(() => setReplay(null));
-  }, [replayOn]);
+  // The recorded-output badge used to live here. It is stated where it is
+  // actually needed instead: the Ayarlar screen explains the mode, and the
+  // PDF report says "kayıtlı çıktı modu" on every run produced that way, so
+  // nothing that leaves the building can look like a live result.
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-5">
@@ -30,26 +24,6 @@ export function Topbar() {
         <span className="font-medium text-foreground md:hidden">
           {meta?.app_name ?? "Tehdit Modelleme Platformu"}
         </span>
-        {/* Only state what changes how the product behaves right now - and
-            say plainly when the mode is on but there is nothing recorded, so
-            nobody thinks the demo is running offline when it is not. */}
-        {replayOn && replay ? (
-          replay.ready ? (
-            <Badge
-              variant="accent"
-              title={`Sonuçlar daha önce kaydedilmiş ${replay.recorded_calls} LLM yanıtından geliyor; yeni çağrı yapılmıyor. Canlı çalıştırmak için .env içindeki DEMO_REPLAY değerini false yapın.`}
-            >
-              Kayıtlı çıktı
-            </Badge>
-          ) : (
-            <Badge
-              variant="warning"
-              title="Kayıtlı çıktı modu açık ama henüz kayıt yok; çağrılar canlı yapılır. scripts/seed_demo.py ile kayıt üretebilirsiniz."
-            >
-              Kayıt yok · canlı çağrı
-            </Badge>
-          )
-        ) : null}
       </div>
 
       <div className="flex items-center gap-2">

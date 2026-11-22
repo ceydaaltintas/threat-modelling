@@ -96,99 +96,81 @@ yeniden başlatılırsa görev ölür; bu durumda açılışta yarıda kalan ana
 yeniden çalıştırılabilir; o adımdan sonrası geçersiz sayılıp yeniden üretilir.</p>
 
 <div class="figure">
-<svg width="470" height="400" viewBox="0 0 470 400" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-      <path d="M0,0 L7,3 L0,6 z" fill="#64748b"/>
-    </marker>
-  </defs>
-  <style>
-    .b { fill:#ffffff; stroke:#0f3d6b; stroke-width:1.1; }
-    .bc { fill:#eef2f7; stroke:#0f3d6b; stroke-width:1.1; }
-    .bh { fill:#fff7ed; stroke:#b45309; stroke-width:1.1; }
-    .side { fill:#f8fafc; stroke:#94a3b8; stroke-width:1; stroke-dasharray:3 2; }
-    .t { font-family:"DejaVu Sans"; font-size:8px; fill:#1f2937; }
-    .tb { font-family:"DejaVu Sans"; font-size:8px; font-weight:bold; fill:#0f3d6b; }
-    .ts { font-family:"DejaVu Sans"; font-size:7px; fill:#64748b; }
-    .l { stroke:#64748b; stroke-width:1; marker-end:url(#a); fill:none; }
-    .ld { stroke:#94a3b8; stroke-width:0.8; stroke-dasharray:3 2; marker-end:url(#a); fill:none; }
-  </style>
-
-  <rect class="b" x="150" y="8" width="170" height="26" rx="4"/>
-  <text class="tb" x="160" y="20">1 · Doküman okundu</text>
-  <text class="ts" x="160" y="30">PDF/Word → metin, sayfa, bölüm</text>
-
-  <path class="l" d="M235,34 L235,48"/>
-  <rect class="bc" x="150" y="48" width="170" height="26" rx="4"/>
-  <text class="tb" x="160" y="60">2 · Sistem modeli</text>
-  <text class="ts" x="160" y="70">LLM: bileşen, akış, bölge, kanıt</text>
-
-  <path class="l" d="M235,74 L235,88"/>
-  <rect class="bh" x="150" y="88" width="170" height="22" rx="4"/>
-  <text class="tb" x="160" y="102">⏸ Model onayı — uzman bekler</text>
-
-  <path class="l" d="M235,110 L235,124"/>
-  <rect class="b" x="150" y="124" width="170" height="26" rx="4"/>
-  <text class="tb" x="160" y="136">3 · İlgili bilgi toplandı</text>
-  <text class="ts" x="160" y="146">hibrit arama (RRF) → kaynaklar</text>
-
-  <path class="l" d="M235,150 L235,164"/>
-  <rect class="bc" x="150" y="164" width="170" height="26" rx="4"/>
-  <text class="tb" x="160" y="176">4 · Tehditler üretildi</text>
-  <text class="ts" x="160" y="186">kural kataloğu + LLM → birleştirme</text>
-
-  <path class="l" d="M235,190 L235,204"/>
-  <rect class="b" x="150" y="204" width="170" height="26" rx="4"/>
-  <text class="tb" x="160" y="216">5 · Doğrulama</text>
-  <text class="ts" x="160" y="226">7 denetim; eleme yok, işaretleme var</text>
-
-  <path class="l" d="M235,230 L235,244"/>
-  <rect class="b" x="150" y="244" width="170" height="26" rx="4"/>
-  <text class="tb" x="160" y="256">6 · Risk hesaplandı</text>
-  <text class="ts" x="160" y="266">olasılık × etki, düzeltmeler gerekçeli</text>
-
-  <path class="l" d="M235,270 L235,284"/>
-  <rect class="bc" x="150" y="284" width="170" height="26" rx="4"/>
-  <text class="tb" x="160" y="296">7 · Önlemler önerildi</text>
-  <text class="ts" x="160" y="306">katalog eşlemesi + LLM metni</text>
-
-  <path class="l" d="M235,310 L235,324"/>
-  <rect class="bh" x="150" y="324" width="170" height="26" rx="4"/>
-  <text class="tb" x="160" y="336">8 · Uzman incelemesi</text>
-  <text class="ts" x="160" y="346">kabul / red / yanlış pozitif / düzenle</text>
-
-  <path class="l" d="M235,350 L235,364"/>
-  <rect class="b" x="150" y="364" width="170" height="26" rx="4"/>
-  <text class="tb" x="160" y="376">9 · Rapor hazır</text>
-  <text class="ts" x="160" y="386">PDF · Excel · JSON · OTM</text>
-
-  <rect class="side" x="8" y="118" width="120" height="40" rx="4"/>
-  <text class="t" x="16" y="132">Bilgi tabanı</text>
-  <text class="ts" x="16" y="142">196 kayıt · OWASP, CWE,</text>
-  <text class="ts" x="16" y="152">ATT&amp;CK, kontroller, yöntem</text>
-  <path class="ld" d="M128,138 L148,138"/>
-
-  <rect class="side" x="8" y="162" width="120" height="30" rx="4"/>
-  <text class="t" x="16" y="176">Kural kataloğu</text>
-  <text class="ts" x="16" y="186">59 kural (YAML)</text>
-  <path class="ld" d="M128,177 L148,177"/>
-
-  <rect class="side" x="342" y="162" width="120" height="30" rx="4"/>
-  <text class="t" x="350" y="176">LLM ağ geçidi</text>
-  <text class="ts" x="350" y="186">şema · onarım · kayıt</text>
-  <path class="ld" d="M342,177 L322,177"/>
-
-  <rect class="side" x="342" y="284" width="120" height="30" rx="4"/>
-  <text class="t" x="350" y="298">Önlem kataloğu</text>
-  <text class="ts" x="350" y="308">83 önlem (YAML)</text>
-  <path class="ld" d="M342,299 L322,299"/>
-
-  <rect class="side" x="8" y="324" width="120" height="30" rx="4"/>
-  <text class="t" x="16" y="338">Denetim izi</text>
-  <text class="ts" x="16" y="348">ekle-only, her karar</text>
-  <path class="ld" d="M148,339 L128,339"/>
+<svg width="500" height="488" viewBox="0 0 500 488" xmlns="http://www.w3.org/2000/svg" font-family="DejaVu Sans">
+<rect x="142" y="8" width="196" height="30" rx="4" fill="#eef2f7" stroke="#0f3d6b" stroke-width="1.1"/>
+<text x="152" y="21" font-size="8.2" font-weight="bold" fill="#0f3d6b">1 · Doküman okundu</text>
+<text x="152" y="32" font-size="7" fill="#5b6472">PDF/Word → metin, sayfa, bölüm</text>
+<rect x="142" y="58" width="196" height="30" rx="4" fill="#dbe7f3" stroke="#0f3d6b" stroke-width="1.1"/>
+<text x="152" y="71" font-size="8.2" font-weight="bold" fill="#0f3d6b">2 · Sistem modeli</text>
+<text x="152" y="82" font-size="7" fill="#5b6472">LLM: bileşen, akış, bölge, kanıt</text>
+<rect x="142" y="108" width="196" height="22" rx="4" fill="#fff3e3" stroke="#b45309" stroke-width="1.1"/>
+<text x="152" y="122.5" font-size="8" font-weight="bold" fill="#b45309">⏸ Model onayı — uzman bekler</text>
+<rect x="142" y="150" width="196" height="30" rx="4" fill="#ffffff" stroke="#0f3d6b" stroke-width="1.1"/>
+<text x="152" y="163" font-size="8.2" font-weight="bold" fill="#0f3d6b">3 · İlgili bilgi toplandı</text>
+<text x="152" y="174" font-size="7" fill="#5b6472">hibrit arama (RRF) → kaynaklar</text>
+<rect x="142" y="200" width="196" height="30" rx="4" fill="#eef2f7" stroke="#0f3d6b" stroke-width="1.1"/>
+<text x="152" y="213" font-size="8.2" font-weight="bold" fill="#0f3d6b">4 · Tehditler üretildi</text>
+<text x="152" y="224" font-size="7" fill="#5b6472">kural kataloğu + LLM → birleştirme</text>
+<rect x="142" y="250" width="196" height="30" rx="4" fill="#ffffff" stroke="#0f3d6b" stroke-width="1.1"/>
+<text x="152" y="263" font-size="8.2" font-weight="bold" fill="#0f3d6b">5 · Doğrulama</text>
+<text x="152" y="274" font-size="7" fill="#5b6472">7 denetim; eleme yok, işaretleme var</text>
+<rect x="142" y="300" width="196" height="30" rx="4" fill="#ffffff" stroke="#0f3d6b" stroke-width="1.1"/>
+<text x="152" y="313" font-size="8.2" font-weight="bold" fill="#0f3d6b">6 · Risk hesaplandı</text>
+<text x="152" y="324" font-size="7" fill="#5b6472">olasılık × etki, düzeltmeler gerekçeli</text>
+<rect x="142" y="350" width="196" height="30" rx="4" fill="#eef2f7" stroke="#0f3d6b" stroke-width="1.1"/>
+<text x="152" y="363" font-size="8.2" font-weight="bold" fill="#0f3d6b">7 · Önlemler önerildi</text>
+<text x="152" y="374" font-size="7" fill="#5b6472">katalog eşlemesi + LLM metni</text>
+<rect x="142" y="400" width="196" height="30" rx="4" fill="#fff3e3" stroke="#b45309" stroke-width="1.1"/>
+<text x="152" y="413" font-size="8.2" font-weight="bold" fill="#0f3d6b">8 · Uzman incelemesi</text>
+<text x="152" y="424" font-size="7" fill="#5b6472">kabul / red / yanlış pozitif / düzenle</text>
+<rect x="142" y="450" width="196" height="30" rx="4" fill="#ffffff" stroke="#0f3d6b" stroke-width="1.1"/>
+<text x="152" y="463" font-size="8.2" font-weight="bold" fill="#0f3d6b">9 · Rapor hazır</text>
+<text x="152" y="474" font-size="7" fill="#5b6472">PDF · Excel · JSON · OTM</text>
+<line x1="240.0" y1="38" x2="240.0" y2="52" stroke="#64748b" stroke-width="1.2"/>
+<polygon points="236.5,52 243.5,52 240.0,58" fill="#64748b"/>
+<line x1="240.0" y1="88" x2="240.0" y2="102" stroke="#64748b" stroke-width="1.2"/>
+<polygon points="236.5,102 243.5,102 240.0,108" fill="#64748b"/>
+<line x1="240.0" y1="130" x2="240.0" y2="144" stroke="#64748b" stroke-width="1.2"/>
+<polygon points="236.5,144 243.5,144 240.0,150" fill="#64748b"/>
+<line x1="240.0" y1="180" x2="240.0" y2="194" stroke="#64748b" stroke-width="1.2"/>
+<polygon points="236.5,194 243.5,194 240.0,200" fill="#64748b"/>
+<line x1="240.0" y1="230" x2="240.0" y2="244" stroke="#64748b" stroke-width="1.2"/>
+<polygon points="236.5,244 243.5,244 240.0,250" fill="#64748b"/>
+<line x1="240.0" y1="280" x2="240.0" y2="294" stroke="#64748b" stroke-width="1.2"/>
+<polygon points="236.5,294 243.5,294 240.0,300" fill="#64748b"/>
+<line x1="240.0" y1="330" x2="240.0" y2="344" stroke="#64748b" stroke-width="1.2"/>
+<polygon points="236.5,344 243.5,344 240.0,350" fill="#64748b"/>
+<line x1="240.0" y1="380" x2="240.0" y2="394" stroke="#64748b" stroke-width="1.2"/>
+<polygon points="236.5,394 243.5,394 240.0,400" fill="#64748b"/>
+<line x1="240.0" y1="430" x2="240.0" y2="444" stroke="#64748b" stroke-width="1.2"/>
+<polygon points="236.5,444 243.5,444 240.0,450" fill="#64748b"/>
+<rect x="-2" y="149.0" width="118" height="32" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3 2"/>
+<text x="6" y="162.0" font-size="7.6" fill="#1f2937">Bilgi tabanı</text>
+<text x="6" y="173.0" font-size="6.8" fill="#5b6472">196 kayıt · OWASP, CWE, ATT&amp;CK…</text>
+<line x1="116" y1="165.0" x2="135" y2="165.0" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3 2"/>
+<polygon points="135,162.0 135,168.0 142,165.0" fill="#94a3b8"/>
+<rect x="-2" y="199.0" width="118" height="32" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3 2"/>
+<text x="6" y="212.0" font-size="7.6" fill="#1f2937">Kural kataloğu</text>
+<text x="6" y="223.0" font-size="6.8" fill="#5b6472">59 kural (YAML)</text>
+<line x1="116" y1="215.0" x2="135" y2="215.0" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3 2"/>
+<polygon points="135,212.0 135,218.0 142,215.0" fill="#94a3b8"/>
+<rect x="364" y="199.0" width="118" height="32" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3 2"/>
+<text x="372" y="212.0" font-size="7.6" fill="#1f2937">LLM ağ geçidi</text>
+<text x="372" y="223.0" font-size="6.8" fill="#5b6472">şema · onarım · kayıt</text>
+<line x1="364" y1="215.0" x2="345" y2="215.0" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3 2"/>
+<polygon points="345,212.0 345,218.0 338,215.0" fill="#94a3b8"/>
+<rect x="364" y="349.0" width="118" height="32" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3 2"/>
+<text x="372" y="362.0" font-size="7.6" fill="#1f2937">Önlem kataloğu</text>
+<text x="372" y="373.0" font-size="6.8" fill="#5b6472">83 önlem (YAML)</text>
+<line x1="364" y1="365.0" x2="345" y2="365.0" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3 2"/>
+<polygon points="345,362.0 345,368.0 338,365.0" fill="#94a3b8"/>
+<rect x="-2" y="399.0" width="118" height="32" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3 2"/>
+<text x="6" y="412.0" font-size="7.6" fill="#1f2937">Denetim izi</text>
+<text x="6" y="423.0" font-size="6.8" fill="#5b6472">ekle-only, her karar</text>
+<line x1="116" y1="415.0" x2="135" y2="415.0" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3 2"/>
+<polygon points="135,412.0 135,418.0 142,415.0" fill="#94a3b8"/>
 </svg>
-<p class="caption">Şekil 1 — Boru hattı. Gölgeli kutular dil modeli kullanır, turuncu kutular insan bekler, kesikli kutular kod tarafındaki sabit kaynaklardır.</p>
+<p class="caption">Şekil 1 — Boru hattı. Mavi kutular dil modeli kullanır, turuncu kutular insan bekler, beyaz kutular yalnızca kod çalıştırır; kesikli kutular kod tarafındaki sabit kaynaklardır.</p>
 </div>
 
 <table>
