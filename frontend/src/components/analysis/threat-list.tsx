@@ -70,6 +70,7 @@ export interface ReviewHandlers {
   onBulk: (
     threatIds: string[],
     action: "accept" | "reject" | "false_positive" | "reset",
+    note?: string,
   ) => Promise<void>;
 }
 
@@ -108,6 +109,15 @@ export function ThreatList({
   const [reviewFilter, setReviewFilter] = React.useState("");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [checked, setChecked] = React.useState<Set<string>>(new Set());
+  const [bulkNote, setBulkNote] = React.useState("");
+
+  const selectedRows = React.useMemo(
+    () => (data?.threats ?? []).filter((item) => checked.has(item.id)),
+    [data, checked],
+  );
+  const bulkDecided = selectedRows.filter(
+    (item) => item.review_status !== "pending",
+  ).length;
 
   const nameOf = React.useCallback(
     (id: string | null) => (id ? componentNames[id] ?? id : "Sistem geneli"),
@@ -332,29 +342,68 @@ export function ThreatList({
 
       {review && checked.size > 0 ? (
         <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-md border border-accent/40 bg-accent-subtle px-3 py-2">
-          <span className="text-xs font-medium">{checked.size} seçildi</span>
-          <Button
-            size="sm"
-            disabled={review.readOnly || review.busy}
-            onClick={async () => {
-              await review.onBulk([...checked], "accept");
+          <span className="text-xs font-medium">
+            {checked.size} seçildi
+            {bulkDecided > 0 ? (
+              <span className="font-normal text-muted-foreground">
+                {" "}
+                · {bulkDecided} tanesinde karar var
+              </span>
+            ) : null}
+          </span>
+          <input
+            value={bulkNote}
+            onChange={(event) => setBulkNote(event.target.value)}
+            placeholder={
+              bulkDecided > 0
+                ? "Kararı değiştirme gerekçesi (zorunlu)"
+                : "Karar notu (isteğe bağlı)"
+            }
+            aria-label="Toplu karar notu"
+            className={cn(
+              "h-8 min-w-[200px] flex-1 rounded-md border bg-surface px-2.5 text-xs",
+              bulkDecided > 0 && !bulkNote.trim()
+                ? "border-level-high"
+                : "border-input",
+            )}
+          />
+          <BulkButton
+            action="accept"
+            rows={selectedRows}
+            note={bulkNote}
+            busy={review.readOnly || review.busy}
+            onRun={async () => {
+              await review.onBulk([...checked], "accept", bulkNote);
               setChecked(new Set());
+              setBulkNote("");
             }}
+            icon={<Check aria-hidden />}
           >
-            <Check aria-hidden /> Kabul et
-          </Button>
-          <Button
-            size="sm"
+            Kabul et
+          </BulkButton>
+          <BulkButton
+            action="false_positive"
+            rows={selectedRows}
+            note={bulkNote}
+            busy={review.readOnly || review.busy}
             variant="outline"
-            disabled={review.readOnly || review.busy}
-            onClick={async () => {
-              await review.onBulk([...checked], "false_positive");
+            onRun={async () => {
+              await review.onBulk([...checked], "false_positive", bulkNote);
               setChecked(new Set());
+              setBulkNote("");
+            }}
+            icon={<Ban aria-hidden />}
+          >
+            Yanlış pozitif
+          </BulkButton>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setChecked(new Set());
+              setBulkNote("");
             }}
           >
-            <Ban aria-hidden /> Yanlış pozitif
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setChecked(new Set())}>
             Seçimi bırak
           </Button>
         </div>
@@ -557,5 +606,63 @@ function ThreatRowItem({
         </button>
       </div>
     </li>
+  );
+}
+
+/** What each bulk action leaves behind, so a button can tell whether it
+ *  would change anything and whether that change needs a reason. */
+const BULK_STATUS: Record<string, string> = {
+  accept: "accepted",
+  reject: "rejected",
+  false_positive: "false_positive",
+  reset: "pending",
+};
+
+function BulkButton({
+  action,
+  rows,
+  note,
+  busy,
+  onRun,
+  icon,
+  variant,
+  children,
+}: {
+  action: "accept" | "false_positive";
+  rows: ThreatRow[];
+  note: string;
+  busy: boolean;
+  onRun: () => Promise<void>;
+  icon?: React.ReactNode;
+  variant?: "outline";
+  children: React.ReactNode;
+}) {
+  const target = BULK_STATUS[action];
+  // Rows that already carry this decision would not change; rows that carry
+  // a different one are an override, and an override needs a reason.
+  const changes = rows.filter((item) => item.review_status !== target);
+  const overrides = changes.filter((item) => item.review_status !== "pending");
+  const blocked = overrides.length > 0 && note.trim() === "";
+  const title =
+    changes.length === 0
+      ? "Seçilenlerin hepsinde bu karar zaten var"
+      : blocked
+        ? `${overrides.length} bulguda karar değişecek; önce gerekçe yazın`
+        : `${changes.length} bulgu güncellenecek`;
+
+  return (
+    <Button
+      size="sm"
+      variant={variant}
+      disabled={busy || changes.length === 0 || blocked}
+      title={title}
+      onClick={onRun}
+    >
+      {icon}
+      {children}
+      {changes.length > 0 && changes.length !== rows.length
+        ? ` (${changes.length})`
+        : ""}
+    </Button>
   );
 }

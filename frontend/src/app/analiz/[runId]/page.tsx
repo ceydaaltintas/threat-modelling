@@ -231,6 +231,7 @@ export default function AnalysisPage() {
     async (
       threatIds: string[],
       action: "accept" | "reject" | "false_positive" | "reset",
+      note?: string,
     ) => {
       if (!runId) return;
       setBusy(true);
@@ -238,6 +239,7 @@ export default function AnalysisPage() {
         const result = await api.reviewBulk(runId, {
           threat_ids: threatIds,
           action,
+          note: note?.trim() || undefined,
         });
         await reloadThreats();
         await stream.refreshSteps();
