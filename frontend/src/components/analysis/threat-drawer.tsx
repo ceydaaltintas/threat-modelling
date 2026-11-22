@@ -29,11 +29,14 @@ export function ThreatDrawer({
   componentName,
   onClose,
   review,
+  step,
 }: {
   threat: ThreatRow | null;
   documents: DocumentOut[];
   componentName: (id: string | null) => string;
   onClose: () => void;
+  /** The step this drawer was opened from; omit to show everything. */
+  step?: number;
   review?: {
     readOnly: boolean;
     busy: boolean;
@@ -54,6 +57,13 @@ export function ThreatDrawer({
 
   if (!threat) return null;
 
+  // A step shows what the pipeline knew when it ran. Risk at step 4 or a
+  // mitigation at step 5 did not exist yet, and showing them makes it
+  // impossible to see what the step itself produced. Each later step adds
+  // its own section; step 9 reaches all of them.
+  const upTo = (producedAtStep: number) =>
+    step === undefined || step >= producedAtStep;
+
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div
@@ -69,7 +79,7 @@ export function ThreatDrawer({
         <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-surface px-5 py-4">
           <div className="min-w-0">
             <div className="mb-1 flex flex-wrap items-center gap-1.5">
-              {threat.system_calc ? (
+              {threat.system_calc && upTo(6) ? (
                 <Badge
                   className={cn(
                     "border",
@@ -137,6 +147,7 @@ export function ThreatDrawer({
             )}
           </Section>
 
+          {upTo(5) ? (
           <Section title="Doğrulama">
             {threat.validation_notes.length === 0 ? (
               <p className="flex items-center gap-1.5 text-xs text-level-low">
@@ -178,7 +189,10 @@ export function ThreatDrawer({
               İşaretlenen tehditler listeden çıkarılmaz; kararı uzman verir.
             </p>
           </Section>
+          ) : null}
 
+          {upTo(6) ? (
+          <>
           <Section title="Risk kırılımı (Sistem hesabı)">
             <RiskBreakdown threat={threat} />
           </Section>
@@ -225,7 +239,10 @@ export function ThreatDrawer({
               />
             </div>
           </Section>
+          </>
+          ) : null}
 
+          {upTo(7) ? (
           <Section title="Önlemler">
             {threat.mitigations.length === 0 ? (
               <p className="text-xs text-muted-foreground">
@@ -258,12 +275,15 @@ export function ThreatDrawer({
             )}
           </Section>
 
+          ) : null}
+
           {review ? (
             <Section title="Uzman kararı">
               <ReviewControls threat={threat} review={review} />
             </Section>
           ) : null}
 
+          {upTo(7) ? (
           <Section title="Kontrol eşlemeleri">
             {threat.control_mappings.length === 0 ? (
               <p className="text-xs text-muted-foreground">Eşleme yok.</p>
@@ -306,6 +326,7 @@ export function ThreatDrawer({
               </>
             )}
           </Section>
+          ) : null}
         </div>
       </aside>
     </div>

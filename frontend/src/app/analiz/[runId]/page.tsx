@@ -310,6 +310,7 @@ export default function AnalysisPage() {
           documents={documents}
           componentNames={componentNames}
           note={output?.llm_note}
+          step={4}
         />
       );
     }
@@ -323,6 +324,7 @@ export default function AnalysisPage() {
             data={threats}
             documents={documents}
             componentNames={componentNames}
+            step={5}
           />
         </div>
       );
@@ -337,6 +339,7 @@ export default function AnalysisPage() {
             data={threats}
             documents={documents}
             componentNames={componentNames}
+            step={6}
           />
         </div>
       );
@@ -347,6 +350,7 @@ export default function AnalysisPage() {
           data={threats}
           documents={documents}
           componentNames={componentNames}
+            step={8}
           review={{
             readOnly,
             busy,
@@ -386,6 +390,7 @@ export default function AnalysisPage() {
             data={threats}
             documents={documents}
             componentNames={componentNames}
+            step={7}
           />
         </div>
       );

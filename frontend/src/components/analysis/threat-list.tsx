@@ -81,12 +81,15 @@ export function ThreatList({
   componentNames,
   note,
   review,
+  step,
 }: {
   data: ThreatListResponse;
   documents: DocumentOut[];
   componentNames: Record<string, string>;
   note?: string | null;
   review?: ReviewHandlers;
+  /** The step whose panel this list sits in; omit to show everything. */
+  step?: number;
 }) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "level", desc: false },
@@ -373,6 +376,7 @@ export function ThreatList({
 
       <ThreatDrawer
         threat={selected}
+        step={step}
         documents={documents}
         componentName={nameOf}
         onClose={() => setSelectedId(null)}
