@@ -270,3 +270,39 @@ def test_unbounded_keyword_match_is_rejected(model: SystemModel) -> None:
     far_apart = normalise("basla " + ("x " * (MAX_CONTROL_SPAN // 2 + 40)) + " bitis")
     assert _control_evidence(rule, far_apart) is None
     assert _control_evidence(rule, normalise("basla ve bitis")) == "basla.*bitis"
+
+
+# --- The catalogue's own citations must resolve -----------------------
+
+
+def _knowledge_identifiers() -> set[str]:
+    from app.kb.loader import read_entries
+
+    return {entry["identifier"] for entry in read_entries()}
+
+
+def test_every_cited_source_exists_in_the_knowledge_base() -> None:
+    """A rule citing an identifier we do not have loses that citation.
+
+    Step 5 drops unknown identifiers as fabricated, so a typo here would
+    quietly strip the rule's source instead of failing loudly.
+    """
+    known = _knowledge_identifiers()
+    missing = {
+        rule.id: sorted(set(rule.knowledge_ids) - known)
+        for rule in load_catalog()
+        if set(rule.knowledge_ids) - known
+    }
+    assert not missing, f"bilgi tabanında olmayan kaynak: {missing}"
+
+
+def test_every_suggested_mitigation_exists_in_the_control_catalogue() -> None:
+    from app.controls.catalog import load_mitigations
+
+    known = set(load_mitigations())
+    missing = {
+        rule.id: sorted(set(rule.mitigations) - known)
+        for rule in load_catalog()
+        if set(rule.mitigations) - known
+    }
+    assert not missing, f"önlem kataloğunda olmayan önlem: {missing}"
