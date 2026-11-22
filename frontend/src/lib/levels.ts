@@ -12,6 +12,22 @@ export const levelClasses: Record<Level, string> = {
   Düşük: "border-level-low/40 bg-level-low/10 text-level-low",
 };
 
+/** Text and dot colour only - for places where four filled boxes in a row
+ * tire the eye more than they inform. */
+export const levelText: Record<Level, string> = {
+  Kritik: "text-level-critical",
+  Yüksek: "text-level-high",
+  Orta: "text-level-medium",
+  Düşük: "text-level-low",
+};
+
+export const levelDot: Record<Level, string> = {
+  Kritik: "bg-level-critical",
+  Yüksek: "bg-level-high",
+  Orta: "bg-level-medium",
+  Düşük: "bg-level-low",
+};
+
 /** score -> level, using the thresholds the backend reports. */
 export function levelForScore(
   score: number,

@@ -3,7 +3,6 @@
 import { ChevronDown, Info, ListChecks, RefreshCw } from "lucide-react";
 import * as React from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { elapsedBetween, formatDateTime, formatDuration } from "@/lib/format";
@@ -89,14 +88,23 @@ export function StepDetail({
         </div>
 
         {counters.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
+          // Seven boxed badges in a row read as seven buttons and tire the
+          // eye; the numbers are what matters, so only they carry weight.
+          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             {counters.map(([key, value]) => (
-              <Badge key={key} variant="default">
-                <span className="font-semibold tabular-nums">{value}</span>{" "}
+              <span key={key}>
+                <strong
+                  className={cn(
+                    "font-semibold tabular-nums",
+                    value === 0 ? "text-muted-foreground" : "text-foreground",
+                  )}
+                >
+                  {value}
+                </strong>{" "}
                 {definition.counter_labels[key] ?? key}
-              </Badge>
+              </span>
             ))}
-          </div>
+          </p>
         ) : null}
 
         {open ? (

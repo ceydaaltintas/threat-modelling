@@ -22,7 +22,13 @@ import { ThreatDrawer } from "@/components/analysis/threat-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LEVELS, levelClasses, type Level } from "@/lib/levels";
+import {
+  LEVELS,
+  levelClasses,
+  levelDot,
+  levelText,
+  type Level,
+} from "@/lib/levels";
 import { REVIEW_LABELS, SOURCE_LABELS, STRIDE_SHORT } from "@/lib/threats";
 import type {
   DocumentOut,
@@ -215,13 +221,19 @@ export function ThreatList({
               onClick={() => setLevel(active ? "" : value)}
               aria-pressed={active}
               className={cn(
-                "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-opacity disabled:opacity-40",
-                levelClasses[value],
-                active && "ring-2 ring-accent ring-offset-1 ring-offset-background",
+                "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors disabled:opacity-40",
+                "hover:bg-surface-muted",
+                active ? "bg-surface-muted font-semibold" : "font-medium",
               )}
             >
-              <span className="tabular-nums">{count}</span>
-              {value}
+              <span
+                className={cn("h-1.5 w-1.5 rounded-full", levelDot[value])}
+                aria-hidden
+              />
+              <span className={cn("tabular-nums", levelText[value])}>{count}</span>
+              <span className={active ? levelText[value] : "text-foreground"}>
+                {value}
+              </span>
             </button>
           );
         })}
