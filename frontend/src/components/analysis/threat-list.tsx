@@ -228,15 +228,16 @@ export function ThreatList({
         </span>
       </div>
 
-      {/* A grid, so a long option label widens its column instead of
-          pushing the last control off the edge of the card. */}
-      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
+      {/* One row on a wide screen: every control shares the width and
+          shrinks rather than pushing the last one off the card. Below that
+          they wrap, because six controls cannot be read at 300px. */}
+      <div className="flex flex-wrap items-center gap-1.5 lg:flex-nowrap">
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Ara: tehdit, bileşen, kural, kaynak"
           aria-label="Tehditlerde ara"
-          className="col-span-2 h-8 w-full rounded-md border border-input bg-surface px-2.5 text-xs lg:col-span-4"
+          className="h-8 min-w-0 flex-[2] basis-full rounded-md border border-input bg-surface px-2.5 text-xs lg:basis-0"
         />
         <Select value={stride} onChange={setStride} label="STRIDE filtresi">
           <option value="">Tüm STRIDE</option>
@@ -287,6 +288,7 @@ export function ThreatList({
           <Button
             variant="ghost"
             size="sm"
+            className="shrink-0"
             onClick={() => {
               setSearch("");
               setStride("");
@@ -397,7 +399,7 @@ function Select({
       onChange={(event) => onChange(event.target.value)}
       aria-label={label}
       title={label}
-      className="h-8 w-full min-w-0 rounded-md border border-input bg-surface px-2 text-xs"
+      className="h-8 min-w-0 flex-1 basis-[140px] rounded-md border border-input bg-surface px-2 text-xs lg:basis-0"
     >
       {children}
     </select>
