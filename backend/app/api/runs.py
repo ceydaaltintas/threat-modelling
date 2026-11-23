@@ -34,7 +34,7 @@ from app.core.samples import sample_by_key
 from app.core import storage
 from app.reports import storage as report_storage
 from app.models import AnalysisRun, Document, Project, RunStep, SystemModel
-from app.pipeline import PIPELINE_STEPS, extract, runner
+from app.pipeline import PIPELINE_STEPS, extract, progress, runner
 from app.pipeline.steps import step_by_no
 from app.schemas.system_model import SystemModel as SystemModelSchema
 from app.schemas.api import (
@@ -527,6 +527,11 @@ async def retry_step(
         new_value={"step": step_no},
     )
     await session.commit()
+
+    # Without this the rail keeps the old statuses until a reload: restarting
+    # from step 1 left step 2 showing green while step 1 was running again.
+    for row in rows:
+        await progress.publish_step(run_id, step_by_no(row.step_no), "pending")
 
     await runner.retry_step(run_id, step_no)
     return await _load_run(session, run_id)

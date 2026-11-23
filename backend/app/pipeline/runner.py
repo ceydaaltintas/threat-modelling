@@ -368,15 +368,15 @@ async def stop(run_id: str) -> None:
     _resume_events.pop(run_id, None)
     _paused_at.pop(run_id, None)
 
-    # With no live task - after a restart, say - cancelling the task cannot
-    # end the run, so close it here. The open step is closed too, otherwise
-    # the rail keeps a spinner on a step nothing is working on.
+    # Closing the open step matters more than the run row: the cancelled
+    # task's own handler has usually set the run to "cancelled" by now, and
+    # an early return on that left the step spinning for ever.
+    now = datetime.now(timezone.utc)
+    closed: list[RunStep] = []
     async with SessionLocal() as session:
         run = await session.get(AnalysisRun, run_id)
-        if run is None or run.status not in ("running", "waiting_user", "pending"):
+        if run is None:
             return
-        run.status = "cancelled"
-        run.finished_at = run.finished_at or datetime.now(timezone.utc)
         steps = (
             await session.execute(
                 select(RunStep)
@@ -386,7 +386,21 @@ async def stop(run_id: str) -> None:
         ).scalars().all()
         for step in steps:
             step.status = "failed"
-            step.finished_at = step.finished_at or datetime.now(timezone.utc)
+            step.finished_at = step.finished_at or now
             step.message = "Analiz durduruldu."
+            closed.append(step)
+        if run.status in ("running", "waiting_user", "pending"):
+            run.status = "cancelled"
+            run.finished_at = run.finished_at or now
         await session.commit()
+
+    # Tell the open screens, or they keep the spinner until a reload.
+    for step in closed:
+        await progress.publish_step(
+            run_id,
+            step_by_no(step.step_no),
+            "failed",
+            message="Analiz durduruldu.",
+            finished_at=now,
+        )
     await progress.publish_run(run_id, "cancelled", "Analiz durduruldu.")
