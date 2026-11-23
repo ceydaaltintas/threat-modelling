@@ -2,6 +2,24 @@
 
 from __future__ import annotations
 
+def _pdf_text(pdf_bytes: bytes) -> str:
+    """The report's text, read back with the same library the app uses."""
+    import pypdfium2 as pdfium
+
+    document = pdfium.PdfDocument(pdf_bytes)
+    try:
+        pages = []
+        for page in document:
+            textpage = page.get_textpage()
+            try:
+                pages.append(textpage.get_text_bounded() or "")
+            finally:
+                textpage.close()
+            page.close()
+        return "\n".join(pages)
+    finally:
+        document.close()
+
 import json
 from datetime import datetime, timezone
 from io import BytesIO
@@ -115,10 +133,7 @@ def test_pdf_is_produced(pdf_bytes: bytes) -> None:
 
 def test_pdf_renders_turkish_characters(pdf_bytes: bytes) -> None:
     """The acceptance criterion: Turkish characters must come out right."""
-    import pymupdf
-
-    document = pymupdf.open(stream=pdf_bytes, filetype="pdf")
-    text = "\n".join(page.get_text() for page in document)
+    text = _pdf_text(pdf_bytes)
 
     for probe in [
         "Tehdit Modelleme Raporu",
@@ -133,33 +148,22 @@ def test_pdf_renders_turkish_characters(pdf_bytes: bytes) -> None:
 
 
 def test_pdf_states_the_disclaimer(pdf_bytes: bytes) -> None:
-    import pymupdf
-
-    document = pymupdf.open(stream=pdf_bytes, filetype="pdf")
     # The sentence wraps across lines in the layout, so compare on
     # whitespace-normalised text.
-    text = " ".join(
-        "\n".join(page.get_text() for page in document).split()
-    )
+    text = " ".join(_pdf_text(pdf_bytes).split())
     assert "sistem testi yapılmadan kesin kabul edilmemelidir" in text
 
 
 def test_pdf_marks_iso_mappings_for_verification(pdf_bytes: bytes) -> None:
-    import pymupdf
-
-    document = pymupdf.open(stream=pdf_bytes, filetype="pdf")
-    text = "\n".join(page.get_text() for page in document)
+    text = _pdf_text(pdf_bytes)
     assert "doğrulanacak" in text
 
 
 def test_ai_summary_is_labelled() -> None:
-    import pymupdf
-
     data = make_data()
     data.summary_text = "Yapay zekâ ile yazılmış özet metni."
     data.summary_is_ai = True
-    document = pymupdf.open(stream=pdf_report.render_pdf(data), filetype="pdf")
-    text = "\n".join(page.get_text() for page in document)
+    text = _pdf_text(pdf_report.render_pdf(data))
     assert "AI üretti" in text
 
 

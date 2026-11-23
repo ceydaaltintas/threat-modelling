@@ -81,10 +81,11 @@ def document_text(sample_key: str) -> str:
     scenario = sample_by_key(sample_key)
     if scenario is None or not scenario.available:
         return ""
-    import pymupdf
+    from app.pipeline.extract import extract
 
-    with pymupdf.open(scenario.path) as document:
-        return "\n".join(page.get_text() for page in document)
+    # The pipeline's own extractor, so the evaluation reads exactly what the
+    # analysis read.
+    return extract(scenario.path, "pdf").full_text
 
 
 def match_finding(finding: dict, threats: list[dict]) -> dict:

@@ -11,8 +11,9 @@ psycopg[binary]==3.2.3
 pgvector==0.3.6
 
 # --- Dokuman okuma ---
-# PyMuPDF: AGPL-3.0 - ticari kullanimda ayrica degerlendirilmeli (THIRD_PARTY.md)
-pymupdf==1.25.1
+# pypdfium2: Apache-2.0 / BSD-3-Clause (PDFium). Metin cikarma ve sayfa
+# goruntuleme; PyMuPDF'in (AGPL-3.0) yerine gecti, bkz. THIRD_PARTY.md.
+pypdfium2==4.30.0
 python-docx==1.1.2
 
 # --- Yerel embedding (CPU, API anahtari gerektirmez) ---

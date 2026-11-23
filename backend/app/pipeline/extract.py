@@ -1,6 +1,6 @@
 """Step 1: turn uploaded files into text with a page and section index.
 
-Supported inputs: PDF (PyMuPDF), DOCX (python-docx), Markdown/plain text and
+Supported inputs: PDF (pypdfium2), DOCX (python-docx), Markdown/plain text and
 images. A PDF whose pages carry almost no text is treated as scanned: the
 pages are rendered to PNG so the LLM can read them visually. OCR is only a
 fallback and is off by default (``OCR_ENABLED``).
@@ -186,20 +186,36 @@ def _find_sections(pages: list[PageText]) -> list[Section]:
 
 
 def _extract_pdf(path: Path) -> ExtractionResult:
-    import pymupdf
+    # pypdfium2 (Apache-2.0 / BSD-3-Clause) rather than PyMuPDF (AGPL-3.0):
+    # the AGPL would reach the whole project once it is distributed.
+    import io
+
+    import pypdfium2 as pdfium
 
     raw_pages: list[str] = []
     images: list[bytes] = []
-    with pymupdf.open(path) as document:
+    document = pdfium.PdfDocument(str(path))
+    try:
         for page in document:
-            text = page.get_text("text") or ""
-            raw_pages.append(text.strip())
-            if len(text.strip()) < MIN_CHARS_PER_PAGE:
+            textpage = page.get_textpage()
+            try:
+                # get_text_bounded: whole page, and no deprecation warning.
+                # PDFium returns CRLF; the rest of the pipeline counts
+                # offsets in this text, so normalise the line endings once.
+                text = (textpage.get_text_bounded() or "").replace("\r\n", "\n")
+                text = text.replace("\r", "\n").strip()
+            finally:
+                textpage.close()
+            raw_pages.append(text)
+            if len(text) < MIN_CHARS_PER_PAGE:
                 # No usable text layer: hand the rendered page to the model.
-                pixmap = page.get_pixmap(
-                    matrix=pymupdf.Matrix(PAGE_RENDER_SCALE, PAGE_RENDER_SCALE)
-                )
-                images.append(pixmap.tobytes("png"))
+                bitmap = page.render(scale=PAGE_RENDER_SCALE)
+                buffer = io.BytesIO()
+                bitmap.to_pil().save(buffer, format="PNG")
+                images.append(buffer.getvalue())
+            page.close()
+    finally:
+        document.close()
 
     pages, sections = _assemble(raw_pages)
     result = ExtractionResult(pages=pages, sections=sections, images=images)

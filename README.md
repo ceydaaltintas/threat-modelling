@@ -106,7 +106,7 @@ Dokuz adımın tamamı gerçek veriyle çalışır. Yer tutucu adım kalmadı.
 
 - **Dosya yükleme:** sürükle-bırak ile çoklu dosya; boyut ve tür doğrulaması;
   dosyalar yalnızca bu bilgisayarda `backend/uploads/` altında saklanır.
-- **Metin çıkarma:** PyMuPDF ile PDF, python-docx ile DOCX. Metin katmanı
+- **Metin çıkarma:** pypdfium2 ile PDF, python-docx ile DOCX. Metin katmanı
   olmayan sayfalar görsel olarak LLM'e verilir (OCR varsayılan kapalı).
 - **LLM katmanı:** `gemini_native` (varsayılan) ve OpenAI uyumlu uçlar.
   Yanıt pydantic ile doğrulanır; uymazsa hata modele geri verilip **en fazla

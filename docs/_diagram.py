@@ -23,7 +23,7 @@ INK, MUTED, SLATE = "#0f3d6b", "#5b6472", "#64748b"
 
 # (title, what the step does, input lines, llm lines or None, output lines, kind)
 STEPS = [
-    ("1 · Doküman okundu", "PyMuPDF / python-docx",
+    ("1 · Doküman okundu", "pypdfium2 / python-docx",
      ["yüklenen PDF veya DOCX", "(arayüzden)"],
      None,
      ["document.raw_text", "sayfa işaretleri [Sayfa N]", "section_map"], "code"),

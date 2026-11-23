@@ -85,7 +85,7 @@ yeniden başlatılırsa görev ölür; bu durumda açılışta yarıda kalan ana
   <tr><td>Veritabanı</td><td>PostgreSQL 16 · pgvector · pg_trgm</td><td>Tam metin araması ve vektör araması aynı veritabanında; ayrı bir arama servisi gerekmez.</td></tr>
   <tr><td>Canlı ilerleme</td><td>Server-Sent Events (sse-starlette)</td><td>Tek yönlü akış yeterli; WebSocket karmaşıklığı gereksiz. Geç bağlanan istemciye geçmiş olaylar tekrar gönderilir.</td></tr>
   <tr><td>Gömme (embedding)</td><td>fastembed · paraphrase-multilingual-MiniLM-L12-v2 (384 boyut)</td><td>CPU'da yerel çalışır, API anahtarı istemez, Türkçe destekler. Model imaja gömülüdür.</td></tr>
-  <tr><td>Doküman okuma</td><td>PyMuPDF · python-docx · (isteğe bağlı OCR)</td><td>PDF ve Word metni, sayfa numarasıyla birlikte çıkarılır — kanıt alıntısı sayfaya bağlanabilsin diye.</td></tr>
+  <tr><td>Doküman okuma</td><td>pypdfium2 (PDFium) · python-docx · (isteğe bağlı OCR)</td><td>PDF ve Word metni, sayfa numarasıyla birlikte çıkarılır — kanıt alıntısı sayfaya bağlanabilsin diye. PDF tarafında PyMuPDF yerine pypdfium2 kullanılır: AGPL-3.0 olan PyMuPDF, dağıtılan bir üründe projenin tamamına sirayet ederdi.</td></tr>
   <tr><td>Rapor</td><td>WeasyPrint (HTML→PDF, DejaVu yazı tipi) · openpyxl · OTM 0.2.0</td><td>Türkçe karakterler doğru basılır; OTM ile başka tehdit modelleme araçlarına aktarılabilir.</td></tr>
   <tr><td>Arayüz</td><td>Next.js 14 (App Router) · TypeScript · Tailwind · React Flow · TanStack Table</td><td>React Flow veri akış diyagramı için, TanStack Table sıralama için (başsız, kendi işaretlememizle).</td></tr>
   <tr><td>LLM</td><td>Groq, OpenRouter, OpenAI uyumlu uçlar, Gemini (yerel API)</td><td>Sağlayıcı <code>.env</code> ile değişir; kod tek bir ağ geçidi arkasından konuşur.</td></tr>
@@ -110,7 +110,7 @@ yeniden çalıştırılabilir; o adımdan sonrası geçersiz sayılıp yeniden �
 <text x="6" y="50.4" font-size="6.3" fill="#5b6472">(arayüzden)</text>
 <rect x="166" y="30" width="152" height="41.2" rx="4" fill="#ffffff" stroke="#0f3d6b" stroke-width="1"/>
 <text x="173" y="42" font-size="7.4" font-weight="bold" fill="#0f3d6b">1 · Doküman okundu</text>
-<text x="173" y="52.0" font-size="6.2" fill="#5b6472">PyMuPDF / python-docx</text>
+<text x="173" y="52.0" font-size="6.2" fill="#5b6472">pypdfium2 / python-docx</text>
 <rect x="334" y="30" width="158" height="41.2" rx="4" fill="#fcfcfd" stroke="#d7dde5" stroke-width="1" stroke-dasharray="3 2"/>
 <text x="413.0" y="53.1" font-size="6.4" fill="#9aa4b2" text-anchor="middle">LLM çağrısı yok</text>
 <rect x="508" y="30" width="154" height="41.2" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 2"/>
@@ -313,7 +313,7 @@ yeniden çalıştırılabilir; o adımdan sonrası geçersiz sayılıp yeniden �
 
 <table>
   <tr><th style="width:7%">Adım</th><th style="width:20%">Ne üretir</th><th style="width:14%">Kim yapar</th><th>Nasıl çalışır</th></tr>
-  <tr><td class="num">1</td><td>Metin, sayfa, bölüm</td><td>Kod (+LLM görsel için)</td><td>PyMuPDF/python-docx ile metin çıkarılır, sayfa numarası korunur. Başlık sezimi ile bölümler indekslenir. Dokümanda şema görseli varsa LLM'e okutulur, OCR yedektir.</td></tr>
+  <tr><td class="num">1</td><td>Metin, sayfa, bölüm</td><td>Kod (+LLM görsel için)</td><td>pypdfium2/python-docx ile metin çıkarılır, sayfa numarası korunur. Başlık sezimi ile bölümler indekslenir. Dokümanda şema görseli varsa LLM'e okutulur, OCR yedektir.</td></tr>
   <tr><td class="num">2</td><td>Sistem modeli</td><td>LLM</td><td>Metin <code>&lt;document&gt;</code> bloğu içinde modele verilir; model bileşenleri, veri akışlarını, güven bölgelerini ve belirsizlikleri <strong>her biri için doküman alıntısıyla</strong> döndürür. Alıntılar metinde aranır; bulunamayan kanıt işaretlenir, kimliği tutmayan akış elenir. Uzun doküman parçalara bölünür ve modeller birleştirilir.</td></tr>
   <tr><td class="num">—</td><td>Model onayı</td><td>İnsan</td><td>Analiz durur. Uzman bileşen ve akışları düzeltebilir; düzeltme yeni bir sürüm olarak saklanır.</td></tr>
   <tr><td class="num">3</td><td>İlgili kaynaklar</td><td>Kod</td><td>Her bileşen ve akış için bilgi tabanında hibrit arama yapılır (bkz. bölüm 5). LLM kullanılmaz.</td></tr>
