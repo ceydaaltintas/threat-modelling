@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Yatırım İşlemleri Platformu — Mimari Tasarım Dokümanı</title>
+<style>
+  @page {
+    size: A4; margin: 16mm 15mm 14mm 15mm;
+    @top-left { content: "Örnek Banka A.Ş.  |  Yatırım Teknolojileri – Mimari Yönetişim"; font-family:"DejaVu Sans"; font-size:7pt; color:#6b7280; }
+    @top-right { content: "YTR-TRD-AD-021  |  Sürüm 1.1 (Taslak)"; font-family:"DejaVu Sans"; font-size:7pt; color:#6b7280; }
+    @bottom-left { content: "Dahili – Bu doküman kurgusal bir örnektir; gerçek bir kurumu veya sistemi temsil etmez."; font-family:"DejaVu Sans"; font-size:6.5pt; color:#9ca3af; }
+    @bottom-right { content: "Sayfa " counter(page); font-family:"DejaVu Sans"; font-size:7pt; color:#6b7280; }
+  }
+  body { font-family:"DejaVu Sans", sans-serif; font-size:9pt; color:#111827; line-height:1.4; }
+  h1 { font-size:16pt; margin:0 0 1mm; }
+  .sub { font-size:10pt; color:#374151; margin:0 0 4mm; }
+  h2 { font-size:10.5pt; margin:5mm 0 1.5mm; color:#0f3d6b; page-break-after:avoid; }
+  p { margin:0 0 2mm; }
+  table { width:100%; border-collapse:collapse; margin:0 0 3mm; font-size:8pt; }
+  th { background:#eef2f7; text-align:left; }
+  th, td { border:0.5pt solid #cbd5e1; padding:1.2mm 1.6mm; vertical-align:top; }
+  ul { margin:0 0 2.5mm; padding-left:4.5mm; }
+  li { margin-bottom:0.8mm; }
+  .head { width:100%; border:0.5pt solid #cbd5e1; font-size:8pt; margin-bottom:4mm; }
+</style>
+</head>
+<body>
+
+<h1>Yatırım İşlemleri Platformu</h1>
+<p class="sub">Mimari Tasarım Dokümanı</p>
+
+<table class="head">
+  <tr><th>Doküman no</th><td>YTR-TRD-AD-021</td><th>Sahip</th><td>Yatırım Teknolojileri Mimari Ekibi</td></tr>
+  <tr><th>Sürüm / durum</th><td>1.1 (Taslak)</td><th>Sınıflandırma</th><td>Dahili</td></tr>
+</table>
+
+<h2>1. Amaç ve kapsam</h2>
+<p>Bu doküman, Örnek Banka A.Ş. bireysel müşterilerinin pay senedi, döviz ve altın alım satım
+emirlerini ilettiği Yatırım İşlemleri Platformu'nun hedef mimarisini tanımlar. Kapsam; emir
+girişi, risk ve teminat kontrolü, borsa ve piyasa yapıcılarına iletim, gerçekleşen işlemlerin
+mutabakatı ve portföy görüntülemedir. Kurumsal portföy yönetimi ve türev ürünler kapsam dışıdır.
+Gün içi ortalama 950 bin emir alınmakta, piyasa açılışında saniyede 4 bin emre çıkılmaktadır.</p>
+
+<h2>2. Genel mimari</h2>
+<p>Sistem beş güven bölgesine ayrılmıştır: İnternet (müşteri cihazları), DMZ (WAF ve Emir API
+Geçidi), Uygulama Bölgesi (emir ve risk servisleri), Veri Bölgesi (emir ve portföy veritabanları)
+ve Üçüncü Taraf (borsa bağlantısı, piyasa veri sağlayıcısı, takas kurumu). Borsaya giden bağlantı
+ayrılmış hat üzerinden FIX protokolüyle kurulur.</p>
+
+<h2>3. Bileşenler</h2>
+<table>
+  <tr><th>Bileşen</th><th>Açıklama</th><th>Teknoloji</th><th>Bölge</th></tr>
+  <tr><td>Yatırım Mobil Uygulaması</td><td>Müşterinin emir girdiği, portföyünü gördüğü uygulama.</td><td>Swift, Kotlin</td><td>İnternet (müşteri cihazı)</td></tr>
+  <tr><td>Web İşlem Terminali</td><td>Tarayıcıdan çalışan gelişmiş emir ekranı; aktif müşteriler kullanır.</td><td>React</td><td>İnternet</td></tr>
+  <tr><td>WAF ve Emir API Geçidi</td><td>Dış istekleri karşılar, TLS sonlandırır, oturumu doğrular.</td><td>Kurumsal WAF, Kong</td><td>DMZ</td></tr>
+  <tr><td>Emir Yönetim Servisi</td><td>Emri doğrular, risk kontrolünü çağırır, borsaya iletir, durumunu izler.</td><td>Java 17, Spring Boot</td><td>Uygulama</td></tr>
+  <tr><td>Risk ve Teminat Servisi</td><td>Müşterinin bakiyesini, teminatını ve emir limitini kontrol eder.</td><td>Java, Redis</td><td>Uygulama</td></tr>
+  <tr><td>Borsa Bağlantı Servisi</td><td>Emirleri FIX mesajına çevirip borsaya iletir, gerçekleşmeleri geri alır.</td><td>FIX 4.4, ayrılmış hat</td><td>Üçüncü Taraf</td></tr>
+  <tr><td>Piyasa Veri Servisi</td><td>Fiyat ve derinlik verisini sağlayıcıdan alıp uygulamalara yayınlar.</td><td>Kafka, WebSocket</td><td>Uygulama</td></tr>
+  <tr><td>Portföy Servisi</td><td>Müşterinin pozisyonunu, maliyetini ve kâr/zararını hesaplar.</td><td>Java, Spring Boot</td><td>Uygulama</td></tr>
+  <tr><td>Mutabakat ve Takas Servisi</td><td>Gün sonu gerçekleşmeleri takas kurumuyla karşılaştırır.</td><td>Spring Batch</td><td>Uygulama</td></tr>
+  <tr><td>Emir Veritabanı</td><td>Emirler, gerçekleşmeler, iptaller ve müşteri tanımları.</td><td>Oracle 19c (TDE açık)</td><td>Veri</td></tr>
+  <tr><td>Analitik Veri Ambarı</td><td>Gün sonu kopya; müşteri davranışı ve komisyon analizleri.</td><td>Snowflake</td><td>Veri</td></tr>
+  <tr><td>Operasyon Paneli</td><td>Yatırım operasyon ekibinin emir arama, iptal ve düzeltme yaptığı iç panel.</td><td>React, Spring Boot</td><td>Uygulama (yönetim)</td></tr>
+  <tr><td>Merkezi Log Platformu</td><td>Uygulama ve denetim loglarının toplandığı platform.</td><td>ELK</td><td>Uygulama (yönetim)</td></tr>
+</table>
+
+<h2>4. Veri akışları</h2>
+<table>
+  <tr><th>No</th><th>Kaynak → Hedef</th><th>Protokol</th><th>Taşınan veri</th></tr>
+  <tr><td>A1</td><td>Yatırım Mobil Uygulaması → WAF ve Emir API Geçidi</td><td>HTTPS (TLS 1.2)</td><td>Emir: enstrüman, adet, fiyat, hesap numarası</td></tr>
+  <tr><td>A2</td><td>Web İşlem Terminali → WAF ve Emir API Geçidi</td><td>HTTPS</td><td>Emir ve iptal istekleri</td></tr>
+  <tr><td>A3</td><td>Emir API Geçidi → Emir Yönetim Servisi</td><td>HTTP</td><td>Emir isteği, oturum kimliği</td></tr>
+  <tr><td>A4</td><td>Emir Yönetim Servisi → Risk ve Teminat Servisi</td><td>HTTP</td><td>Hesap numarası, tutar, enstrüman</td></tr>
+  <tr><td>A5</td><td>Emir Yönetim Servisi → Borsa Bağlantı Servisi</td><td>FIX 4.4 / ayrılmış hat</td><td>Emir mesajı</td></tr>
+  <tr><td>A6</td><td>Piyasa Veri Sağlayıcısı → Piyasa Veri Servisi</td><td>TCP</td><td>Fiyat ve derinlik akışı</td></tr>
+  <tr><td>A7</td><td>Piyasa Veri Servisi → Web İşlem Terminali</td><td>WebSocket</td><td>Canlı fiyat</td></tr>
+  <tr><td>A8</td><td>Emir Veritabanı → Analitik Veri Ambarı</td><td>Gün sonu ETL</td><td>Emirler, müşteri numarası, TCKN, komisyon</td></tr>
+  <tr><td>A9</td><td>Mutabakat Servisi → Takas Kurumu</td><td>SFTP</td><td>Gün sonu işlem dosyası</td></tr>
+</table>
+
+<h2>5. Emir güvenliği ve bütünlüğü</h2>
+<p>Emir girişinde müşteri, mobil uygulamadaki mevcut oturumuyla tanınır; emir için ayrıca
+doğrulama istenmemektedir. Emir API Geçidi'nde müşteri başına saniyede istek sınırı
+tanımlanmamıştır; piyasa açılışındaki yoğunluk altyapı tarafında karşılanmaktadır. Emir iptal ve
+düzeltme istekleri, emrin istek sahibine ait olduğu sunucu tarafında doğrulanmadan işlenmektedir.
+Risk ve Teminat Servisi'nin yanıt vermemesi hâlinde emirler kontrol yapılmadan borsaya
+iletilmeye devam eder. Teminat sayaçları Redis'te tutulmakta, eşzamanlı emirlerde sayaç
+güncellemesi için kilit kullanılmamaktadır.</p>
+
+<h2>6. Veri saklama ve gizlilik</h2>
+<p>Emir Veritabanı'nda şifreleme etkindir. Analitik Veri Ambarı'na aktarılan kayıtlarda müşteri
+TCKN'si açık olarak bulunmaktadır; maskeleme politikası bu dokümanda tanımlanmamıştır. Emir ve
+portföy kayıtları on yıl saklanmaktadır. Operasyon Paneli'nde müşteri portföyü maskelenmeden
+görüntülenebilmektedir.</p>
+
+<h2>7. Üçüncü taraf bağlantıları</h2>
+<p>Borsa bağlantısı ayrılmış hat üzerindedir ve FIX oturumu kullanıcı adı/parola ile açılır;
+mesaj düzeyinde imzalama kullanılmamaktadır. Takas kurumuna gönderilen gün sonu dosyası SFTP ile
+iletilmekte, dosya içeriği ayrıca şifrelenmemektedir. Piyasa veri sağlayıcısının sertifikası
+uygulama tarafında doğrulanmamaktadır; bağlantı iç ağdan kurulduğu için yeterli görülmüştür.</p>
+
+<h2>8. İzleme, loglama ve iş sürekliliği</h2>
+<p>Emir yaşam döngüsü Merkezi Log Platformu'na yazılmaktadır. Operasyon Paneli'nden yapılan emir
+iptal ve düzeltme işlemleri için ayrı bir denetim kaydı tutulmamaktadır. Sistem iki veri
+merkezinde aktif-aktif çalışmakta, günlük yedek alınmaktadır; yedeklerin şifrelenip
+şifrelenmediği belirtilmemiştir. Felaket kurtarma tatbikatı yılda bir yapılmaktadır.</p>
+
+<h2>9. Açık konular</h2>
+<ul>
+  <li>Emir girişinde ek doğrulama (OTP veya biyometri) gerekip gerekmediği kararlaştırılmamıştır.</li>
+  <li>Analitik Veri Ambarı'ndaki kimlik alanlarının maskelenmesi için çalışma başlatılacaktır.</li>
+  <li>FIX mesajlarında imzalama yöntemi değerlendirilmektedir.</li>
+  <li>Teminat sayaçlarında eşzamanlılık kontrolünün nasıl sağlanacağı netleşmemiştir.</li>
+</ul>
+
+</body>
+</html>

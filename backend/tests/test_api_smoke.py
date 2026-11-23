@@ -51,12 +51,14 @@ async def test_samples_endpoint_lists_every_bundled_scenario(
         response = await client.get("/api/samples")
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 4
+    assert len(body) == 6
     assert {s["doc_code"] for s in body} == {
         "MB-TRF-AD-007",
         "KRD-APP-SA-003",
         "OB-PLT-SA-001",
         "POS-ACQ-AD-012",
+        "AI-ASST-AD-004",
+        "YTR-TRD-AD-021",
     }
     # Every listed scenario must have its file, or the screen offers a
     # document that cannot be opened.

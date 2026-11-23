@@ -87,6 +87,30 @@ SAMPLE_SCENARIOS: tuple[SampleScenario, ...] = (
         focus="Kart verisi ve üçüncü taraf bildirimleri",
         filename="04_uye_isyeri_pos_odeme_kabul.pdf",
     ),
+    SampleScenario(
+        key="yapay-zeka-asistani",
+        title="Yapay Zekâ Destekli Müşteri Asistanı",
+        doc_code="AI-ASST-AD-004",
+        summary=(
+            "Mobil uygulama içinde çalışan asistan; belge getirme (RAG), "
+            "araç çağrısıyla çekirdek bankacılıktan veri okuma, dış dil "
+            "modeli sağlayıcısı ve konuşma geçmişi."
+        ),
+        focus="İstem güvenliği ve model entegrasyonu",
+        filename="05_yapay_zeka_musteri_asistani.pdf",
+    ),
+    SampleScenario(
+        key="yatirim-islemleri",
+        title="Yatırım İşlemleri Platformu",
+        doc_code="YTR-TRD-AD-021",
+        summary=(
+            "Pay senedi, döviz ve altın emirleri; risk ve teminat kontrolü, "
+            "FIX ile borsa bağlantısı, piyasa veri akışı ve gün sonu "
+            "mutabakat."
+        ),
+        focus="İşlem bütünlüğü ve eşzamanlılık",
+        filename="06_yatirim_islemleri_platformu.pdf",
+    ),
 )
 
 

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Yapay Zekâ Destekli Müşteri Asistanı — Mimari Tasarım Dokümanı</title>
+<style>
+  @page {
+    size: A4; margin: 16mm 15mm 14mm 15mm;
+    @top-left { content: "Örnek Banka A.Ş.  |  Dijital Kanallar – Mimari Yönetişim"; font-family:"DejaVu Sans"; font-size:7pt; color:#6b7280; }
+    @top-right { content: "AI-ASST-AD-004  |  Sürüm 0.6 (Taslak)"; font-family:"DejaVu Sans"; font-size:7pt; color:#6b7280; }
+    @bottom-left { content: "Dahili – Bu doküman kurgusal bir örnektir; gerçek bir kurumu veya sistemi temsil etmez."; font-family:"DejaVu Sans"; font-size:6.5pt; color:#9ca3af; }
+    @bottom-right { content: "Sayfa " counter(page); font-family:"DejaVu Sans"; font-size:7pt; color:#6b7280; }
+  }
+  body { font-family:"DejaVu Sans", sans-serif; font-size:9pt; color:#111827; line-height:1.4; }
+  h1 { font-size:16pt; margin:0 0 1mm; }
+  .sub { font-size:10pt; color:#374151; margin:0 0 4mm; }
+  h2 { font-size:10.5pt; margin:5mm 0 1.5mm; color:#0f3d6b; page-break-after:avoid; }
+  p { margin:0 0 2mm; }
+  table { width:100%; border-collapse:collapse; margin:0 0 3mm; font-size:8pt; }
+  th { background:#eef2f7; text-align:left; }
+  th, td { border:0.5pt solid #cbd5e1; padding:1.2mm 1.6mm; vertical-align:top; }
+  ul { margin:0 0 2.5mm; padding-left:4.5mm; }
+  li { margin-bottom:0.8mm; }
+  .head { width:100%; border:0.5pt solid #cbd5e1; font-size:8pt; margin-bottom:4mm; }
+</style>
+</head>
+<body>
+
+<h1>Yapay Zekâ Destekli Müşteri Asistanı</h1>
+<p class="sub">Mimari Tasarım Dokümanı</p>
+
+<table class="head">
+  <tr><th>Doküman no</th><td>AI-ASST-AD-004</td><th>Sahip</th><td>Dijital Kanallar Mimari Ekibi</td></tr>
+  <tr><th>Sürüm / durum</th><td>0.6 (Taslak)</td><th>Sınıflandırma</th><td>Dahili</td></tr>
+</table>
+
+<h2>1. Amaç ve kapsam</h2>
+<p>Bu doküman, Örnek Banka A.Ş. mobil uygulaması ve internet şubesi içinde çalışan yapay zekâ
+destekli müşteri asistanının hedef mimarisini tanımlar. Asistan; müşterinin hesap bakiyesini ve
+son hareketlerini sorgular, kart limiti ve borç bilgisi verir, kredi ürünlerini anlatır, basit
+işlemleri (kart dondurma, limit değişikliği talebi) başlatır ve çözemediği konuyu çağrı merkezine
+devreder. Kurumsal müşteriler ve yatırım ürünleri kapsam dışıdır. Günlük ortalama 180 bin oturum
+beklenmektedir.</p>
+
+<h2>2. Genel mimari</h2>
+<p>Sistem dört güven bölgesine ayrılmıştır: İnternet (müşteri cihazları), DMZ (WAF ve API Geçidi),
+Uygulama Bölgesi (asistan servisleri ve vektör veritabanı) ve Üçüncü Taraf (dil modeli sağlayıcısı).
+Müşteri sorusu Asistan Orkestratörü'ne gelir; orkestratör ilgili belgeleri Bilgi Erişim Servisi'nden
+getirir, gerekirse araç çağrısıyla çekirdek bankacılıktan veri okur ve modele gönderilecek istemi
+oluşturur.</p>
+
+<h2>3. Bileşenler</h2>
+<table>
+  <tr><th>Bileşen</th><th>Açıklama</th><th>Teknoloji</th><th>Bölge</th></tr>
+  <tr><td>Mobil Uygulama</td><td>Müşterinin asistanla yazıştığı ekran; sesli soru da kabul eder.</td><td>Swift, Kotlin</td><td>İnternet (müşteri cihazı)</td></tr>
+  <tr><td>WAF ve API Geçidi</td><td>Dış istekleri karşılar, TLS sonlandırır, oturum jetonunu doğrular.</td><td>Kurumsal WAF, Kong</td><td>DMZ</td></tr>
+  <tr><td>Asistan Orkestratörü</td><td>Soruyu alır, bilgi getirir, araç çağrılarını yönetir, istemi kurar ve modele gönderir.</td><td>Python, FastAPI</td><td>Uygulama</td></tr>
+  <tr><td>Bilgi Erişim Servisi</td><td>Ürün broşürleri, sözleşme metinleri ve SSS içeriğini vektör aramasıyla getirir.</td><td>Python, pgvector</td><td>Uygulama</td></tr>
+  <tr><td>Vektör Veritabanı</td><td>Belge parçaları ve gömmeleri; kurum içi dokümanlardan beslenir.</td><td>PostgreSQL 16 + pgvector</td><td>Veri</td></tr>
+  <tr><td>Araç Servisi</td><td>Modelin isteğiyle bakiye, hareket, kart ve limit bilgisini çeken iç API katmanı.</td><td>Java, Spring Boot</td><td>Uygulama</td></tr>
+  <tr><td>Dil Modeli Sağlayıcısı</td><td>İstemleri işleyen dış servis; yanıt metnini döndürür.</td><td>HTTPS REST API</td><td>Üçüncü Taraf</td></tr>
+  <tr><td>Oturum ve Geçmiş Deposu</td><td>Konuşma geçmişi, araç çağrı kayıtları ve model yanıtları.</td><td>PostgreSQL 16</td><td>Veri</td></tr>
+  <tr><td>Çekirdek Bankacılık</td><td>Hesap bakiyeleri ve kart bilgilerinin tutulduğu ana sistem.</td><td>Mainframe</td><td>Çekirdek</td></tr>
+  <tr><td>İçerik Yönetim Paneli</td><td>Ürün ekibinin asistanın bilgi tabanına belge yüklediği iç panel.</td><td>React, Spring Boot</td><td>Uygulama (yönetim)</td></tr>
+  <tr><td>Çağrı Merkezi Aktarımı</td><td>Asistanın çözemediği konuşmayı temsilciye devreder, geçmişi de iletir.</td><td>HTTPS REST API</td><td>Uygulama</td></tr>
+  <tr><td>Merkezi Log Platformu</td><td>Uygulama, istem ve yanıt loglarının toplandığı platform.</td><td>ELK</td><td>Uygulama (yönetim)</td></tr>
+</table>
+
+<h2>4. Veri akışları</h2>
+<table>
+  <tr><th>No</th><th>Kaynak → Hedef</th><th>Protokol</th><th>Taşınan veri</th></tr>
+  <tr><td>A1</td><td>Mobil Uygulama → WAF ve API Geçidi</td><td>HTTPS (TLS 1.3)</td><td>Müşteri sorusu, oturum jetonu</td></tr>
+  <tr><td>A2</td><td>API Geçidi → Asistan Orkestratörü</td><td>HTTP</td><td>Soru metni, müşteri numarası</td></tr>
+  <tr><td>A3</td><td>Orkestratör → Bilgi Erişim Servisi</td><td>HTTP</td><td>Arama sorgusu</td></tr>
+  <tr><td>A4</td><td>Orkestratör → Araç Servisi</td><td>HTTP</td><td>Müşteri numarası, istenen veri türü</td></tr>
+  <tr><td>A5</td><td>Araç Servisi → Çekirdek Bankacılık</td><td>Kuyruk (MQ)</td><td>Hesap numarası, IBAN, bakiye sorgusu</td></tr>
+  <tr><td>A6</td><td>Orkestratör → Dil Modeli Sağlayıcısı</td><td>HTTPS</td><td>İstem: müşteri sorusu, getirilen belgeler, araç çıktıları</td></tr>
+  <tr><td>A7</td><td>Orkestratör → Oturum ve Geçmiş Deposu</td><td>HTTP</td><td>Konuşma geçmişi, model yanıtı, araç çağrıları</td></tr>
+  <tr><td>A8</td><td>İçerik Yönetim Paneli → Vektör Veritabanı</td><td>HTTPS</td><td>Yüklenen belge metni ve gömmeler</td></tr>
+  <tr><td>A9</td><td>Orkestratör → Çağrı Merkezi Aktarımı</td><td>HTTPS</td><td>Konuşma geçmişi, müşteri numarası</td></tr>
+</table>
+
+<h2>5. İstem kurulumu ve model kullanımı</h2>
+<p>Orkestratör, müşterinin yazdığı metni getirilen belgelerle ve araç çıktılarıyla birlikte tek bir
+istem içinde modele gönderir. Müşteri metni ile sistem talimatları aynı istem gövdesinde
+birleştirilmektedir; ayrı bir ayrıştırma veya işaretleme yapılmamaktadır. Modelin ürettiği yanıt
+müşteriye doğrudan iletilir; yanıt içeriğinin bankacılık mevzuatına uygunluğunu denetleyen bir
+kontrol katmanı bulunmamaktadır. Modelin araç çağrısı isteği, istediği müşteri numarası için
+oturum sahibiyle eşleşme kontrolü yapılmadan Araç Servisi'ne iletilmektedir. Vektör veritabanına
+yüklenen belgelerin içeriği için onay akışı tanımlanmamıştır; İçerik Yönetim Paneli'ne erişimi olan
+her kullanıcı belge ekleyebilmektedir.</p>
+
+<h2>6. Veri saklama ve gizlilik</h2>
+<p>Konuşma geçmişi müşteri numarasıyla ilişkilendirilmiş olarak iki yıl saklanmaktadır. Modele
+gönderilen istemlerin tamamı, içindeki bakiye ve IBAN bilgileriyle birlikte Merkezi Log
+Platformu'na yazılmaktadır; bu alanların maskelenmesi ilerleyen sürümlerde planlanmaktadır. Dil
+modeli sağlayıcısıyla imzalanan sözleşmede verinin model eğitiminde kullanılıp kullanılmayacağı
+bu dokümanda belirtilmemiştir. Sesli sorular metne çevrildikten sonra ses kaydının silinip
+silinmediği netleşmemiştir.</p>
+
+<h2>7. Kimlik doğrulama ve erişim</h2>
+<p>Müşteri, mobil uygulamadaki mevcut oturumuyla asistana erişir; ayrı bir kimlik doğrulama
+yapılmaz. Kart dondurma ve limit değişikliği talepleri asistan üzerinden tek adımda başlatılabilir;
+bu işlemler için ek doğrulama (OTP veya biyometri) istenmemektedir. İçerik Yönetim Paneli'ne
+kurumsal dizin üzerinden girilir ve çok faktörlü doğrulama uygulanmaktadır. Araç Servisi, iç ağda
+olduğu için kimlik doğrulaması olmadan çağrılabilmektedir.</p>
+
+<h2>8. İzleme ve dayanıklılık</h2>
+<p>Asistan Orkestratörü'nde müşteri başına istek sınırlaması uygulanmamaktadır; maliyet kontrolü
+aylık fatura üzerinden yapılmaktadır. Dil modeli sağlayıcısının kesintisi hâlinde asistan hata
+mesajı döndürür, yedek sağlayıcı tanımlı değildir. Model yanıtlarının doğruluğunu ölçen düzenli bir
+değerlendirme süreci tanımlanmamıştır.</p>
+
+<h2>9. Açık konular</h2>
+<ul>
+  <li>Müşteri metninin sistem talimatlarından nasıl ayrıştırılacağı kararlaştırılmamıştır.</li>
+  <li>Model yanıtı için içerik denetimi katmanının hangi sürümde ekleneceği netleşmemiştir.</li>
+  <li>Sağlayıcı sözleşmesindeki veri kullanım şartlarının hukuk tarafından teyidi beklenmektedir.</li>
+  <li>Asistan üzerinden başlatılan işlemler için ek doğrulama gereksinimi değerlendirilmektedir.</li>
+</ul>
+
+</body>
+</html>
