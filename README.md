@@ -24,6 +24,18 @@ Gereken tek şey **Docker**'dır (Docker Desktop açık olmalı).
 
 ```bash
 cp .env.example .env
+```
+
+`.env` içinde **POSTGRES_PASSWORD** boştur; kendi değerinizi üretin (boş
+bırakılırsa compose anlaşılır bir hatayla durur):
+
+```bash
+python3 -c "import secrets; print('POSTGRES_PASSWORD=' + secrets.token_urlsafe(24))" >> .env
+```
+
+LLM kullanacaksanız `.env` içine `LLM_API_KEY` değerini de yazın, sonra:
+
+```bash
 docker compose up
 ```
 
@@ -34,7 +46,7 @@ docker compose up
 | http://localhost:3000 | Arayüz |
 | http://localhost:8000/api/docs | Arka uç API dokümantasyonu |
 | http://localhost:8000/api/health | Sağlık kontrolü |
-| localhost:5433 | PostgreSQL (kullanıcı/parola: `threatmodel`) |
+| localhost:5433 | PostgreSQL (kullanıcı `threatmodel`, parolayı `.env` belirler; port yalnızca bu makineye açıktır) |
 
 Veritabanı şeması konteyner açılırken `alembic upgrade head` ile otomatik
 uygulanır; elle bir adım gerekmez.
@@ -60,21 +72,26 @@ Tüm ayarlar `.env` dosyasından okunur; örnekler ve açıklamalar
 |---|---|---|
 | `APP_NAME` | Tehdit Modelleme Platformu | Arayüzde görünen ürün adı |
 | `FRONTEND_PORT` / `BACKEND_PORT` | 3000 / 8000 | Host tarafındaki portlar |
-| `LLM_PROVIDER` | `gemini_native` | LLM sağlayıcı (Aşama 1'de devreye girer) |
-| `LLM_MODEL` | *(boş)* | Güncel ücretsiz/hızlı modeli siz seçersiniz |
+| `LLM_PROVIDER` | `groq` | LLM sağlayıcı (`openrouter`, `ollama`, `gemini_native`, `openai_compatible`) |
+| `LLM_MODEL` | `openai/gpt-oss-120b` | Sağlayıcıya göre değişir |
 | `LLM_API_KEY` | *(boş)* | Yalnızca ortam değişkeninden okunur, ekranda **gösterilmez** |
 | `DEMO_REPLAY` | `false` | Kayıtlı çıktı modu (`true` / `strict`) — Aşama 5 |
 | `OCR_ENABLED` | `false` | OCR varsayılan olarak kapalıdır |
 | `RISK_THRESHOLD_*` | 4 / 9 / 16 | Risk seviyesi eşikleri |
 
-**LLM modeli seçimi:** Ücretsiz katmanların model adları, günlük istek ve
-token limitleri zamanla değişir. Kod içine sabit limit gömülmemiştir;
-kullanmadan önce sağlayıcınızın güncel model ve limit sayfasına bakıp
-`LLM_MODEL` değerini kendiniz yazın. Gemini için
-[Google AI Studio](https://aistudio.google.com/) üzerinden ücretsiz anahtar
-alabilirsiniz; hızlı bir başlangıç modeli olarak `gemini-2.5-flash`
-deneyebilirsiniz. Anahtarı ekledikten sonra
-`docker compose up -d backend` ile arka ucu yeniden başlatın.
+**LLM sağlayıcı:** Varsayılan **Groq** (`openai/gpt-oss-120b`). Proje
+gerçek dokümanlarla bu sağlayıcıyla çalıştırıldı; ücretsiz katmanı istek
+sınırına takılabilir, platform bu durumda bekleyip yeniden dener ve olmazsa
+adımı kural kataloğu bulgularıyla tamamlar. Anahtarı
+[console.groq.com](https://console.groq.com/) üzerinden alabilirsiniz.
+
+Başka bir sağlayıcı kullanacaksanız `LLM_PROVIDER` ve `LLM_MODEL` değerlerini
+değiştirmeniz yeterli: `openrouter`, `ollama`, `gemini_native` ya da herhangi
+bir OpenAI uyumlu uç için `openai_compatible` + `LLM_BASE_URL`. Ücretsiz
+katmanların model adları ve limitleri zamanla değişir; kod içine sabit limit
+gömülmemiştir, güncel model adını sağlayıcının kendi sayfasından doğrulayın.
+Anahtarı ekledikten sonra `docker compose up -d backend` ile arka ucu
+yeniden başlatın.
 
 Anahtarsız denemek için `LLM_PROVIDER=stub` sabit bir yanıt döndürür. Bu bir
 demo modu **değildir** (gerçek analiz üretmez); yalnızca boru hattını ve
@@ -108,7 +125,7 @@ Dokuz adımın tamamı gerçek veriyle çalışır. Yer tutucu adım kalmadı.
   dosyalar yalnızca bu bilgisayarda `backend/uploads/` altında saklanır.
 - **Metin çıkarma:** pypdfium2 ile PDF, python-docx ile DOCX. Metin katmanı
   olmayan sayfalar görsel olarak LLM'e verilir (OCR varsayılan kapalı).
-- **LLM katmanı:** `gemini_native` (varsayılan) ve OpenAI uyumlu uçlar.
+- **LLM katmanı:** `groq` (varsayılan), OpenAI uyumlu uçlar ve `gemini_native`.
   Yanıt pydantic ile doğrulanır; uymazsa hata modele geri verilip **en fazla
   2 onarım** denenir. Her çağrı `llm_call` tablosuna yazılır.
 - **Prompt injection koruması:** doküman metni asla talimat olarak verilmez;

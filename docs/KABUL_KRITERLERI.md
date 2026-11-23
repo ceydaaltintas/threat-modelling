@@ -7,10 +7,16 @@
 - **Doğrulanmadı** — kod yazıldı, bu makinede test edilemedi.
 
 > Bu listedeki her "Geçti", bu depodaki kodun bu makinede çalıştırılmasıyla
-> doğrulanmıştır. **Tüm LLM çağrıları `stub` sağlayıcısıyla denenmiştir:**
-> gerçek bir API anahtarı bu çalışma sırasında mevcut değildi. Modelin çıktı
-> kalitesine bağlı hiçbir kriter bu nedenle gerçek bir modelle
-> doğrulanmamıştır; aşağıda tek tek belirtilmiştir.
+> doğrulanmıştır.
+>
+> **Güncelleme:** Liste ilk yazıldığında gerçek bir API anahtarı yoktu ve tüm
+> LLM çağrıları `stub` sağlayıcısıyla denenmişti. Sonrasında **Groq**
+> (`openai/gpt-oss-120b`) ile gerçek anahtar kullanılarak dört örnek
+> doküman uçtan uca çalıştırıldı: sistem modeli çıkarımı, LLM tehdit
+> önerileri, önlem metinleri ve yönetici özeti gerçek modelle üretildi.
+> Aşağıdaki satırlardan "gerçek modelle denenmedi" diyenler bu ölçüde
+> aşılmıştır; yine de **çıktı kalitesi ölçülmüş bir şey değildir** ve
+> model her çalıştırmada aynı listeyi üretmez.
 
 ## Aşama 0 — İskelet
 
@@ -28,8 +34,8 @@
 |---|---|---|
 | Yükleme (PDF/DOCX/MD/TXT/görsel) | **Geçti** | Sürükle-bırak çoklu yükleme; tür ve boyut doğrulaması |
 | Metin çıkarma, sayfa/bölüm indeksi | **Geçti** | Örnek PDF'lerde 2–3 sayfa, 6.2k karakter, 8 bölüm; `test_extract.py` |
-| LLM adaptörü | **Kısmen** | `gemini_native` ve OpenAI uyumlu adaptörler yazıldı; **yalnızca `stub` ile çalıştırıldı** |
-| `SystemModel` çıkarımı | **Kısmen** | Boru hattı uçtan uca çalışıyor; çıkarımın kalitesi gerçek modelle denenmedi |
+| LLM adaptörü | **Geçti** | OpenAI uyumlu adaptör Groq ile gerçek çağrılarda çalıştırıldı; `gemini_native` ve diğer uçlar yazıldı, Groq dışındakiler denenmedi |
+| `SystemModel` çıkarımı | **Geçti** | Gerçek modelle çalıştırıldı (örn. açık bankacılık: 12 bileşen, 7 akış, 3 belirsiz); kanıt alıntıları dokümana karşı denetlendi |
 | SSE ile **gerçek** canlı stepper | **Geçti** | Olaylar `/api/runs/{id}/events`; sayfa yenilemede geçmiş tekrar oynatılır |
 | DFD + düzenlenebilir tablolar | **Geçti** | React Flow; güven bölgeleri çerçeve, şifresiz akışlar kesikli kırmızı |
 | Kanıt vurgulama | **Geçti** | Öğeye tıklandığında alıntı dokümandaki yerinde vurgulanır |
@@ -43,7 +49,7 @@
 | Hibrit arama | **Geçti** | Postgres full-text + pgvector, RRF; `/api/kb/search` |
 | Bilgi Tabanı ekranı | **Geçti** | Canlı arama, hangi motorun bulduğu rozetle, lisans tablosu |
 | Kural kataloğu (≥40 kural) | **Geçti** | **59 kural**; `test_rules.py` asgari sayıyı sabitler |
-| LLM tehdit üretimi | **Kısmen** | Yol çalışıyor; **gerçek modelle denenmedi** |
+| LLM tehdit üretimi | **Geçti** | Gerçek modelle çalıştırıldı (örn. açık bankacılık: 49 kural + 9 LLM tehdidi) |
 | Birleştirme | **Geçti** | Benzer başlıklar tek tehditte toplanır, iki kaynağın kanıtı korunur |
 | Örnek 1 için kural + LLM tehditleri tabloda görünür, her biri kanıt/kaynak taşır | **Kısmen** | Kural tarafı doğrulandı (43 tehdit, hepsi kanıtlı ve kaynaklı); LLM tarafı stub ile |
 | Bilgi Tabanı aramasında "CWE-89" tam eşleşmeyle gelir | **Geçti** | Ekranda birinci sırada, "Tam kimlik eşleşmesi" rozetiyle |

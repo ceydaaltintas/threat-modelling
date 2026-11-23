@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-threatmodel}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-threatmodel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?.env dosyasinda POSTGRES_PASSWORD tanimlayin (bkz. .env.example)}
       POSTGRES_DB: ${POSTGRES_DB:-threatmodel}
       # Turkce karakterlerin dogru siralanmasi/karsilastirilmasi icin
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
@@ -37,9 +37,9 @@ services:
     environment:
       APP_NAME: ${APP_NAME:-Tehdit Modelleme Platformu}
       APP_ENV: ${APP_ENV:-development}
-      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://threatmodel:threatmodel@db:5432/threatmodel}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER:-threatmodel}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-threatmodel}}
       CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-3000}
-      LLM_PROVIDER: ${LLM_PROVIDER:-gemini_native}
+      LLM_PROVIDER: ${LLM_PROVIDER:-groq}
       LLM_MODEL: ${LLM_MODEL:-}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-}
