@@ -1,7 +1,7 @@
 """Initial schema: projects, documents, runs, steps, system model, threats,
 knowledge base, LLM calls and the audit trail.
 
-The whole data model from docs/PROMPT.md section 4 is created in phase 0, so
+The whole data model is created in phase 0, so
 later phases only fill the tables in.
 
 Revision ID: 0001_initial

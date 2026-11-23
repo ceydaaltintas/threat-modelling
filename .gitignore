@@ -37,3 +37,6 @@ htmlcov/
 Thumbs.db
 .idea/
 .vscode/
+
+# Gorev tanimi: yerelde dursun, depoda yayimlanmasin.
+docs/PROMPT.md

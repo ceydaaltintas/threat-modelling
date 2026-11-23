@@ -19,7 +19,7 @@ from app.schemas.api import MetaResponse, RiskThresholds, SampleScenarioOut, Ste
 
 router = APIRouter(prefix="/api", tags=["meta"])
 
-# Which build phase of docs/PROMPT.md is implemented. The UI uses this to
+# Which build phase is implemented. The UI uses this to
 # label placeholder data instead of pretending it is real output.
 BUILD_PHASE = 4
 

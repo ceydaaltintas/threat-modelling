@@ -1,6 +1,6 @@
 # Kabul kriterleri kontrol listesi
 
-`docs/PROMPT.md` dosyasındaki her kabul kriterinin karşılığı. Durumlar:
+Projenin görev tanımındaki her kabul kriterinin karşılığı. Durumlar:
 
 - **Geçti** — çalıştırılıp doğrulandı (testle, komutla veya ekranda).
 - **Kısmen** — çalışıyor ama bir koşulu doğrulanamadı; nedeni yazılı.

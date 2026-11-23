@@ -58,7 +58,7 @@ def test_a_well_formed_threat_produces_no_notes() -> None:
     assert check(view()) == []
 
 
-# --- the fabricated identifier gate (docs/PROMPT.md, phase 3 acceptance) ---
+# --- the fabricated identifier gate ---
 
 
 def test_invented_knowledge_identifier_is_rejected() -> None:

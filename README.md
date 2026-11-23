@@ -13,8 +13,7 @@ ekran gereksinimi, analizin **hangi adımda olduğunun canlı olarak** görülme
 **Şu anki durum: Aşama 5 (son aşama).** Dokuz adımın tamamı gerçek çalışıyor.
 Her kabul kriterinin tek tek durumu:
 [docs/KABUL_KRITERLERI.md](docs/KABUL_KRITERLERI.md). Ayrıntı için aşağıdaki
-"Aşama 0'da ne çalışıyor" bölümüne bakın. Görev tanımının tamamı
-[docs/PROMPT.md](docs/PROMPT.md) dosyasındadır.
+"Aşama 0'da ne çalışıyor" bölümüne bakın.
 
 ---
 
@@ -385,10 +384,9 @@ frontend/
   src/components/        arayüz bileşenleri (analysis/, layout/, ui/)
   src/lib/               API istemcisi, tipler, Türkçe biçimlendirme
 samples/
-  documents/             3 kurgusal mimari doküman (PDF)
+  documents/             4 kurgusal mimari doküman (PDF)
   expected/              beklenen bulgular: insan için .md, eval için .yaml
 eval/                    değerlendirme çıktıları (üretilir, depoya girmez)
-docs/PROMPT.md           ana görev tanımı
 ```
 
 ## 7. Geliştirme

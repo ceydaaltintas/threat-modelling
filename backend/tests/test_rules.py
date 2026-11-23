@@ -21,7 +21,7 @@ def threats(model: SystemModel):
 
 
 def test_catalogue_meets_the_minimum_size() -> None:
-    # docs/PROMPT.md asks for at least 40 rules.
+    # The catalogue is expected to hold at least 40 rules.
     assert len(load_catalog()) >= 40
 
 
@@ -43,7 +43,7 @@ def test_every_rule_has_a_scenario_and_mitigations() -> None:
 
 def test_banking_areas_are_covered() -> None:
     areas = {rule.area for rule in load_catalog()}
-    # The areas docs/PROMPT.md calls out as priorities.
+    # The banking areas the catalogue must cover.
     assert {"api", "kimlik", "odeme", "veri", "mobil", "altyapi", "ucuncu-taraf",
             "log", "yapay-zeka"} <= areas
 

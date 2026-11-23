@@ -19,7 +19,7 @@ def test_simple_decisions_need_nothing_else() -> None:
 
 
 def test_level_change_requires_a_reason() -> None:
-    """docs/PROMPT.md: 'seviye değiştirme gerekçesi zorunlu'."""
+    """Ürün kuralı: seviye değiştirme gerekçesi zorunludur."""
     with pytest.raises(ValidationError) as info:
         ReviewRequest(action="edit", likelihood=5, impact=5)
     assert "gerekçe" in str(info.value).lower()

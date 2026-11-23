@@ -2,7 +2,7 @@
 # Her önlem, ISO/IEC 27001:2022 Ek A, NIST SP 800-53 ve OWASP ASVS
 # kimliklerine eşlenir. ISO eşlemeleri 'doğrulanacak' olarak işaretlidir:
 # standardın metni telifli olduğu için madde numarası kurumun kendi
-# nüshasından teyit edilmelidir (docs/PROMPT.md, 1. bölüm, 7. kural).
+# nüshasından teyit edilmelidir: telifli madde metni bu depoda yer almaz.
 mitigations:
   - id: M-AUTHZ-OBJECT
     title: "Nesne düzeyi yetki kontrolü"

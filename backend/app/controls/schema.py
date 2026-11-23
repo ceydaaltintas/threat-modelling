@@ -4,7 +4,7 @@ A mitigation is a named control the platform can propose. Each one maps to
 framework identifiers (ISO/IEC 27001:2022 Annex A, NIST SP 800-53, OWASP
 ASVS) so a report can say which control family a recommendation belongs to.
 
-Rule 7 of docs/PROMPT.md applies here: a clause number we cannot confirm is
+The platform never states a clause number it cannot confirm: such a number is
 left out rather than guessed. ISO mappings all carry
 ``verification: "needed"`` because the standard's text is paywalled and the
 numbering must be checked against the organisation's own copy.
