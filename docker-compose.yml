@@ -12,7 +12,10 @@ services:
       # Turkce karakterlerin dogru siralanmasi/karsilastirilmasi icin
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     ports:
-      - "${POSTGRES_PORT:-5433}:5432"
+      # Yalnizca bu makineden erisilebilir. Veritabanina disaridan
+      # baglanmaya gerek yok: backend compose agi uzerinden konusuyor,
+      # host portu sadece elle inceleme icin duruyor.
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
