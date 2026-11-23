@@ -108,6 +108,16 @@ async def run(ctx: RunContext) -> dict[str, int]:
         unknown = 0
         llm_note: str | None = None
 
+        # Say the work has started and how big it is. Without this the rail
+        # sat on "Başlatılıyor…" for minutes whenever the provider was rate
+        # limiting, because progress was only reported every tenth threat.
+        await ctx.report(
+            STEP,
+            progress_value=0.0,
+            message=f"Önlemler hazırlanıyor 0/{len(ordered)}",
+            counters={"mitigations": 0, "mapped": 0},
+        )
+
         for index, threat in enumerate(ordered, start=1):
             ids = _mitigation_ids(threat)
             known = [mid for mid in ids if mid in catalog]
@@ -148,6 +158,20 @@ async def run(ctx: RunContext) -> dict[str, int]:
                     threat_scenario=threat.scenario or "",
                     mitigation_list=listing,
                 )
+                async def _waiting(
+                    attempt: int, delay: float, _i: int = index
+                ) -> None:
+                    # A rate limited provider can hold this step for half a
+                    # minute at a time; silence looks like a hang.
+                    await ctx.report(
+                        STEP,
+                        progress_value=_i / len(ordered),
+                        message=(
+                            f"Model yoğun; {int(delay)} sn sonra yeniden "
+                            f"denenecek ({attempt}. deneme) — {_i}/{len(ordered)}"
+                        ),
+                    )
+
                 try:
                     result = await ctx.gateway.generate_json(
                         prompt_name=PROMPT_NAME,
@@ -155,6 +179,7 @@ async def run(ctx: RunContext) -> dict[str, int]:
                         user=user,
                         schema=MitigationTextList,
                         step_no=STEP.no,
+                        on_wait=_waiting,
                     )
                     llm_calls += 1
                     for item in result.mitigations:
@@ -177,7 +202,7 @@ async def run(ctx: RunContext) -> dict[str, int]:
             threat.control_mappings = mappings
             mapped += len(mappings)
 
-            if index % 10 == 0 or index == len(ordered):
+            if index % 5 == 0 or index == len(ordered):
                 await ctx.report(
                     STEP,
                     progress_value=index / len(ordered),
