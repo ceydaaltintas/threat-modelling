@@ -1,0 +1,16 @@
+Tehdit Modelleme Platformu
+Copyright 2026 Ceyda Altintas
+
+Bu urun Apache License 2.0 ile lisanslanmistir; tam metin LICENSE
+dosyasindadir.
+
+Kullanilan ucuncu taraf yazilim paketleri ve veri kaynaklari, kendi
+lisanslariyla birlikte THIRD_PARTY.md dosyasinda listelenmistir.
+
+Bilgi tabanindaki metinler bu proje icin yazilmis Turkce ozetlerdir;
+OWASP, MITRE CWE/ATT&CK, NIST ve ISO kimlikleri ilgili kuruluslara
+aittir. ISO/IEC 27001 madde metinleri telifli oldugu icin bu depoda
+yer almaz, yalnizca madde kimligi ve kendi ozetimiz bulunur.
+
+samples/ altindaki dokumanlar kurgusaldir; gercek bir kurumu veya
+sistemi temsil etmez.

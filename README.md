@@ -465,6 +465,9 @@ Docker Desktop'ın açık ve çalışır durumda olduğundan emin olun.
 
 ## 10. Lisans ve atıflar
 
+Bu proje **Apache License 2.0** ile lisanslanmıştır; tam metin
+[LICENSE](LICENSE), atıf notları [NOTICE](NOTICE) dosyasındadır.
+
 Kullanılan üçüncü taraf paketler ve veri kaynakları lisanslarıyla birlikte
 [THIRD_PARTY.md](THIRD_PARTY.md) dosyasında listelenir. Telifli standartların
 (ISO 27001, PCI DSS) tam metni bilgi tabanına konmaz; yalnızca madde kimliği
