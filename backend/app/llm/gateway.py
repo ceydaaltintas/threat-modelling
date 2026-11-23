@@ -46,6 +46,9 @@ MAX_REPAIR_ATTEMPTS = 2
 # regularly, and a demo must not die on a passing spike.
 MAX_TRANSIENT_RETRIES = 3
 BACKOFF_SECONDS = (4, 12, 30)
+# When the provider says how long to wait, that beats our schedule - but a
+# long hint (a daily budget can say "wait an hour") must not hang the step.
+MAX_PROVIDER_WAIT = 60
 
 # When the provider says the request is too large, halve the output budget
 # and try again rather than failing the step outright.
@@ -166,6 +169,13 @@ class LLMGateway:
                 if not exc.retryable or attempt == MAX_TRANSIENT_RETRIES:
                     raise
                 delay = BACKOFF_SECONDS[min(attempt, len(BACKOFF_SECONDS) - 1)]
+                hint = getattr(exc, "retry_after", None)
+                if hint:
+                    if hint > MAX_PROVIDER_WAIT:
+                        # Waiting this long would look like a hang; fail now
+                        # with the provider's own explanation.
+                        raise
+                    delay = max(delay, hint)
                 self.usage.waits += 1
                 logger.warning(
                     "Geçici LLM hatası (%s). %s sn sonra yeniden denenecek "

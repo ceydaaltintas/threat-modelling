@@ -20,10 +20,18 @@ class LLMError(Exception):
 
     retryable = False
 
-    def __init__(self, message: str, *, detail: str | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        detail: str | None = None,
+        retry_after: float | None = None,
+    ) -> None:
         super().__init__(message)
         self.message = message
         self.detail = detail
+        # What the provider itself asked us to wait, when it says so.
+        self.retry_after = retry_after
 
 
 class LLMNotConfigured(LLMError):

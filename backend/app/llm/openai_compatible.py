@@ -31,6 +31,55 @@ REQUEST_TIMEOUT = httpx.Timeout(120.0, connect=15.0)
 USER_AGENT = "threat-modelling-platform/0.1"
 
 
+def _retry_after(response: "httpx.Response") -> float | None:
+    """Seconds the provider asked us to wait, if the header is usable."""
+    raw = response.headers.get("retry-after")
+    if not raw:
+        return None
+    try:
+        value = float(raw)
+    except ValueError:
+        # The header may be an HTTP date; backing off by our own schedule
+        # is better than parsing that here.
+        return None
+    return value if value > 0 else None
+
+
+def _quota_message(response: "httpx.Response") -> str:
+    """What the provider said, rather than a guess.
+
+    A 429 can be a per-minute rate limit (wait a moment) or a daily token
+    budget (waiting will not help today). The body and the Retry-After
+    header say which; without them the advice was misleading. Recorded
+    output mode is only suggested where it can actually work: it answers
+    from recordings, so it helps on a document that has been analysed
+    before, not on a new one.
+    """
+    detail = ""
+    try:
+        body = response.json()
+        detail = (body.get("error") or {}).get("message") or ""
+    except Exception:  # noqa: BLE001 - the body may not be JSON at all
+        detail = ""
+
+    retry_after = response.headers.get("retry-after") or ""
+    parts = ["LLM sağlayıcısı istek sınırına takıldı (HTTP 429)."]
+    if detail:
+        parts.append(f"Sağlayıcının mesajı: {detail.strip()}")
+    if retry_after:
+        parts.append(f"Sağlayıcı {retry_after} sn sonra tekrar denemeyi öneriyor.")
+    else:
+        parts.append(
+            "Dakikalık bir sınırsa kısa bir bekleme yeter; günlük bir "
+            "bütçeyse bugün açılmaz, başka bir model veya sağlayıcı gerekir."
+        )
+    parts.append(
+        "Daha önce çalıştırılmış bir doküman için DEMO_REPLAY=true kayıtlardan "
+        "cevap verir; yeni bir doküman için kayıt bulunmadığından işe yaramaz."
+    )
+    return " ".join(parts)
+
+
 class OpenAICompatibleClient:
     provider = "openai_compatible"
 
@@ -123,10 +172,12 @@ class OpenAICompatibleClient:
             ) from exc
 
         if response.status_code == 429:
+            # The provider knows which limit was hit and how long it lasts;
+            # guessing "60 sn" was wrong whenever the limit was a daily one.
             raise LLMQuotaExceeded(
-                "LLM kota sınırına ulaşıldı. Kayıtlı çıktı moduna geçin veya "
-                "60 sn sonra tekrar deneyin.",
+                _quota_message(response),
                 detail=response.text[:500],
+                retry_after=_retry_after(response),
             )
         if response.status_code == 413:
             raise LLMTooLarge(

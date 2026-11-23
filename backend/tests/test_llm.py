@@ -303,3 +303,60 @@ async def test_too_large_request_fails_when_the_caller_cannot_shrink(monkeypatch
         await gateway.generate_json(
             prompt_name="t", system="s", user="u", schema=Tiny
         )
+
+
+# --- What a 429 says and how long we wait --------------------------------
+
+
+def test_quota_message_repeats_what_the_provider_said() -> None:
+    import httpx
+
+    from app.llm.openai_compatible import _quota_message, _retry_after
+
+    response = httpx.Response(
+        429,
+        json={"error": {"message": "Limit 30 requests per minute"}},
+        headers={"retry-after": "12"},
+        request=httpx.Request("POST", "http://x"),
+    )
+
+    message = _quota_message(response)
+    assert "30 requests per minute" in message
+    assert "12 sn" in message
+    # Replay cannot answer a prompt it has never seen.
+    assert "yeni bir doküman için kayıt bulunmadığından" in message
+    assert _retry_after(response) == 12
+
+
+def test_quota_message_without_a_body_still_explains_the_two_cases() -> None:
+    import httpx
+
+    from app.llm.openai_compatible import _quota_message, _retry_after
+
+    response = httpx.Response(
+        429, text="too many requests", request=httpx.Request("POST", "http://x")
+    )
+
+    message = _quota_message(response)
+    assert "günlük" in message and "dakikalık" in message.lower()
+    assert _retry_after(response) is None
+
+
+async def test_a_long_retry_hint_fails_instead_of_hanging(monkeypatch) -> None:
+    """A daily budget can ask for an hour; the step must not sit on it."""
+    from app.llm.base import LLMQuotaExceeded
+
+    class Limited:
+        provider = "p"
+        model = "m"
+
+        async def generate(self, **_kwargs):
+            raise LLMQuotaExceeded("dolu", retry_after=3600)
+
+    gateway = _gateway(Limited())
+    _silence_recording(monkeypatch, gateway)
+
+    with pytest.raises(LLMQuotaExceeded):
+        await gateway.generate_json(
+            prompt_name="t", system="s", user="u", schema=Tiny
+        )

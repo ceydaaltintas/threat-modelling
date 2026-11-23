@@ -87,8 +87,12 @@ class GeminiNativeClient:
             lowered = message.lower()
             if "429" in message or "quota" in lowered or "resource_exhausted" in lowered:
                 raise LLMQuotaExceeded(
-                    "LLM kota sınırına ulaşıldı. Kayıtlı çıktı moduna geçin veya "
-                    "60 sn sonra tekrar deneyin.",
+                    "LLM sağlayıcısı istek sınırına takıldı. Dakikalık bir "
+                    "sınırsa kısa bir bekleme yeter; günlük bir bütçeyse "
+                    "bugün açılmaz, başka bir model veya sağlayıcı gerekir. "
+                    "Daha önce çalıştırılmış bir doküman için DEMO_REPLAY=true "
+                    "kayıtlardan cevap verir; yeni bir doküman için kayıt "
+                    "bulunmadığından işe yaramaz.",
                     detail=message[:500],
                 ) from exc
             if "503" in message or "unavailable" in lowered or "overload" in lowered:
