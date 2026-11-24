@@ -122,6 +122,13 @@ Dokuz adımın tamamı gerçek veriyle çalışır. Yer tutucu adım kalmadı.
 
 - **Dosya yükleme:** sürükle-bırak ile çoklu dosya; boyut ve tür doğrulaması;
   dosyalar yalnızca bu bilgisayarda `backend/uploads/` altında saklanır.
+- **Şemalar:** Word'e çizilmiş şekiller, Word'e yapıştırılmış draw.io
+  görselleri (düzenlenebilir PNG), gömülü Visio nesneleri ve tek başına
+  yüklenen `.drawio` / `.vsdx` / `.xml` dosyalarından kutu ve oklar okunur;
+  metne çevrilip dokümanın geri kalanıyla birlikte değerlendirilir. Görsel
+  okuyan bir modele ihtiyaç yoktur. PDF'teki şemalar **okunmaz**, yalnızca
+  "bu sayfada şema var" diye işaretlenir (nedeni: tablolar ile şemaları
+  PDF çizim nesnelerinden ayırmak güvenilir değil).
 - **Metin çıkarma:** pypdfium2 ile PDF, python-docx ile DOCX. Metin katmanı
   olmayan sayfalar görsel olarak LLM'e verilir (OCR varsayılan kapalı).
 - **LLM katmanı:** `groq` (varsayılan), OpenAI uyumlu uçlar ve `gemini_native`.

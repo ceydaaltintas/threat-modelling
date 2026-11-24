@@ -15,6 +15,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from app.pipeline import diagrams
+
 # A page with fewer characters than this is treated as having no text layer.
 MIN_CHARS_PER_PAGE = 60
 # Rendering scale for scanned pages handed to the vision model.
@@ -120,13 +122,15 @@ def detect_doc_type(filename: str) -> str:
         return "pdf"
     if suffix == ".docx":
         return "docx"
+    if suffix in DIAGRAM_SUFFIXES:
+        return "diagram"
     if suffix in IMAGE_SUFFIXES:
         return "image"
     if suffix in TEXT_SUFFIXES:
         return "text"
     raise UnsupportedDocument(
         f"'{filename}' desteklenmeyen bir dosya türü. "
-        "PDF, DOCX, MD, TXT, PNG veya JPG yükleyin."
+        "PDF, DOCX, DRAWIO, XML, VSDX, MD, TXT, PNG veya JPG yükleyin."
     )
 
 
@@ -139,6 +143,8 @@ def extract(path: Path, doc_type: str) -> ExtractionResult:
         return _extract_text(path)
     if doc_type == "image":
         return _extract_image(path)
+    if doc_type == "diagram":
+        return _extract_diagram(path)
     raise UnsupportedDocument(f"Bilinmeyen doküman türü: {doc_type}")
 
 
@@ -217,6 +223,12 @@ def _extract_pdf(path: Path) -> ExtractionResult:
     finally:
         document.close()
 
+    # A diagram in a PDF is reported, never guessed at: see
+    # diagrams.detect_pdf_diagrams for why reading it was dropped.
+    drawn = diagrams.detect_pdf_diagrams(path)
+    if drawn:
+        raw_pages.append("\n\n".join(d.as_text() for d in drawn))
+
     pages, sections = _assemble(raw_pages)
     result = ExtractionResult(pages=pages, sections=sections, images=images)
     if images and result.char_count < MIN_CHARS_PER_PAGE:
@@ -229,6 +241,9 @@ def _extract_pdf(path: Path) -> ExtractionResult:
             f"{len(images)} sayfa metin katmanı içermiyor; bu sayfalar görsel "
             "olarak okunacak."
         )
+    diagram_note = _diagram_note(drawn)
+    if diagram_note:
+        result.note = f"{result.note} {diagram_note}".strip() if result.note else diagram_note
     return result
 
 
@@ -243,13 +258,62 @@ def _extract_docx(path: Path) -> ExtractionResult:
             if any(cells):
                 parts.append(" | ".join(cells))
 
+    # Diagrams were invisible before: python-docx reads paragraphs and
+    # tables only. Anything the file carries as structure - Word shapes, a
+    # pasted draw.io picture, an embedded Visio object - becomes text here
+    # and is read by the same step that reads the prose.
+    found = diagrams.parse_docx(path)
+    for diagram in found:
+        parts.append("")
+        parts.append(diagram.as_text())
+
     # DOCX has no fixed pagination; the whole document is one "page".
     pages, sections = _assemble(["\n".join(parts).strip()])
+    note = "DOCX dosyalarında sayfa bilgisi yoktur; bölüm başlıkları kullanılır."
+    diagram_note = _diagram_note(found)
     return ExtractionResult(
         pages=pages,
         sections=sections,
-        note="DOCX dosyalarında sayfa bilgisi yoktur; bölüm başlıkları kullanılır.",
+        note=f"{note} {diagram_note}".strip() if diagram_note else note,
     )
+
+
+DIAGRAM_SUFFIXES = {".drawio", ".vsdx", ".xml"}
+
+
+def _diagram_note(found: list["diagrams.Diagram"]) -> str | None:
+    """One line about what the diagrams gave us, for the document panel."""
+    if not found:
+        return None
+    readable = [d for d in found if d.nodes or d.edges]
+    unreadable = [d for d in found if d.unreadable and not (d.nodes or d.edges)]
+    parts = []
+    if readable:
+        boxes = sum(len(d.nodes) for d in readable)
+        arrows = sum(len(d.edges) for d in readable)
+        parts.append(
+            f"{len(readable)} şema okundu ({boxes} kutu, {arrows} akış)."
+        )
+    if unreadable:
+        parts.append(
+            f"{len(unreadable)} görsel kutu/ok bilgisi taşımıyor; şemadaki "
+            "bileşenleri model onayı adımında ekleyebilirsiniz."
+        )
+    return " ".join(parts)
+
+
+def _extract_diagram(path: Path) -> ExtractionResult:
+    """A diagram uploaded on its own (.drawio / .vsdx)."""
+    found = diagrams.parse_file(path)
+    if not found:
+        raise UnsupportedDocument(
+            f"'{path.name}' içinden kutu ve ok okunamadı. draw.io dosyası "
+            "ise 'Sıkıştırılmamış XML' olarak kaydedip tekrar deneyin; "
+            "Visio ise .vsdx olarak dışa aktarın."
+        )
+    body = "\n\n".join(diagram.as_text() for diagram in found)
+    pages, sections = _assemble([body])
+    return ExtractionResult(pages=pages, sections=sections, note=_diagram_note(found))
 
 
 def _extract_text(path: Path) -> ExtractionResult:

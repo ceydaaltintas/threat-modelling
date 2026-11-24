@@ -14,7 +14,8 @@ import { formatBytes } from "@/lib/format";
 import type { SampleScenario } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const ACCEPTED = ".pdf,.docx,.md,.txt,.png,.jpg,.jpeg";
+// Şema kaynakları da kabul edilir: kutu ve ok bilgisi oradan okunur.
+const ACCEPTED = ".pdf,.docx,.drawio,.vsdx,.xml,.md,.txt,.png,.jpg,.jpeg";
 
 /**
  * Starting an analysis is one action: give it a document.
@@ -109,7 +110,8 @@ export default function NewAnalysisPage() {
             Dokümanı buraya sürükleyip bırakın
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            PDF, DOCX, MD, TXT, PNG veya JPG · birden fazla dosya olabilir
+            PDF, DOCX, MD, TXT, PNG, JPG · şema için DRAWIO, VSDX veya XML ·
+            birden fazla dosya olabilir
           </p>
         </div>
         <label className="cursor-pointer">

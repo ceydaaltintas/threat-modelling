@@ -37,7 +37,8 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
         name="Doküman okundu",
         description=(
             "Dosyalardan metin çıkarılır, sayfa ve bölümler indekslenir. "
-            "Görsel varsa LLM ile okunur (veya OCR yedeği)."
+            "Word, draw.io ve Visio şemalarındaki kutu ve oklar metne "
+            "çevrilir; metin katmanı olmayan sayfalar görsel olarak okunur."
         ),
         performer="code+llm",
         counter_labels={

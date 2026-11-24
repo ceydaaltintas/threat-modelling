@@ -32,6 +32,7 @@ eklendiginde bu dosya guncellenir.
 | httpx | BSD-3-Clause | OpenAI uyumlu saglayici istemcisi, testler |
 | pytest / pytest-asyncio | MIT | Testler |
 | pypdfium2 | Apache-2.0 / BSD-3-Clause (PDFium) | PDF metin cikarma ve sayfa goruntuleme |
+| pdfplumber | MIT | PDF cizim nesneleri: sema iceren sayfayi tespit etmek icin |
 | python-docx | MIT | DOCX okuma |
 | google-genai | Apache-2.0 | Gemini yerel istemcisi |
 | weasyprint | BSD-3-Clause | HTML -> PDF rapor uretimi |
