@@ -513,6 +513,7 @@ async def retry_step(
         row.progress = 0.0
         row.message = None
         row.counters = None
+        row.output = None
         row.started_at = None
         row.finished_at = None
 

@@ -55,6 +55,10 @@ async def save_step(
         if started:
             row.started_at = now()
             row.finished_at = None
+            # The panel reads this; keeping the previous run's output made
+            # a re-running step show the old result and the old error.
+            row.output = None
+            row.counters = None
         if finished:
             row.finished_at = now()
         await session.commit()
