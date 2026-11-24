@@ -122,7 +122,10 @@ export function EvidenceView({
               {notFound || (!located && item.quote.length >= 12) ? (
                 <Badge variant="warning">Alıntı dokümanda bulunamadı</Badge>
               ) : (
-                <Badge variant="success">Dokümanda doğrulandı</Badge>
+                // "Dokümanda doğrulandı" tek başına, risk kırılımındaki
+                // "dokümanda doğrulanmadı" ile çelişiyor gibi okunuyordu:
+                // biri alıntıdan, diğeri zafiyetten söz ediyor.
+                <Badge variant="success">Alıntı dokümanda bulundu</Badge>
               )}
             </div>
 

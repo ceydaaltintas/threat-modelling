@@ -171,11 +171,16 @@ def score_threat(
     if context and context.get("confidence") == "possible":
         adjustments.append(
             Adjustment(
-                "Dokümanda doğrulanmadı",
+                # Names what was not confirmed. The evidence block says the
+                # quote was found, which is about the component existing,
+                # not about the weakness being real; side by side the two
+                # read as a contradiction.
+                "Zafiyet dokümanda doğrulanmadı",
                 "likelihood",
                 -1,
-                "Kural yalnızca bileşen türüne göre eşleşti; zayıflığın var "
-                "olduğu dokümanda doğrulanmadı.",
+                "Kural yalnızca bileşen türüne göre eşleşti. Kanıt alıntısı "
+                "bileşenin dokümanda geçtiğini gösterir; dokümanda bu "
+                "zayıflığın var olduğunu söyleyen bir ifade yok.",
             )
         )
 
