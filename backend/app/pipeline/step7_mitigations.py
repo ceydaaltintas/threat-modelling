@@ -19,7 +19,7 @@ from sqlalchemy import select
 
 from app.controls import catalog as controls_catalog
 from app.core.db import SessionLocal
-from app.llm.base import LLMError
+from app.llm.base import LLMError, LLMQuotaExceeded
 from app.llm.prompts import load_prompt
 from app.models import SystemModel as SystemModelRow, Threat
 from app.pipeline.context import RunContext, StepFailed
@@ -44,6 +44,8 @@ STRIDE_MITIGATIONS: dict[str, list[str]] = {
 # Only the worst threats are worth an LLM call; the rest keep the catalogue
 # text. Keeps the free tier's quota for where it matters.
 LLM_LEVELS = {"Kritik", "Yüksek"}
+# How many rate limit hits to absorb before giving up on the step.
+MAX_QUOTA_FAILURES = 4
 MAX_LLM_CALLS = 12
 
 
@@ -107,6 +109,8 @@ async def run(ctx: RunContext) -> dict[str, int]:
         mapped = 0
         unknown = 0
         llm_note: str | None = None
+        quota_failures = 0
+        last_quota: str | None = None
 
         # Say the work has started and how big it is. Without this the rail
         # sat on "Başlatılıyor…" for minutes whenever the provider was rate
@@ -190,7 +194,28 @@ async def run(ctx: RunContext) -> dict[str, int]:
                             if item.effort:
                                 texts[item.mitigation_id]["effort"] = item.effort
                             written += 1
+                except LLMQuotaExceeded as exc:
+                    # A per-minute limit is not a dead quota: it clears in
+                    # seconds. Giving up for the whole step on the first one
+                    # left 65 threats with catalogue text because a single
+                    # call at the top of the list hit the token window.
+                    quota_failures += 1
+                    last_quota = exc.message
+                    logger.info(
+                        "Önlem metni sınıra takıldı (%s/%s): %s",
+                        quota_failures,
+                        MAX_QUOTA_FAILURES,
+                        exc.message,
+                    )
+                    if quota_failures >= MAX_QUOTA_FAILURES:
+                        llm_note = (
+                            f"Önlem metinleri bir yerden sonra LLM ile "
+                            f"yazılamadı: {exc.message} Kalan önlemler "
+                            "katalog metniyle verildi."
+                        )
                 except LLMError as exc:
+                    # Anything else - a bad key, an unknown model - will not
+                    # pass on its own; stop asking.
                     logger.warning("Önlem metni alınamadı: %s", exc.message)
                     llm_note = (
                         f"Önlem metinleri LLM ile zenginleştirilemedi: "
@@ -216,6 +241,23 @@ async def run(ctx: RunContext) -> dict[str, int]:
         llm_note = (
             "LLM sağlayıcısı yapılandırılmadığı için önlem metinleri katalog "
             "metinleriyle bırakıldı."
+        )
+    elif llm_calls >= MAX_LLM_CALLS and llm_note is None:
+        # The cap is deliberate - a hundred threats would be a hundred calls
+        # - but a panel that says nothing looks like the model was never
+        # asked at all.
+        llm_note = (
+            f"Önlem metni en riskli {MAX_LLM_CALLS} tehdit için LLM ile "
+            "yazıldı (çağrı sınırı); kalan tehditler katalog metniyle "
+            "verildi."
+        )
+    elif quota_failures and llm_note is None:
+        # The step carried on after a rate limit; say how much of it got
+        # LLM text so the panel is not silent about the difference.
+        llm_note = (
+            f"{written} tehditte önlem metni LLM ile yazıldı; "
+            f"{quota_failures} çağrı dakikalık sınıra takıldığı için o "
+            f"tehditler katalog metniyle kaldı. {last_quota or ''}".strip()
         )
     elif llm_calls and not written and llm_note is None:
         # Calls went out but nothing usable came back: say so rather than

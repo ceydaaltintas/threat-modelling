@@ -134,8 +134,8 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
         no=7,
         name="Önlemler önerildi",
         description=(
-            "Tehdide ve teknolojiye uygun önlem metni üretilir, kontrol "
-            "kataloğuna eşlenir."
+            "Her tehdit önlem kataloğuna eşlenir; en riskli tehditlerin "
+            "önlem metni LLM ile bu sisteme göre yazılır."
         ),
         performer="code+llm",
         counter_labels={
