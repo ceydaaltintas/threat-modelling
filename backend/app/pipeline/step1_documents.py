@@ -10,11 +10,13 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import delete, select, text
 
 from app.core.db import SessionLocal
-from app.models import Document
-from app.pipeline import extract
+from app.kb import embedding
+from app.kb.loader import TS_CONFIG
+from app.models import Document, DocumentChunk
+from app.pipeline import chunking, extract
 from app.pipeline.context import RunContext, StepFailed
 from app.pipeline.steps import step_by_no
 
@@ -28,6 +30,58 @@ _vision_images: dict[str, list[bytes]] = {}
 
 def take_vision_images(run_id: str) -> list[bytes]:
     return _vision_images.pop(run_id, [])
+
+
+async def _index_passages(session, document, result) -> int:
+    """Cut the document into passages and index them for retrieval.
+
+    Embeddings are computed locally on the CPU, so this costs time but no
+    quota. A retry of step 1 replaces the document's own passages.
+    """
+    await session.execute(
+        delete(DocumentChunk).where(DocumentChunk.document_id == document.id)
+    )
+    passages = chunking.split(
+        result.full_text,
+        pages=[(p.page, p.start, p.end) for p in result.pages],
+        sections=[(s.label, s.start, s.end) for s in result.sections],
+    )
+    # Page headers and footers repeat in every passage and make one chunk
+    # match every query; they carry no architecture.
+    boilerplate = chunking.repeated_lines([p.text for p in result.pages])
+    for passage in passages:
+        passage.text = chunking.strip_lines(passage.text, boilerplate)
+    passages = [p for p in passages if len(p.text) >= chunking.MIN_CHARS]
+    if not passages:
+        return 0
+
+    try:
+        vectors = embedding.embed_documents([p.text for p in passages])
+    except Exception:  # noqa: BLE001 - search degrades to full text
+        logger.warning("Doküman gömmeleri hesaplanamadı; yalnızca metin araması kullanılacak")
+        vectors = [None] * len(passages)
+
+    for passage, vector in zip(passages, vectors):
+        session.add(
+            DocumentChunk(
+                document_id=document.id,
+                page=passage.page,
+                section=passage.section,
+                ordinal=passage.ordinal,
+                text=passage.text,
+                embedding=vector,
+            )
+        )
+    await session.flush()
+    await session.execute(
+        text(
+            "UPDATE document_chunk SET search_vector = "
+            f"to_tsvector('{TS_CONFIG}', coalesce(section,'') || ' ' || text) "
+            "WHERE document_id = :doc"
+        ),
+        {"doc": document.id},
+    )
+    return len(passages)
 
 
 async def run(ctx: RunContext) -> dict[str, int]:
@@ -49,6 +103,7 @@ async def run(ctx: RunContext) -> dict[str, int]:
         total_pages = 0
         total_chars = 0
         total_sections = 0
+        total_chunks = 0
         images: list[bytes] = []
 
         for index, document in enumerate(documents, start=1):
@@ -82,6 +137,11 @@ async def run(ctx: RunContext) -> dict[str, int]:
             document.section_map = result.to_section_map()
             document.extraction_note = result.note
 
+            # Index the document for retrieval. A long document does not fit
+            # in one prompt; step 3 fetches the passages that are about the
+            # component being analysed instead of the first N characters.
+            total_chunks += await _index_passages(session, document, result)
+
             total_pages += result.page_count
             total_chars += result.char_count
             total_sections += len(result.sections)
@@ -108,4 +168,5 @@ async def run(ctx: RunContext) -> dict[str, int]:
         "pages": total_pages,
         "sections": total_sections,
         "characters": total_chars,
+        "passages": total_chunks,
     }

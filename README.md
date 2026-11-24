@@ -122,6 +122,12 @@ Dokuz adımın tamamı gerçek veriyle çalışır. Yer tutucu adım kalmadı.
 
 - **Dosya yükleme:** sürükle-bırak ile çoklu dosya; boyut ve tür doğrulaması;
   dosyalar yalnızca bu bilgisayarda `backend/uploads/` altında saklanır.
+- **Getirme (RAG):** İki ayrı arama yapılır. Bilgi tabanında (196 kayıt:
+  OWASP, CWE, ATT&CK, kontroller) "bu tür bir sistemde ne bilinir"; dokümanın
+  kendi parçalarında "bu doküman bu bileşen hakkında ne diyor". İkisi de
+  anahtar kelime + vektör araması, RRF ile birleştirilir. Doküman tek isteme
+  sığıyorsa tamamı gönderilir; sığmıyorsa her bileşen için getirilen
+  bölümler kullanılır ve bu ekranda belirtilir.
 - **Şemalar:** Word'e çizilmiş şekiller, Word'e yapıştırılmış draw.io
   görselleri (düzenlenebilir PNG), gömülü Visio nesneleri ve tek başına
   yüklenen `.drawio` / `.vsdx` / `.xml` dosyalarından kutu ve oklar okunur;

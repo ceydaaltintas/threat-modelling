@@ -415,7 +415,16 @@ export interface RetrievalOutput {
     label: string;
     query: string;
     sources: KbHit[];
+    /** Passages of the uploaded document that answer the same query. */
+    passages?: Array<{
+      text: string;
+      page: number | null;
+      section: string | null;
+      score: number;
+      matched_by: string[];
+    }>;
   }>;
+  passages?: number;
   unique_identifiers: string[];
   degraded: boolean;
   note: string | null;

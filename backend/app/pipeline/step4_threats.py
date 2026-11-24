@@ -84,6 +84,44 @@ def _model_summary(model: SystemModel) -> str:
     return "\n".join(lines)
 
 
+def _document_blocks(retrieved: dict, document_text: str) -> tuple[str, bool]:
+    """What of the document goes into the prompt.
+
+    A document that fits is sent whole: nothing is lost and the result does
+    not depend on retrieval. A longer one used to be cut at 18,000
+    characters, which silently dropped whatever came last - usually
+    operations, logging and security. For those, step 3's retrieved
+    passages are used instead, so every component brings its own part of
+    the document with it.
+    """
+    if len(document_text) <= MAX_DOCUMENT_CHARS:
+        return document_text, False
+
+    seen: set[str] = set()
+    blocks: list[str] = []
+    for element in retrieved.get("elements", []):
+        for passage in element.get("passages", []):
+            body = (passage.get("text") or "").strip()
+            if not body or body in seen:
+                continue
+            seen.add(body)
+            where = []
+            if passage.get("page"):
+                where.append(f"sayfa {passage['page']}")
+            if passage.get("section"):
+                where.append(str(passage["section"]))
+            header = f"[{' · '.join(where)}]" if where else ""
+            blocks.append(f"{header}\n{body}".strip())
+
+    if not blocks:
+        # No passages (an old run, or the index could not be built): fall
+        # back to the old behaviour rather than sending nothing.
+        return document_text[:MAX_DOCUMENT_CHARS], False
+
+    joined = "\n\n".join(blocks)
+    return joined[:MAX_DOCUMENT_CHARS], True
+
+
 def _knowledge_blocks(retrieved: dict) -> tuple[str, set[str]]:
     """Render retrieved sources as <knowledge id="..."> blocks."""
     seen: dict[str, str] = {}
@@ -259,6 +297,7 @@ async def run(ctx: RunContext) -> dict[str, int]:
     knowledge_text, allowed_ids = _knowledge_blocks(retrieved)
     llm_rows: list[dict] = []
     llm_note: str | None = None
+    retrieved_doc = False
     llm_stats: dict[str, int] = {}
 
     if ctx.gateway is None:
@@ -277,13 +316,15 @@ async def run(ctx: RunContext) -> dict[str, int]:
         known = "\n".join(f"- {item['title']}" for item in rule_rows) or "(yok)"
         summary = _model_summary(model)
 
+        doc_for_prompt, retrieved_doc = _document_blocks(retrieved, document_text)
+
         def _build(doc_chars: int, knowledge_chars: int) -> str:
             return prompt.render(
                 system_model=summary,
                 known_threats=known,
                 knowledge_blocks=knowledge_text[:knowledge_chars]
                 or "(kaynak getirilemedi)",
-                document_text=document_text[:doc_chars],
+                document_text=doc_for_prompt[:doc_chars],
             )
 
         user = _build(MAX_DOCUMENT_CHARS, MAX_KNOWLEDGE_CHARS)
@@ -370,6 +411,15 @@ async def run(ctx: RunContext) -> dict[str, int]:
         "llm_note": llm_note,
         "llm_stats": llm_stats,
         "knowledge_ids_offered": len(allowed_ids),
+        # Say which part of the document the model actually saw, instead of
+        # cutting it short without a word.
+        "document_mode": "retrieved" if retrieved_doc else "full",
+        "document_note": (
+            "Doküman tek isteme sığmadığı için her bileşen ve akış için "
+            "getirilen bölümler kullanıldı (3. adımdaki arama)."
+            if retrieved_doc
+            else None
+        ),
     }
 
     return {

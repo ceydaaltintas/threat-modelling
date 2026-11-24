@@ -196,6 +196,31 @@ class Threat(Base, TimestampMixin):
     )
 
 
+class DocumentChunk(Base, TimestampMixin):
+    """A passage of an uploaded document, indexed for retrieval.
+
+    The knowledge base answers "what is known about this kind of system";
+    these answer "what does *this* document say about this component". A
+    long architecture document does not fit in one prompt, and cutting it
+    at a fixed length drops whatever came last - which is usually the
+    operations and security sections.
+    """
+
+    __tablename__ = "document_chunk"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    document_id: Mapped[str] = mapped_column(
+        ForeignKey("document.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Where the passage sits, so a finding can cite it.
+    page: Mapped[int | None] = mapped_column(Integer)
+    section: Mapped[str | None] = mapped_column(String(300))
+    ordinal: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM))
+    search_vector: Mapped[str | None] = mapped_column(TSVECTOR)
+
+
 class KbChunk(Base, TimestampMixin):
     __tablename__ = "kb_chunk"
 

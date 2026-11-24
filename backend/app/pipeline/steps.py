@@ -46,6 +46,7 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
             "pages": "sayfa",
             "sections": "bölüm",
             "characters": "karakter",
+            "passages": "parça",
         },
     ),
     StepDefinition(
@@ -71,11 +72,16 @@ PIPELINE_STEPS: tuple[StepDefinition, ...] = (
         no=3,
         name="İlgili bilgi toplandı",
         description=(
-            "Her bileşen ve akış için bilgi tabanında hibrit arama yapılır "
-            "(anahtar kelime + vektör, RRF ile birleştirme)."
+            "Her bileşen ve akış için hem bilgi tabanında hem dokümanın "
+            "kendi parçalarında hibrit arama yapılır (anahtar kelime + "
+            "vektör, RRF ile birleştirme)."
         ),
         performer="code",
-        counter_labels={"queries": "sorgu", "sources": "kaynak"},
+        counter_labels={
+            "queries": "sorgu",
+            "sources": "kaynak",
+            "passages": "doküman parçası",
+        },
     ),
     StepDefinition(
         no=4,

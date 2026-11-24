@@ -12,6 +12,7 @@ import logging
 from sqlalchemy import select
 
 from app.core.db import SessionLocal
+from app.kb.document_search import search_document
 from app.kb.search import search as hybrid_search
 from app.models import SystemModel as SystemModelRow
 from app.pipeline.context import RunContext, StepFailed
@@ -24,6 +25,8 @@ STEP = step_by_no(3)
 
 # How many sources to keep per model element.
 PER_ELEMENT = 6
+# Passages of the document itself kept per component or flow.
+PASSAGES_PER_ELEMENT = 3
 # Sources that describe controls rather than threats; kept out of the
 # threat-generation context so the model is not nudged into "fix" language.
 CONTROL_SOURCES = {"iso27001", "nist80053", "asvs", "tr_regulation"}
@@ -100,6 +103,7 @@ async def run(ctx: RunContext) -> dict[str, int]:
         results: list[dict] = []
         all_ids: set[str] = set()
         degraded = False
+        total_passages = 0
 
         for index, (kind, element_id, label, query) in enumerate(elements, start=1):
             await ctx.report(
@@ -115,6 +119,15 @@ async def run(ctx: RunContext) -> dict[str, int]:
                 degraded = True
             sources = [hit.as_dict() for hit in hits]
             all_ids.update(hit.identifier for hit in hits)
+
+            # The same question, asked of the document itself: which
+            # passages talk about this component? Step 4 uses these when
+            # the document is too long to hand over whole.
+            passages = await search_document(
+                session, ctx.project_id, query, limit=PASSAGES_PER_ELEMENT
+            )
+            total_passages += len(passages)
+
             results.append(
                 {
                     "kind": kind,
@@ -122,11 +135,13 @@ async def run(ctx: RunContext) -> dict[str, int]:
                     "label": label,
                     "query": query,
                     "sources": sources,
+                    "passages": [hit.as_dict() for hit in passages],
                 }
             )
 
     payload = {
         "elements": results,
+        "passages": total_passages,
         "unique_identifiers": sorted(all_ids),
         "degraded": degraded,
         "note": (
@@ -142,5 +157,6 @@ async def run(ctx: RunContext) -> dict[str, int]:
     return {
         "queries": len(elements),
         "sources": len(all_ids),
+        "passages": total_passages,
         "per_element": PER_ELEMENT,
     }

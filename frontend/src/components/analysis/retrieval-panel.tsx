@@ -105,6 +105,39 @@ export function RetrievalPanel({ output }: { output: RetrievalOutput }) {
                 ))}
               </ul>
             )}
+
+            {/* The same question asked of the document itself. Without
+                this the screen showed what the platform knows but not
+                what it read. */}
+            {element.passages && element.passages.length > 0 ? (
+              <div className="mt-4 border-t border-border pt-3">
+                <p className="mb-2 text-xs font-medium">
+                  Dokümandan getirilen bölümler
+                </p>
+                <ul className="space-y-2">
+                  {element.passages.map((passage, index) => (
+                    <li
+                      key={index}
+                      className="rounded-md border border-border bg-surface-muted/40 p-2.5"
+                    >
+                      <p className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
+                        {passage.page ? <span>Sayfa {passage.page}</span> : null}
+                        {passage.section ? <span>· {passage.section}</span> : null}
+                        <span>· Skor {passage.score}</span>
+                        {passage.matched_by.map((engine) => (
+                          <span key={engine}>
+                            · {MATCH_LABELS[engine] ?? engine}
+                          </span>
+                        ))}
+                      </p>
+                      <p className="mt-1 line-clamp-3 text-[11px] leading-relaxed">
+                        {passage.text}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>
